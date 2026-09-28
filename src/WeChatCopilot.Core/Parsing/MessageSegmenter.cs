@@ -107,14 +107,37 @@ public sealed class MessageSegmenter
             right = Math.Max(right, w.X + w.Width);
         }
 
-        if (left <= captureWidth * _options.AnchorLeftMaxRatio)
+        double distToLeft = left;
+        double distToRight = Math.Max(0, captureWidth - right);
+
+        bool isLeftCandidate = left <= captureWidth * _options.AnchorLeftMaxRatio;
+        bool isRightCandidate = right >= captureWidth * _options.AnchorRightMinRatio;
+
+        // 如果只符合一侧候选
+        if (isLeftCandidate && !isRightCandidate)
         {
             return MessageRole.Incoming;
         }
 
-        if (right >= captureWidth * _options.AnchorRightMinRatio)
+        if (isRightCandidate && !isLeftCandidate)
         {
             return MessageRole.Outgoing;
+        }
+
+        // 如果两侧都符合（长句子）或处于中间地带，根据与左/右侧边缘的相对间距距离判定
+        if (isLeftCandidate && isRightCandidate)
+        {
+            return distToLeft <= distToRight ? MessageRole.Incoming : MessageRole.Outgoing;
+        }
+
+        if (distToRight < distToLeft * 0.75)
+        {
+            return MessageRole.Outgoing;
+        }
+
+        if (distToLeft < distToRight * 0.75)
+        {
+            return MessageRole.Incoming;
         }
 
         return MessageRole.Unknown;

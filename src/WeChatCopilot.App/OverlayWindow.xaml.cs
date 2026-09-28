@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Windows.Shapes;
 using Microsoft.Win32;
 using WeChatCopilot.AI;
 using WeChatCopilot.Core.Abstractions;
@@ -62,6 +63,7 @@ public partial class OverlayWindow : Window
     private bool _autoSyncContact = true;
     private bool _isSyncingPersonaSelection;
     private string _currentChatContact = string.Empty;
+    private string? _mySelfNickname;
     private Persona? _currentLoadedPersona;
 
     public OverlayWindow()
@@ -298,7 +300,10 @@ public partial class OverlayWindow : Window
 
         try
         {
-            var region = ChatRegionCropper.ComputeChatRegion(info.Bounds, _cropOptions);
+            var crop = info.ClassName == "ChatWnd"
+                ? new ChatRegionOptions { TrimLeftRatio = 0.02, TrimTopRatio = 0.08, TrimBottomRatio = 0.25 }
+                : _cropOptions;
+            var region = ChatRegionCropper.ComputeChatRegion(info.Bounds, crop);
             var image = ScreenCapture.CaptureRegion(region);
             if (image is null)
             {
@@ -483,6 +488,10 @@ public partial class OverlayWindow : Window
 
     private void ShowSubtextAnalysis(SubtextAnalysis s)
     {
+        var targetMsg = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
+        string targetText = targetMsg?.Text ?? "（未找到对方具体发言）";
+        SubtextTargetText.Text = $"“{targetText}”";
+
         SubtextLiteralText.Text = string.IsNullOrWhiteSpace(s.Literal) ? "（未解析）" : s.Literal;
         SubtextSubtextText.Text = string.IsNullOrWhiteSpace(s.Subtext) ? "（未解析）" : s.Subtext;
         SubtextEmotionText.Text = string.IsNullOrWhiteSpace(s.Emotion) ? "（未解析）" : s.Emotion;
@@ -563,21 +572,74 @@ public partial class OverlayWindow : Window
             PersonaScroll.Visibility = Visibility.Collapsed;
             PersonaEmptyCard.Visibility = Visibility.Visible;
             PersonaEmptyTitle.Text = "请选择或输入联系人";
+            RadarCanvas.Children.Clear();
         }
     }
 
-    private void SyncContactButton_Click(object sender, RoutedEventArgs e)
+    private async void SyncContactButton_Click(object sender, RoutedEventArgs e)
     {
         _autoSyncContact = true;
-        if (!string.IsNullOrEmpty(_currentChatContact))
+        SyncContactButton.IsEnabled = false;
+        SetPersonaStatus("正在从微信与 TraceMemo 探测当前对话好友...", isBusy: true);
+
+        try
         {
-            ContactBox.Text = _currentChatContact;
-            CheckAndLoadPersona(_currentChatContact);
-            SetPersonaStatus($"已同步为当前微信聊天对象：「{_currentChatContact}」", isBusy: false);
+            string? detectedName = null;
+
+            // 1. 优先尝试从 TraceMemo 获取当前活跃单聊好友（排除群聊和系统号）
+            var settings = new SettingsStore().Load();
+            if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
+            {
+                try
+                {
+                    using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
+                    detectedName = await client.GetActiveContactNameAsync();
+                }
+                catch
+                {
+                    // 忽略网络或服务不可用异常
+                }
+            }
+
+            // 2. 如果当前窗口是独立聊天窗口 (ChatWnd)，取窗口标题
+            if (string.IsNullOrWhiteSpace(detectedName))
+            {
+                var info = _tracker.GetCurrent();
+                if (info is not null && info.ClassName == "ChatWnd")
+                {
+                    string titleContact = CleanContactName(info.Title);
+                    if (!string.IsNullOrEmpty(titleContact) && titleContact != _mySelfNickname)
+                    {
+                        detectedName = titleContact;
+                    }
+                }
+            }
+
+            // 3. 检查已记录的当前非本人联系人
+            if (string.IsNullOrWhiteSpace(detectedName) && !string.IsNullOrEmpty(_currentChatContact) && _currentChatContact != _mySelfNickname)
+            {
+                detectedName = _currentChatContact;
+            }
+
+            if (!string.IsNullOrEmpty(detectedName) && detectedName != _mySelfNickname)
+            {
+                _currentChatContact = detectedName;
+                ContactBox.Text = detectedName;
+                CheckAndLoadPersona(detectedName);
+                SetPersonaStatus($"✅ 已同步当前微信聊天对象：「{detectedName}」", isBusy: false);
+            }
+            else
+            {
+                SetPersonaStatus("未能从 TraceMemo 识别到活跃会话。如为独立聊天窗口请先点击激活，或在上方直接输入好友昵称/备注。", isBusy: false);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            SetPersonaStatus("未在激活微信窗口识别到有效聊天对象，请确认微信已进入对话页面", isBusy: false);
+            SetPersonaStatus("同步聊天对象失败：" + ex.Message, isBusy: false);
+        }
+        finally
+        {
+            SyncContactButton.IsEnabled = true;
         }
     }
 
@@ -764,7 +826,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        string path = Path.Combine(
+        string path = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "WeChatCopilot", "personas", name + ".json");
 
@@ -796,6 +858,7 @@ public partial class OverlayWindow : Window
                 PersonaScroll.Visibility = Visibility.Collapsed;
                 PersonaEmptyCard.Visibility = Visibility.Visible;
                 PersonaEmptyTitle.Text = $"暂无「{name}」的画像";
+                RadarCanvas.Children.Clear();
             }
         }
         catch (Exception ex)
@@ -804,6 +867,7 @@ public partial class OverlayWindow : Window
             PersonaScroll.Visibility = Visibility.Collapsed;
             PersonaEmptyCard.Visibility = Visibility.Visible;
             PersonaEmptyTitle.Text = $"读取「{name}」画像失败：{ex.Message}";
+            RadarCanvas.Children.Clear();
         }
     }
 
@@ -816,6 +880,152 @@ public partial class OverlayWindow : Window
         PersonaHeaderName.Text = $"👤 {p.ContactName} 的人格特质画像";
         PersonaHeaderMeta.Text = $"更新时间: {p.UpdatedAt:yyyy-MM-dd HH:mm}  |  基于历史: {p.SourceMessageCount} 条消息";
         PersonaCards.ItemsSource = p.Traits;
+
+        DrawRadarChart(p.Traits);
+    }
+
+    private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits)
+    {
+        RadarCanvas.Children.Clear();
+
+        double cx = RadarCanvas.Width / 2.0;
+        double cy = RadarCanvas.Height / 2.0;
+        double maxR = 64.0;
+
+        // 整理六维数据：优先匹配专业六维，缺失时自适应填充
+        var standardDims = new[]
+        {
+            ("沟通风格", 75.0),
+            ("性格能量", 70.0),
+            ("决策模式", 65.0),
+            ("情绪阈值", 80.0),
+            ("价值锚点", 85.0),
+            ("隐形雷区", 60.0)
+        };
+
+        var data = new List<(string Label, double Score)>();
+        if (traits != null && traits.Count >= 3)
+        {
+            foreach (var t in traits)
+            {
+                double score = t.Score > 0 ? t.Score : Math.Clamp(t.Confidence * 100, 20, 95);
+                data.Add((t.Dimension, score));
+            }
+        }
+        else if (traits != null && traits.Count > 0)
+        {
+            foreach (var (dim, defScore) in standardDims)
+            {
+                var matched = traits.FirstOrDefault(t => t.Dimension.Contains(dim) || dim.Contains(t.Dimension));
+                double score = matched != null ? (matched.Score > 0 ? matched.Score : Math.Clamp(matched.Confidence * 100, 20, 95)) : defScore;
+                data.Add((dim, score));
+            }
+        }
+        else
+        {
+            foreach (var (dim, defScore) in standardDims)
+            {
+                data.Add((dim, defScore));
+            }
+        }
+
+        int count = data.Count;
+        double angleStep = 2 * Math.PI / count;
+        double startAngle = -Math.PI / 2.0;
+
+        // 1. 同心网格层 (4圈: 25%, 50%, 75%, 100%)
+        for (int level = 1; level <= 4; level++)
+        {
+            double rLevel = maxR * (level / 4.0);
+            var gridPoints = new PointCollection();
+            for (int i = 0; i < count; i++)
+            {
+                double angle = startAngle + i * angleStep;
+                gridPoints.Add(new Point(cx + rLevel * Math.Cos(angle), cy + rLevel * Math.Sin(angle)));
+            }
+
+            var gridPoly = new Polygon
+            {
+                Points = gridPoints,
+                Stroke = new SolidColorBrush(Color.FromArgb(level == 4 ? (byte)90 : (byte)40, 148, 163, 184)),
+                StrokeThickness = 1,
+                StrokeDashArray = level == 4 ? null : new DoubleCollection { 2, 2 }
+            };
+            RadarCanvas.Children.Add(gridPoly);
+        }
+
+        // 2. 轴线层
+        for (int i = 0; i < count; i++)
+        {
+            double angle = startAngle + i * angleStep;
+            var axis = new Line
+            {
+                X1 = cx,
+                Y1 = cy,
+                X2 = cx + maxR * Math.Cos(angle),
+                Y2 = cy + maxR * Math.Sin(angle),
+                Stroke = new SolidColorBrush(Color.FromArgb(45, 148, 163, 184)),
+                StrokeThickness = 1
+            };
+            RadarCanvas.Children.Add(axis);
+        }
+
+        // 3. 数据发光多边形层
+        var dataPoints = new PointCollection();
+        for (int i = 0; i < count; i++)
+        {
+            double angle = startAngle + i * angleStep;
+            double rVal = maxR * (Math.Clamp(data[i].Score, 10, 100) / 100.0);
+            dataPoints.Add(new Point(cx + rVal * Math.Cos(angle), cy + rVal * Math.Sin(angle)));
+        }
+
+        var dataPoly = new Polygon
+        {
+            Points = dataPoints,
+            Stroke = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+            StrokeThickness = 2,
+            Fill = new SolidColorBrush(Color.FromArgb(50, 56, 189, 248))
+        };
+        RadarCanvas.Children.Add(dataPoly);
+
+        // 4. 数据点高光圆点
+        foreach (Point p in dataPoints)
+        {
+            var dot = new Ellipse
+            {
+                Width = 6,
+                Height = 6,
+                Fill = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+                Stroke = Brushes.White,
+                StrokeThickness = 1.5
+            };
+            Canvas.SetLeft(dot, p.X - 3);
+            Canvas.SetTop(dot, p.Y - 3);
+            RadarCanvas.Children.Add(dot);
+        }
+
+        // 5. 外周维度标签与评分 (居中对齐)
+        double labelR = maxR + 15;
+        for (int i = 0; i < count; i++)
+        {
+            double angle = startAngle + i * angleStep;
+            double lx = cx + labelR * Math.Cos(angle);
+            double ly = cy + labelR * Math.Sin(angle);
+
+            var tb = new TextBlock
+            {
+                Text = $"{data[i].Label}\n{(int)data[i].Score}分",
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(167, 243, 208)),
+                TextAlignment = TextAlignment.Center,
+                Width = 60
+            };
+
+            Canvas.SetLeft(tb, lx - 30);
+            Canvas.SetTop(tb, ly - 13);
+            RadarCanvas.Children.Add(tb);
+        }
     }
 
     private void SetPersonaStatus(string text, bool isBusy)
@@ -866,22 +1076,38 @@ public partial class OverlayWindow : Window
 
     private void UpdatePlacement(WindowInfo info)
     {
-        string contact = CleanContactName(info.Title);
-        if (!string.IsNullOrEmpty(contact))
+        if (info.ClassName == "ChatWnd")
         {
-            _currentChatContact = contact;
-            StatusText.Text = $"已连接：{contact}";
-            StatusDot.Fill = (SolidColorBrush)FindResource("GreenBrush");
-
-            if (_autoSyncContact || string.IsNullOrWhiteSpace(ContactBox.Text))
+            // 独立单聊窗口：标题即为联系人姓名
+            string contact = CleanContactName(info.Title);
+            if (!string.IsNullOrEmpty(contact) && contact != _mySelfNickname)
             {
-                ContactBox.Text = contact;
-                CheckAndLoadPersona(contact);
+                _currentChatContact = contact;
+                StatusText.Text = $"已连接：{contact}";
+                StatusDot.Fill = (SolidColorBrush)FindResource("GreenBrush");
+
+                if (_autoSyncContact)
+                {
+                    ContactBox.Text = contact;
+                    CheckAndLoadPersona(contact);
+                }
             }
         }
         else
         {
-            StatusText.Text = "微信已就绪（主界面）";
+            // 微信主窗口：标题通常为登录用户自己的微信昵称或“微信”
+            string selfOrWeChat = CleanContactName(info.Title);
+            if (!string.IsNullOrEmpty(selfOrWeChat) && selfOrWeChat != "微信" && selfOrWeChat != "WeChat")
+            {
+                _mySelfNickname = selfOrWeChat;
+                StatusText.Text = $"微信已就绪 ({_mySelfNickname})";
+            }
+            else
+            {
+                StatusText.Text = "微信已就绪（主界面）";
+            }
+
+            StatusDot.Fill = (SolidColorBrush)FindResource("GreenBrush");
         }
 
         BoundsText.Text =

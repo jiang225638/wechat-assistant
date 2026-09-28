@@ -15,9 +15,15 @@ public static class PromptBuilder
     public static readonly string[] ReplyTones = { "共情", "专业", "幽默", "直接", "缓和" };
 
     private const string SubtextSystemPrompt =
-        "你是微信聊天潜台词分析副驾。用户会给你一段聊天记录（[对方]=对方消息，[我]=用户自己消息）。" +
-        "请用中文分析对方最近一条消息。严格只按以下固定格式输出，每项一行，不要输出其他内容，不要代发消息：\n" +
-        "字面意思：…\n潜台词：…\n情绪状态：…\n真实意图：…\n想要的回应：…\n建议策略：…";
+        "你是一位精通人际交往心理学、微表情与对话潜台词的顶级沟通大师。\n" +
+        "你需要根据提供的对话上下文以及【对方已知的人格特质画像】（如其性格倾向、沟通风格、决策模式、情绪阈值与沟通雷区），穿透字面表象，深度剖析对方最新发言背后的真实意图。\n" +
+        "严格只按以下固定格式输出6项，每项一行，不要输出其他开场白、总结，不要代发消息：\n" +
+        "字面意思：对方表面上说了什么\n" +
+        "潜台词：结合其性格特征，分析对方不敢明说、委婉暗示或隐藏在背后的真实弦外之音\n" +
+        "情绪状态：对方此时此刻的真实情绪与心理防备程度\n" +
+        "真实意图：对方核心想推动什么、防范什么或试探什么\n" +
+        "想要的回应：结合其价值锚点，对方潜意识里最希望得到什么样的答复与承诺\n" +
+        "建议策略：针对其性格特征与雷区，建议我方采取的最佳沟通与破解策略（具体到语气、切入点与措辞）";
 
     /// <summary>把消息列表转写为 "[对方] xxx / [我] xxx" 的多行文本（取最近 maxMessages 条）。</summary>
     public static string BuildTranscript(IReadOnlyList<ChatMessage> messages, int maxMessages = 30)
@@ -70,14 +76,28 @@ public static class PromptBuilder
     /// <summary>构建"潜台词分析"请求：六项标签固定格式，与 <see cref="AiOutputParser.ParseSubtext"/> 对应。</summary>
     public static AiRequest BuildSubtextAnalysis(AiSettings settings, IReadOnlyList<ChatMessage> messages, Persona? persona = null)
     {
-        string userPrompt = "聊天记录：\n" + BuildTranscript(messages);
+        var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
+        string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
+
+        var sb = new StringBuilder();
+        sb.AppendLine("完整对话流背景（[对方]=对方消息，[我]=用户自己消息）：");
+        sb.AppendLine(BuildTranscript(messages));
+
         if (persona is { Traits.Count: > 0 })
         {
-            userPrompt += "\n\n对方已知画像参考：\n" + string.Join("\n", persona.Traits.Select(t => $"- {t.Dimension}: {t.Attribute}"));
+            sb.AppendLine();
+            sb.AppendLine($"对方已知画像参考：{persona.ContactName}");
+            foreach (var t in persona.Traits)
+            {
+                sb.AppendLine($"- {t.Dimension}: {t.Attribute} (置信度: {t.ConfidenceText})");
+            }
         }
-        userPrompt += "\n请分析对方最近一条消息的潜台词与真实意图。";
 
-        return new AiRequest(SubtextSystemPrompt, userPrompt, settings.Model, settings.Temperature);
+        sb.AppendLine();
+        sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
+        sb.AppendLine("请结合上述对话背景与对方的人格特征，穿透字面表象，严格按格式输出 6 项深层潜台词剖析：");
+
+        return new AiRequest(SubtextSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
 }

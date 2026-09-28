@@ -183,13 +183,18 @@ public sealed class TraceMemoClient : IDisposable
             foreach (JsonElement el in enumerator)
             {
                 string text = GetStringAny(el, "text", "content", "message", "msg", "m_nsContent");
+                if (text.Length == 0 && el.TryGetProperty("contentData", out var cd) && cd.ValueKind == JsonValueKind.Object)
+                {
+                    text = GetStringAny(cd, "title", "des", "text");
+                }
+
                 if (text.Length == 0)
                 {
                     continue;
                 }
 
                 DateTime? ts = null;
-                string tsRaw = GetStringAny(el, "ts", "time", "timestamp", "CreateTime", "m_uiCreateTime");
+                string tsRaw = GetStringAny(el, "ts", "time", "timestamp", "CreateTime", "m_uiCreateTime", "createTime");
                 if (tsRaw.Length > 0 && long.TryParse(tsRaw, out long epochSeconds))
                 {
                     ts = DateTime.UnixEpoch.AddSeconds(epochSeconds);
@@ -199,12 +204,68 @@ public sealed class TraceMemoClient : IDisposable
                     ts = parsed;
                 }
 
-                string roleStr = GetStringAny(el, "role", "sender", "from", "isSend");
-                list.Add(new HistoryMessage(MapRole(roleStr), text, ts));
+                MessageRole role = ExtractRole(el);
+                list.Add(new HistoryMessage(role, text, ts));
             }
 
             return list;
         }
+    }
+
+    /// <summary>
+    /// 从 TraceMemo 的 recent_chat 活跃会话流中获取当前正在沟通的单聊好友昵称（排在首位的非群聊、非公众号好友）。
+    /// </summary>
+    public async Task<string?> GetActiveContactNameAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var doc = await TryGetJsonAsync("api/v1/recent_chat", cancellationToken);
+            if (doc is null)
+            {
+                return null;
+            }
+
+            JsonElement root = doc.RootElement;
+            JsonElement.ArrayEnumerator enumerator = root.ValueKind switch
+            {
+                JsonValueKind.Array => root.EnumerateArray(),
+                JsonValueKind.Object when root.TryGetProperty("items", out var iArr) && iArr.ValueKind == JsonValueKind.Array => iArr.EnumerateArray(),
+                _ => default
+            };
+
+            foreach (JsonElement item in enumerator)
+            {
+                string type = GetStringAny(item, "type");
+                if (type.Equals("group", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (item.TryGetProperty("isOfficialAccount", out var isOfficial) && isOfficial.ValueKind == JsonValueKind.True)
+                {
+                    continue;
+                }
+
+                string nick = GetStringAny(item, "m_nsNickName", "remark", "nickname", "name");
+                string wxid = GetStringAny(item, "wxid", "m_nsUsrName");
+
+                if (wxid is "brandsessionholder" or "fmessage" or "medianote" or "floatbottle" or "qmessage" or "weixin" or "newsapp")
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(nick))
+                {
+                    return nick;
+                }
+            }
+        }
+        catch
+        {
+            // 忽略读取异常
+        }
+
+        return null;
     }
 
     public void Dispose()
@@ -258,10 +319,53 @@ public sealed class TraceMemoClient : IDisposable
         return string.Empty;
     }
 
+    private static MessageRole ExtractRole(JsonElement el)
+    {
+        // 1. 优先检查布尔/整型字段: isSender / is_sender / isSend
+        string[] senderKeys = { "isSender", "is_sender", "isSend", "issender", "issend" };
+        foreach (string key in senderKeys)
+        {
+            if (el.TryGetProperty(key, out JsonElement val))
+            {
+                if (val.ValueKind == JsonValueKind.True) return MessageRole.Outgoing;
+                if (val.ValueKind == JsonValueKind.False) return MessageRole.Incoming;
+                if (val.ValueKind == JsonValueKind.Number && val.TryGetInt32(out int n))
+                {
+                    return n == 1 ? MessageRole.Outgoing : MessageRole.Incoming;
+                }
+                if (val.ValueKind == JsonValueKind.String)
+                {
+                    string s = val.GetString()?.Trim().ToLowerInvariant() ?? "";
+                    if (s is "1" or "true" or "yes" or "self" or "outgoing" or "我") return MessageRole.Outgoing;
+                    if (s is "0" or "false" or "no" or "other" or "incoming" or "对方") return MessageRole.Incoming;
+                }
+            }
+        }
+
+        // 2. 检查微信底层 Des 字段（0=发出，1=接收）
+        if (el.TryGetProperty("Des", out var desVal) && desVal.ValueKind == JsonValueKind.Number && desVal.TryGetInt32(out int des))
+        {
+            return des == 0 ? MessageRole.Outgoing : MessageRole.Incoming;
+        }
+
+        // 3. 检查字符串 role / sender 描述
+        string roleStr = GetStringAny(el, "role", "sender");
+        if (!string.IsNullOrWhiteSpace(roleStr))
+        {
+            var mapped = MapRole(roleStr);
+            if (mapped != MessageRole.Unknown)
+            {
+                return mapped;
+            }
+        }
+
+        return MessageRole.Incoming;
+    }
+
     private static MessageRole MapRole(string role) => role.Trim().ToLowerInvariant() switch
     {
-        "1" or "true" or "outgoing" or "self" or "me" or "我" => MessageRole.Outgoing,
-        "0" or "false" or "incoming" or "other" or "friend" or "对方" => MessageRole.Incoming,
+        "1" or "true" or "outgoing" or "self" or "me" or "我" or "send" or "sent" => MessageRole.Outgoing,
+        "0" or "false" or "incoming" or "other" or "friend" or "对方" or "recv" or "received" => MessageRole.Incoming,
         _ => MessageRole.Unknown
     };
 }

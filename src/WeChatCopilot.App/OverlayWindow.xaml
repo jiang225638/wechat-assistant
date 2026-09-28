@@ -495,6 +495,16 @@
                         <!-- 潜台词卡片视图 -->
                         <ScrollViewer x:Name="SubtextScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                             <StackPanel x:Name="SubtextCardsContainer">
+                                <!-- 正在剖析的目标原话卡片 -->
+                                <Border Background="#253B82F6" CornerRadius="10"
+                                        BorderBrush="#553B82F6" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="🎯 正在深度剖析对方最新发言" Foreground="#60A5FA" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextTargetText" Text="（尚未读取到对方具体发言）"
+                                                   Foreground="#FFFFFF" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
                                         BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
                                     <StackPanel>
@@ -675,6 +685,24 @@
                                     </Grid>
                                 </Border>
 
+                                <!-- 专业多维性格与沟通雷达图谱卡片 -->
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                        Padding="12,10" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <Grid>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📊" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="多维性格与沟通雷达图谱" FontWeight="Bold" FontSize="12.5"
+                                                           Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock Text="量化特征图谱" HorizontalAlignment="Right" FontSize="10.5"
+                                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Canvas x:Name="RadarCanvas" Width="360" Height="200" Margin="0,6,0,0" HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- 七维特质卡片 ItemsControl -->
                                 <ItemsControl x:Name="PersonaCards">
                                     <ItemsControl.ItemTemplate>
@@ -683,16 +711,21 @@
                                                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
                                                     Padding="12" Margin="0,0,0,8">
                                                 <StackPanel>
-                                                    <!-- 头部：维度名称 + 置信度进度条 -->
+                                                    <!-- 头部：维度名称 + 评分 + 置信度进度条 -->
                                                     <Grid>
                                                         <Border HorizontalAlignment="Left" Background="#2210B981" CornerRadius="4" Padding="6,2">
-                                                            <TextBlock Text="{Binding Dimension}" Foreground="#34D399"
-                                                                       FontWeight="Bold" FontSize="11" />
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Dimension}" Foreground="#34D399"
+                                                                           FontWeight="Bold" FontSize="11" />
+                                                                <TextBlock Text=" · " Foreground="#6634D399" FontSize="11" />
+                                                                <TextBlock Text="{Binding ScoreText}" Foreground="#A7F3D0"
+                                                                           FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" />
+                                                            </StackPanel>
                                                         </Border>
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                             <TextBlock Text="置信度: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" />
                                                             <TextBlock Text="{Binding ConfidencePercentText}" Foreground="#34D399"
-                                                                       FontWeight="SemiBold" FontSize="11" Margin="0,0,6,0" />
+                                                                        FontWeight="SemiBold" FontSize="11" Margin="0,0,6,0" />
                                                             <ProgressBar Width="50" Height="5" Maximum="100"
                                                                          Value="{Binding ConfidencePercent, Mode=OneWay}"
                                                                          Foreground="{StaticResource GreenBrush}"

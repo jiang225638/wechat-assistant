@@ -52,6 +52,46 @@ public class TraceMemoClientTests
         Assert.Contains("500", res.Error);
     }
 
+    [Fact]
+    public async Task FetchHistory_ParsesIsSenderAndDes()
+    {
+        const string rawJson =
+            "[{\"isSender\":false,\"text\":\"对方发的消息\"}," +
+            "{\"isSender\":true,\"text\":\"我回复的消息\"}," +
+            "{\"Des\":0,\"text\":\"底层Des0也是自己发出的\"}," +
+            "{\"Des\":1,\"text\":\"底层Des1是对方接收的\"}]";
+
+        using var client = new TraceMemoClient("http://stub.local", new StubHandler(path =>
+            path.Contains("/messages") ? rawJson : ContactsJson));
+
+        var res = await client.FetchHistoryAsync("张三");
+
+        Assert.True(res.Success);
+        Assert.Equal(4, res.Messages.Count);
+        Assert.Equal(MessageRole.Incoming, res.Messages[0].Role);
+        Assert.Equal(MessageRole.Outgoing, res.Messages[1].Role);
+        Assert.Equal(MessageRole.Outgoing, res.Messages[2].Role);
+        Assert.Equal(MessageRole.Incoming, res.Messages[3].Role);
+    }
+
+    [Fact]
+    public async Task GetActiveContactName_FiltersGroupsAndSystem_ReturnsFirst1v1()
+    {
+        const string recentChatsJson = "[" +
+            "{\"type\":\"group\",\"m_nsNickName\":\"某某大群\",\"wxid\":\"12345@chatroom\"}," +
+            "{\"type\":\"single\",\"isOfficialAccount\":true,\"m_nsNickName\":\"微信支付\",\"wxid\":\"gh_001\"}," +
+            "{\"type\":\"single\",\"m_nsNickName\":\"微信团队\",\"wxid\":\"weixin\"}," +
+            "{\"type\":\"single\",\"m_nsNickName\":\"杨柳依依\",\"wxid\":\"wxid_friend_888\"}" +
+            "]";
+
+        using var client = new TraceMemoClient("http://stub.local", new StubHandler(path =>
+            path.Contains("recent_chat") ? recentChatsJson : ContactsJson));
+
+        string? contact = await client.GetActiveContactNameAsync();
+
+        Assert.Equal("杨柳依依", contact);
+    }
+
     /// <summary>按路径返回固定 JSON 的测试 handler；body 为 null 时返回 500。</summary>
     private sealed class StubHandler : HttpMessageHandler
     {
