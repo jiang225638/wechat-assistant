@@ -9,170 +9,782 @@
         ShowInTaskbar="True"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
-        Width="380" Height="600"
+        Width="430" Height="690"
+        MinWidth="390" MinHeight="550"
         Left="120" Top="120">
-    <Border CornerRadius="10" Background="#EE1E1E2E" BorderBrush="#55FFFFFF" BorderThickness="1" Padding="12">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 基础色彩与画刷 -->
+
+        <SolidColorBrush x:Key="WindowBgBrush" Color="#F2181824" />
+        <SolidColorBrush x:Key="CardBgBrush" Color="#EE222233" />
+        <SolidColorBrush x:Key="CardSubtleBgBrush" Color="#771B1B2A" />
+        <SolidColorBrush x:Key="BorderLightBrush" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFF3F4F6" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FFA0A0B8" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#2563EB" />
+        <SolidColorBrush x:Key="GreenBrush" Color="#10B981" />
+        <SolidColorBrush x:Key="PurpleBrush" Color="#8B5CF6" />
+
+        <!-- 扁平圆角按钮样式 -->
+        <Style x:Key="FluentButton" TargetType="Button">
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" SnapsToDevicePixels="True"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#44FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#22FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 主操作强调按钮样式 -->
+        <Style x:Key="PrimaryAccentButton" TargetType="Button" BasedOn="{StaticResource FluentButton}">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="#4B92FF" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" SnapsToDevicePixels="True"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 扁平圆角开关按钮样式 -->
+        <Style x:Key="FluentToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="#25FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" SnapsToDevicePixels="True"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2210B981" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6610B981" />
+                                <Setter Property="Foreground" Value="#34D399" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#88FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 现代输入框样式 -->
+        <Style x:Key="FluentTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#221A1A2B" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"
+                                          Margin="0" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 键盘按键外观样式 -->
+        <Style x:Key="KeyCap" TargetType="Border">
+            <Setter Property="Background" Value="#28FFFFFF" />
+            <Setter Property="BorderBrush" Value="#44FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Margin" Value="2,0" />
+        </Style>
+    </Window.Resources>
+
+    <!-- 外层卡片边框 -->
+    <Border CornerRadius="14" Background="{StaticResource WindowBgBrush}"
+            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="14">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="#000000" />
+        </Border.Effect>
+
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" /> <!-- 顶部导航与状态 -->
+                <RowDefinition Height="Auto" /> <!-- 功能分区 Tab 切换 -->
+                <RowDefinition Height="*" />    <!-- 主工作区内容 -->
             </Grid.RowDefinitions>
 
-            <!-- 标题栏：已固定后可拖拽移动 -->
-            <TextBlock x:Name="HeaderTitle" Grid.Row="0"
-                       Text="微信 Copilot · 聊天副驾"
-                       Foreground="White" FontWeight="Bold" FontSize="14"
-                       MouseLeftButtonDown="HeaderTitle_MouseLeftButtonDown" />
+            <!-- ===================== ROW 0: 顶部标题栏与状态胶囊 ===================== -->
+            <StackPanel Grid.Row="0">
+                <!-- 顶部主操作栏：标题 + 窗口控制 -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-            <!-- 状态与窗口信息 -->
-            <TextBlock x:Name="StatusText" Grid.Row="1"
-                       Text="正在查找微信窗口..."
-                       Foreground="#FFDDDDDD" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" />
-            <TextBlock x:Name="BoundsText" Grid.Row="2"
-                       Text=""
-                       Foreground="#FF9CDCFE" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+                    <!-- 标题栏（固定模式下可按住拖动） -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                                x:Name="HeaderTitlePanel" Background="Transparent"
+                                MouseLeftButtonDown="HeaderTitle_MouseLeftButtonDown">
+                        <Border Width="24" Height="24" CornerRadius="6" Background="#2563EB" Margin="0,0,8,0">
+                            <TextBlock Text="💬" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="微信 Copilot" Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontWeight="Bold" FontSize="14" VerticalAlignment="Center" />
+                        <TextBlock Text="· 聊天副驾" Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
 
-            <!-- 窗口级操作：跟随/定位/退出 -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
-                <ToggleButton x:Name="PinButton" Content="跟随中" Width="76"
-                              Checked="PinButton_Changed" Unchecked="PinButton_Changed" />
-                <Button x:Name="RelocateButton" Content="重新定位" Width="76" Margin="8,0,0,0" Click="RelocateButton_Click" />
-                <Button x:Name="QuitButton" Content="退出" Width="56" Margin="8,0,0,0" Click="QuitButton_Click" />
+                    <!-- 右侧控制按钮组 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ToggleButton x:Name="PinButton" Style="{StaticResource FluentToggleButton}"
+                                      Content="📌 吸附中" ToolTip="切换：贴边跟随 / 自由摆放"
+                                      Padding="8,4" FontSize="11" Margin="0,0,6,0"
+                                      Checked="PinButton_Changed" Unchecked="PinButton_Changed" />
+                        <Button x:Name="RelocateButton" Style="{StaticResource FluentButton}"
+                                Content="🎯 定位" ToolTip="重新锁定并贴靠微信主窗口"
+                                Padding="8,4" FontSize="11" Margin="0,0,6,0" Click="RelocateButton_Click" />
+                        <Button x:Name="AiSettingsTopButton" Style="{StaticResource FluentButton}"
+                                Content="⚙️" ToolTip="打开 AI 模型与服务设置"
+                                Padding="8,4" FontSize="11" Margin="0,0,6,0" Click="AiSettingsButton_Click" />
+                        <Button x:Name="QuitButton" Style="{StaticResource FluentButton}"
+                                Content="✕" ToolTip="退出程序"
+                                Padding="8,4" FontSize="11" Foreground="#FF8888" Click="QuitButton_Click" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- 微信连接状态胶囊栏 -->
+                <Border Background="{StaticResource CardSubtleBgBrush}" CornerRadius="8"
+                        BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                        Padding="10,6" Margin="0,10,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 左侧：微信当前聊天连接指示 -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource GreenBrush}" Margin="0,0,8,0" />
+                            <TextBlock x:Name="StatusText" Text="正在查找微信窗口..."
+                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- 右侧：展开底层诊断信息 -->
+                        <ToggleButton x:Name="DiagToggle" Grid.Column="1" Content="诊断 ▾"
+                                      Style="{StaticResource FluentToggleButton}" FontSize="10" Padding="6,2"
+                                      Checked="DiagToggle_Changed" Unchecked="DiagToggle_Changed" />
+                    </Grid>
+                </Border>
+
+                <!-- 折叠的底层诊断面板 -->
+                <Border x:Name="DiagPanel" Visibility="Collapsed"
+                        Background="#1A1A28" CornerRadius="6" BorderBrush="{StaticResource BorderSubtleBrush}"
+                        BorderThickness="1" Padding="8" Margin="0,6,0,0">
+                    <TextBlock x:Name="BoundsText" Text="句柄检测中..."
+                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" FontFamily="Consolas" TextWrapping="Wrap" />
+                </Border>
             </StackPanel>
 
-            <!-- 功能分区：对话 / AI / 帮助 -->
-            <TabControl Grid.Row="4" Margin="0,10,0,0" MinHeight="118"
-                        Background="#22000000" BorderBrush="#33FFFFFF" BorderThickness="1"
-                        Foreground="#FFDDDDDD" Padding="8">
-                <TabItem Header="对话" Foreground="#FFDDDDDD">
-                    <StackPanel Margin="4,8,4,4">
-                        <WrapPanel>
-                            <Button x:Name="ReadButton" Content="读取对话" Width="104" FontWeight="Bold" Click="ReadButton_Click" />
-                            <ToggleButton x:Name="AutoReadButton" Content="自动读取:关" Width="96" Margin="8,0,0,0"
-                                          Checked="AutoReadButton_Changed" Unchecked="AutoReadButton_Changed" />
-                            <Button x:Name="OcrButton" Content="OCR 原文" Width="96" Margin="8,0,0,0" Click="OcrButton_Click" />
-                            <Button x:Name="ClearButton" Content="清空缓冲" Width="80" Margin="8,0,0,0" Click="ClearButton_Click" />
-                        </WrapPanel>
-                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="读取对话＝裁剪聊天区解析收发方向；OCR 原文＝整窗识别（调试用）。开启自动读取后每 3 秒静默检测新消息。" />
-                    </StackPanel>
-                </TabItem>
+            <!-- ===================== ROW 1: 功能分区 TAB 标签 ===================== -->
+            <TabControl x:Name="MainTabControl" Grid.Row="1" Margin="0,12,0,0"
+                        Background="Transparent" BorderThickness="0"
+                        SelectionChanged="MainTabControl_SelectionChanged">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                        <Setter Property="FontSize" Value="13" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="Padding" Value="14,8" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border x:Name="tabBorder" Background="Transparent"
+                                            BorderThickness="0,0,0,2" BorderBrush="Transparent"
+                                            Padding="{TemplateBinding Padding}" Margin="0,0,4,0">
+                                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.Resources>
 
-                <TabItem Header="AI" Foreground="#FFDDDDDD">
-                    <StackPanel Margin="4,8,4,4">
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="ReplyModeRadio" Content="回复建议(多候选)" IsChecked="True"
-                                         Foreground="#FFDDDDDD" VerticalContentAlignment="Center"
-                                         Checked="ModeRadio_Changed" />
-                            <RadioButton x:Name="SubtextModeRadio" Content="潜台词分析" Margin="14,0,0,0"
-                                         Foreground="#FFDDDDDD" VerticalContentAlignment="Center"
-                                         Checked="ModeRadio_Changed" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <TextBlock Text="候选数" Foreground="#FFDDDDDD" FontSize="12" VerticalAlignment="Center" />
-                            <ComboBox x:Name="CountBox" Width="52" Margin="6,0,0,0" SelectedIndex="0">
-                                <ComboBoxItem Content="3" IsSelected="True" />
-                                <ComboBoxItem Content="5" />
-                            </ComboBox>
-                            <Button x:Name="GenerateButton" Content="生成" Width="76" Margin="10,0,0,0"
-                                    FontWeight="Bold" Click="GenerateButton_Click" />
-                            <Button x:Name="AiSettingsButton" Content="AI 设置" Width="76" Margin="8,0,0,0" Click="AiSettingsButton_Click" />
-                        </StackPanel>
-                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="基于对话缓冲生成：回复建议＝多语气候选卡片(可一键复制)；潜台词＝六维意图面板。模型与密钥在「AI 设置」配置(DPAPI 加密)。" />
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="画像" Foreground="#FFDDDDDD">
-                    <StackPanel Margin="4,8,4,4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="ContactBox" Width="116" FontSize="12" VerticalContentAlignment="Center" />
-                            <Button x:Name="ImportCsvButton" Content="导入CSV" Width="76" Margin="8,0,0,0" Click="ImportCsvButton_Click" />
-                            <Button x:Name="FetchHistoryButton" Content="拉取TraceMemo" Width="104" Margin="8,0,0,0" Click="FetchHistoryButton_Click" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <Button x:Name="DistillButton" Content="蒸馏/更新画像" Width="116" FontWeight="Bold" Click="DistillButton_Click" />
-                            <Button x:Name="ViewPersonaButton" Content="查看已存" Width="76" Margin="8,0,0,0" Click="ViewPersonaButton_Click" />
-                        </StackPanel>
-                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="冷链路：导入 CSV 历史或从 TraceMemo 拉取（地址在 AI 设置），蒸馏七维画像并增量合并；卡片含置信度与证据原话，落盘 %AppData%/WeChatCopilot/personas。" />
-                    </StackPanel>
-                </TabItem>
-
-                <TabItem Header="帮助" Foreground="#FFDDDDDD">
-                    <TextBlock x:Name="HintText" Margin="4,8,4,4"
-                               Foreground="#FF8888AA" FontSize="11" TextWrapping="Wrap"
-                               Text="热键：Ctrl+Alt+W 显隐 · Ctrl+Alt+E 重定位 · Ctrl+Alt+D 读取对话 · Ctrl+Alt+O OCR原文&#10;「已固定」后可拖动标题栏自由摆放；跟随模式下自动贴微信右缘。&#10;本工具只读+建议，不会代发消息。" />
-                </TabItem>
+                <TabItem Header="💬 当前对话" x:Name="TabChat" />
+                <TabItem Header="✨ AI 建议" x:Name="TabAi" />
+                <TabItem Header="👤 人格画像" x:Name="TabPersona" />
+                <TabItem Header="❓ 快捷帮助" x:Name="TabHelp" />
             </TabControl>
 
-            <!-- 输出区标签 -->
-            <TextBlock Grid.Row="5" Text="输出" Foreground="#FFDDDDDD" FontSize="12" Margin="0,10,0,4" />
+            <!-- ===================== ROW 2: 工作区主体视图 ===================== -->
+            <Grid Grid.Row="2" Margin="0,8,0,0">
 
-            <!-- 输出区：文本输出 与 建议卡片 二选一显示 -->
-            <Grid Grid.Row="6">
-                <TextBox x:Name="OcrOutput"
-                         IsReadOnly="True"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Auto"
-                         FontSize="12"
-                         Background="#FF141420"
-                         Foreground="#FFD4D4D4"
-                         BorderBrush="#55FFFFFF"
-                         Text="" />
-                <ScrollViewer x:Name="SuggestionScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl x:Name="SuggestionCards">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#FF252537" CornerRadius="6" Padding="10" Margin="0,0,0,8"
-                                        BorderBrush="#33FFFFFF" BorderThickness="1">
-                                    <StackPanel>
-                                        <Grid>
-                                            <TextBlock Text="{Binding Tone}" Foreground="#FF9CDCFE"
-                                                       FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                            <Button Content="复制" HorizontalAlignment="Right" Padding="10,2"
-                                                    FontSize="11" Click="CopySuggestion_Click" Tag="{Binding Text}" />
+                <!-- VIEW 0: 对话 TAB 内容 -->
+                <Grid x:Name="ViewChat" Visibility="Visible">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- 操作栏 -->
+                        <RowDefinition Height="*" />    <!-- 气泡消息列表 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 操作栏 -->
+                    <Border Grid.Row="0" Background="{StaticResource CardSubtleBgBrush}"
+                            CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                            Padding="8" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="ReadButton" Grid.Column="0" Content="⚡ 读取当前对话"
+                                    Style="{StaticResource PrimaryAccentButton}" Click="ReadButton_Click" />
+                            <ToggleButton x:Name="AutoReadButton" Grid.Column="1" Content="自动读取: 关"
+                                          Style="{StaticResource FluentToggleButton}" Margin="8,0,0,0"
+                                          Checked="AutoReadButton_Changed" Unchecked="AutoReadButton_Changed" />
+
+                            <StackPanel Grid.Column="3" Orientation="Horizontal">
+                                <Button x:Name="ClearButton" Content="清空" Style="{StaticResource FluentButton}"
+                                        Padding="10,6" Margin="0,0,6,0" Click="ClearButton_Click" />
+                                <Button x:Name="OcrButton" Content="整窗OCR" Style="{StaticResource FluentButton}"
+                                        Padding="8,6" ToolTip="直接整窗全量识别（调试底层文本）" Click="OcrButton_Click" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- 聊天气泡列表视图 -->
+                    <Grid Grid.Row="1">
+                        <!-- 空白占位指引 -->
+                        <Border x:Name="ChatEmptyPlaceholder" Visibility="Visible"
+                                Background="{StaticResource CardSubtleBgBrush}" CornerRadius="10"
+                                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                                Padding="20" VerticalAlignment="Center" Margin="10,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="💬" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                <TextBlock Text="对话缓冲为空" FontWeight="SemiBold" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="点击上方【⚡ 读取当前对话】或开启【自动读取】，助手将对当前微信窗口进行气泡级识读与左右归属分类。"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
+                                           TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" LineHeight="18" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 真实气泡列表 -->
+                        <ScrollViewer x:Name="ChatScrollViewer" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="ChatBubbleList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,10">
+                                            <!-- 根据左右收发方向自动对齐 -->
+                                            <Border HorizontalAlignment="{Binding BubbleAlignment}"
+                                                    MaxWidth="340" CornerRadius="10"
+                                                    Background="{Binding BubbleBackground}"
+                                                    BorderBrush="{Binding BubbleBorder}" BorderThickness="1"
+                                                    Padding="10,8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding SenderLabel}"
+                                                               Foreground="{Binding BadgeForeground}"
+                                                               FontSize="10" FontWeight="Bold" Margin="0,0,0,4" />
+                                                    <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextPrimaryBrush}"
+                                                               FontSize="12.5" TextWrapping="Wrap" LineHeight="18" />
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
-                                        <TextBlock Text="{Binding Text}" Foreground="#FFE8E8E8" FontSize="13"
-                                                   TextWrapping="Wrap" Margin="0,6,0,0" />
-                                        <TextBlock Text="{Binding ReasonLine}" Foreground="#FF8888AA" FontSize="11"
-                                                   TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- OCR 原文调试视图 -->
+                        <TextBox x:Name="OcrOutput" Visibility="Collapsed"
+                                 IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" FontSize="11"
+                                 Background="#FF13131F" Foreground="#FFD4D4D4"
+                                 BorderBrush="{StaticResource BorderSubtleBrush}" Padding="8" />
+                    </Grid>
+                </Grid>
+
+                <!-- VIEW 1: AI 建议 TAB 内容 -->
+                <Grid x:Name="ViewAi" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- 模式与参数行 -->
+                        <RowDefinition Height="Auto" /> <!-- 状态条 -->
+                        <RowDefinition Height="*" />    <!-- AI 输出结果卡片 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 模式选择与生成操作 -->
+                    <Border Grid.Row="0" Background="{StaticResource CardSubtleBgBrush}"
+                            CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                            Padding="10,8" Margin="0,0,0,8">
+                        <StackPanel>
+                            <!-- 模式单选 -->
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="ReplyModeRadio" Content="💡 多候选回复建议" IsChecked="True"
+                                             Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"
+                                             VerticalContentAlignment="Center" Checked="ModeRadio_Changed" />
+                                <RadioButton x:Name="SubtextModeRadio" Content="🔍 潜台词与深层意图" Margin="16,0,0,0"
+                                             Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"
+                                             VerticalContentAlignment="Center" Checked="ModeRadio_Changed" />
+                            </StackPanel>
+
+                            <!-- 参数与生成按钮 -->
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="候选数:" Foreground="{StaticResource TextSecondaryBrush}"
+                                               FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <ComboBox x:Name="CountBox" Width="60" SelectedIndex="0" FontSize="12">
+                                        <ComboBoxItem Content="3 条" IsSelected="True" />
+                                        <ComboBoxItem Content="5 条" />
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <CheckBox x:Name="IncludePersonaCheck" Grid.Column="1" Content="融入当前画像"
+                                          IsChecked="True" Foreground="{StaticResource TextSecondaryBrush}"
+                                          FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" />
+
+                                <Button x:Name="GenerateButton" Grid.Column="2" Content="🚀 立即生成"
+                                        Style="{StaticResource PrimaryAccentButton}" Click="GenerateButton_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 生成状态提示 -->
+                    <Border x:Name="AiStatusBanner" Grid.Row="1" Visibility="Collapsed"
+                            Background="#223B82F6" CornerRadius="6" BorderBrush="#553B82F6" BorderThickness="1"
+                            Padding="8,6" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <ProgressBar Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0" />
+                            <TextBlock x:Name="AiStatusText" Text="AI 正在思考分析中..."
+                                       Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- AI 卡片结果展示 -->
+                    <Grid Grid.Row="2">
+                        <!-- 回复建议卡片列表 -->
+                        <ScrollViewer x:Name="SuggestionScroll" Visibility="Visible" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="SuggestionCards">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                Padding="12" Margin="0,0,0,10">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <Border HorizontalAlignment="Left" Background="#223B82F6" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="{Binding Tone}" Foreground="#60A5FA"
+                                                                   FontWeight="Bold" FontSize="11" />
+                                                    </Border>
+                                                    <Button Content="📋 复制" HorizontalAlignment="Right"
+                                                            Style="{StaticResource FluentButton}" Padding="8,3" FontSize="11"
+                                                            Click="CopySuggestion_Click" Tag="{Binding Text}" />
+                                                </Grid>
+                                                <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextPrimaryBrush}"
+                                                           FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
+                                                <TextBlock Text="{Binding ReasonLine}" Foreground="{StaticResource TextSecondaryBrush}"
+                                                           FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- 潜台词卡片视图 -->
+                        <ScrollViewer x:Name="SubtextScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="SubtextCardsContainer">
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="💬 字面意思" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextLiteralText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-                <ScrollViewer x:Name="PersonaScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl x:Name="PersonaCards">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#FF252537" CornerRadius="6" Padding="10" Margin="0,0,0,8"
-                                        BorderBrush="#33FFFFFF" BorderThickness="1">
+                                <Border Background="#258B5CF6" CornerRadius="10"
+                                        BorderBrush="#668B5CF6" BorderThickness="1" Padding="12" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <Grid>
-                                            <TextBlock Text="{Binding Dimension}" Foreground="#FF7EC87E"
-                                                       FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding ConfidenceText}" HorizontalAlignment="Right"
-                                                       Foreground="#FF8888AA" FontSize="11" VerticalAlignment="Center" />
-                                        </Grid>
-                                        <TextBlock Text="{Binding Attribute}" Foreground="#FFE8E8E8" FontSize="13"
-                                                   TextWrapping="Wrap" Margin="0,6,0,0" />
-                                        <TextBlock Text="{Binding EvidenceText}" Foreground="#FF8888AA" FontSize="11"
-                                                   TextWrapping="Wrap" Margin="0,4,0,0" />
+                                        <TextBlock Text="🔍 潜台词与深层含义" Foreground="#A78BFA" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextSubtextText" Foreground="#F5F3FF" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
                                     </StackPanel>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="🎭 情绪倾向" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextEmotionText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="🎯 真实核心诉求" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextIntentText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="💡 期望的回应类型" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextDesiredResponseText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#2510B981" CornerRadius="10"
+                                        BorderBrush="#5510B981" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="🛡️ 建议应对策略" Foreground="#34D399" FontSize="11" FontWeight="Bold" />
+                                        <TextBlock x:Name="SubtextStrategyText" Foreground="#ECFDF5" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- VIEW 2: 人格画像 TAB 内容 -->
+                <Grid x:Name="ViewPersona" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- 联系人选择条 -->
+                        <RowDefinition Height="Auto" /> <!-- 操作按钮栏 -->
+                        <RowDefinition Height="Auto" /> <!-- 状态与提示横条 -->
+                        <RowDefinition Height="*" />    <!-- 画像特质展示区 -->
+                    </Grid.RowDefinitions>
+
+                    <!-- 联系人选择与微信自动同步栏 -->
+                    <Border Grid.Row="0" Background="{StaticResource CardSubtleBgBrush}"
+                            CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                            Padding="10,8" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="当前对象:" Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBox x:Name="ContactBox" Grid.Column="1" Style="{StaticResource FluentTextBox}"
+                                     ToolTip="输入或同步微信聊天对象名字" TextChanged="ContactBox_TextChanged" />
+                            <Button x:Name="SyncContactButton" Grid.Column="2" Content="🔄 同步微信"
+                                    Style="{StaticResource FluentButton}" Padding="8,4" FontSize="11" Margin="6,0,0,0"
+                                    Click="SyncContactButton_Click" ToolTip="直接使用当前激活的微信窗口对象" />
+                            <ComboBox x:Name="SavedPersonasCombo" Grid.Column="3" Width="96" Margin="6,0,0,0"
+                                      ToolTip="切换查看已保存的画像" SelectionChanged="SavedPersonasCombo_SelectionChanged" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 操作按钮栏 (拉取 / 蒸馏 / 导入) -->
+                    <Border Grid.Row="1" Background="{StaticResource CardSubtleBgBrush}"
+                            CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                            Padding="8" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="FetchHistoryButton" Grid.Column="0" Content="⚡ 拉取 TraceMemo"
+                                    Style="{StaticResource PrimaryAccentButton}" Margin="0,0,4,0"
+                                    Click="FetchHistoryButton_Click" ToolTip="从本机 TraceMemo (端口 6131) 拉取完整历史" />
+                            <Button x:Name="DistillButton" Grid.Column="1" Content="✨ 蒸馏/更新画像"
+                                    Style="{StaticResource FluentButton}" FontWeight="Bold" Margin="4,0,4,0"
+                                    Click="DistillButton_Click" ToolTip="根据历史记录提炼结构化七维画像" />
+                            <Button x:Name="ImportCsvButton" Grid.Column="2" Content="📥 导入CSV"
+                                    Style="{StaticResource FluentButton}" Padding="10,6" Margin="4,0,0,0"
+                                    Click="ImportCsvButton_Click" ToolTip="从导出的 CSV 文件手动载入历史" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 状态与历史信息横条 -->
+                    <Border x:Name="PersonaStatusCard" Grid.Row="2"
+                            Background="#1F2433" CornerRadius="6" BorderBrush="{StaticResource BorderSubtleBrush}"
+                            BorderThickness="1" Padding="10,6" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="PersonaStatusText" Text="就绪：请先拉取 TraceMemo 或导入历史记录"
+                                       Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <ProgressBar x:Name="PersonaProgress" Grid.Column="1" Width="50" Height="4"
+                                         IsIndeterminate="True" Visibility="Collapsed" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 画像结果展示区 -->
+                    <Grid Grid.Row="3">
+                        <!-- 空画像提示指引卡片 -->
+                        <Border x:Name="PersonaEmptyCard" Visibility="Visible"
+                                Background="{StaticResource CardSubtleBgBrush}" CornerRadius="10"
+                                BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                                Padding="20" VerticalAlignment="Center" Margin="10,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="👤" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                <TextBlock x:Name="PersonaEmptyTitle" Text="暂无此人画像" FontWeight="SemiBold" FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                <TextBlock Text="点击【⚡ 拉取 TraceMemo】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 蒸馏/更新画像】，AI 将深度提取七维画像并持久化保存。"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
+                                           TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" LineHeight="18" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 画像卡片容器 -->
+                        <ScrollViewer x:Name="PersonaScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <!-- 画像概要头卡片 -->
+                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                        Padding="12,10" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock x:Name="PersonaHeaderName" Text="联系人画像"
+                                                       FontWeight="Bold" FontSize="14" Foreground="{StaticResource TextPrimaryBrush}" />
+                                            <TextBlock x:Name="PersonaHeaderMeta" Text="更新时间: --  |  历史消息: 0 条"
+                                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                        </StackPanel>
+                                        <Button x:Name="DeletePersonaButton" Grid.Column="1" Content="🗑️ 清除"
+                                                Style="{StaticResource FluentButton}" Padding="6,2" FontSize="10"
+                                                Click="DeletePersonaButton_Click" ToolTip="删除本画像记录" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- 七维特质卡片 ItemsControl -->
+                                <ItemsControl x:Name="PersonaCards">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                    Padding="12" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <!-- 头部：维度名称 + 置信度进度条 -->
+                                                    <Grid>
+                                                        <Border HorizontalAlignment="Left" Background="#2210B981" CornerRadius="4" Padding="6,2">
+                                                            <TextBlock Text="{Binding Dimension}" Foreground="#34D399"
+                                                                       FontWeight="Bold" FontSize="11" />
+                                                        </Border>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="置信度: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" />
+                                                            <TextBlock Text="{Binding ConfidencePercentText}" Foreground="#34D399"
+                                                                       FontWeight="SemiBold" FontSize="11" Margin="0,0,6,0" />
+                                                            <ProgressBar Width="50" Height="5" Maximum="100"
+                                                                         Value="{Binding ConfidencePercent}"
+                                                                         Foreground="{StaticResource GreenBrush}"
+                                                                         Background="#33FFFFFF" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <!-- 特质描述 (推断层) -->
+                                                    <TextBlock Text="{Binding Attribute}" Foreground="{StaticResource TextPrimaryBrush}"
+                                                               FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
+
+                                                    <!-- 证据原话 (观察层，折叠显示) -->
+                                                    <Expander Header="{Binding EvidenceSummary}" Margin="0,6,0,0"
+                                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
+                                                              Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
+                                                        <Border Background="#1A1A28" CornerRadius="6" Padding="8" Margin="0,4,0,0">
+
+                                                            <TextBlock Text="{Binding EvidenceText}" Foreground="#D1D5DB"
+                                                                       FontSize="11" TextWrapping="Wrap" FontStyle="Italic" LineHeight="17" />
+                                                        </Border>
+                                                    </Expander>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- VIEW 3: 帮助 TAB 内容 -->
+                <Grid x:Name="ViewHelp" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,4">
+                            <!-- 全局热键清单卡片 -->
+                            <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                    Padding="14" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="⌨️ 全局快捷键指南" FontWeight="Bold" FontSize="13"
+                                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,10" />
+
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Ctrl" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Alt" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="W" Foreground="White" FontSize="10"/></Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="快速显示 / 隐藏悬浮窗" Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    </Grid>
+
+                                    <Grid Margin="0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Ctrl" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Alt" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="D" Foreground="White" FontSize="10"/></Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="立即抓取并读取当前对话气泡" Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    </Grid>
+
+                                    <Grid Margin="0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Ctrl" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Alt" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="E" Foreground="White" FontSize="10"/></Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="重新定位并贴齐微信右侧边缘" Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    </Grid>
+
+                                    <Grid Margin="0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Ctrl" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="Alt" Foreground="White" FontSize="10"/></Border>
+                                            <TextBlock Text="+" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <Border Style="{StaticResource KeyCap}"><TextBlock Text="O" Foreground="White" FontSize="10"/></Border>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="进行全窗口 OCR 识别（排错使用）" Foreground="{StaticResource TextPrimaryBrush}"
+                                                   FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 设计原则与隐私安全说明卡片 -->
+                            <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                    Padding="14" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="🛡️ 本地优先与隐私安全原则" FontWeight="Bold" FontSize="13"
+                                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8" />
+                                    <TextBlock Text="• 只读不代发：本助手绝不会模拟键盘鼠标自动发送消息，完全由您自主确认与复制。&#x0a;• 本地安全：API Key 经 Windows DPAPI 加密保存，仅您当前登录的 Windows 账户能解密。&#x0a;• 风险隔离：历史会话通过本地 TraceMemo 读取，本工具不植入任何微信内存外挂。"
+                                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="11.5"
+                                               TextWrapping="Wrap" LineHeight="19" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 底端快捷设置按钮 -->
+                            <Button Content="⚙️ 打开详细设置（API 密钥 / 模型 / TraceMemo 地址）"
+                                    Style="{StaticResource FluentButton}" HorizontalAlignment="Stretch"
+                                    Click="AiSettingsButton_Click" Margin="0,4,0,10" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Grid>
     </Border>

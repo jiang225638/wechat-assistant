@@ -17,11 +17,24 @@ public sealed record PersonaTrait(
     /// <summary>卡片右侧置信度文本。</summary>
     public string ConfidenceText => Confidence.ToString("0.00");
 
+    /// <summary>置信度百分比整数 (0~100)。</summary>
+    public int ConfidencePercent => (int)Math.Clamp(Math.Round(Confidence * 100), 0, 100);
+
+    /// <summary>置信度百分比文本，如 "85%"。</summary>
+    public string ConfidencePercentText => $"{ConfidencePercent}%";
+
+    /// <summary>是否有证据。</summary>
+    public bool HasEvidence => Evidence is { Count: > 0 };
+
+    /// <summary>证据摘要，例如 "3 条原话证据"。</summary>
+    public string EvidenceSummary => HasEvidence ? $"{Evidence.Count} 条原话证据" : "无直接证据引用";
+
     /// <summary>卡片证据行：每条原话一行带引号；无证据时空串。</summary>
     public string EvidenceText =>
         Evidence is null || Evidence.Count == 0
             ? string.Empty
             : string.Join("\n", Evidence.Select(q => "“" + q + "”"));
+
 
     /// <summary>提示词/解析共用行格式：维度 | 特质 | 置信度: x | 证据: 原话;;原话。</summary>
     public string FormatLine() =>

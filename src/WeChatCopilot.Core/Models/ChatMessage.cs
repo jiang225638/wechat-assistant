@@ -19,4 +19,25 @@ public sealed record ChatMessage(MessageRole Role, string Text)
 
     /// <summary>是否为自己发出（右气泡）。</summary>
     public bool IsOutgoing => Role == MessageRole.Outgoing;
+
+    /// <summary>发送方标签。</summary>
+    public string SenderLabel => Role switch
+    {
+        MessageRole.Incoming => "对方",
+        MessageRole.Outgoing => "我",
+        _ => "未知"
+    };
+
+    /// <summary>气泡对齐方向。</summary>
+    public string BubbleAlignment => IsIncoming ? "Left" : "Right";
+
+    /// <summary>气泡背景色。</summary>
+    public string BubbleBackground => IsIncoming ? "#27273A" : "#1B4332";
+
+    /// <summary>气泡边框色。</summary>
+    public string BubbleBorder => IsIncoming ? "#3D3D58" : "#2D6A4F";
+
+    /// <summary>徽章文字颜色。</summary>
+    public string BadgeForeground => IsIncoming ? "#93C5FD" : "#6EE7B7";
 }
+

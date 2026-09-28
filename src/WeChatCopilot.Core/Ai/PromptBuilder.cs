@@ -45,9 +45,10 @@ public static class PromptBuilder
 
     /// <summary>
     /// 构建"多候选回复建议"请求：count 条不同语气候选（语气取自 <see cref="ReplyTones"/>），
+    /// 可选传入对方 <paramref name="persona"/> 融入回复偏好。
     /// 每条一行，格式 "[语气] 回复内容 | 理由：为什么这么说"。
     /// </summary>
-    public static AiRequest BuildReplySuggestions(AiSettings settings, IReadOnlyList<ChatMessage> messages, int count = 3)
+    public static AiRequest BuildReplySuggestions(AiSettings settings, IReadOnlyList<ChatMessage> messages, int count = 3, Persona? persona = null)
     {
         int n = Math.Clamp(count, 1, ReplyTones.Length);
         string system =
@@ -56,16 +57,27 @@ public static class PromptBuilder
             "严格只按以下格式输出，每条一行，不要输出其他内容，不要代发消息：\n" +
             "[语气] 回复内容 | 理由：为什么这么说的一句话";
 
-        return new AiRequest(system,
-            "聊天记录：\n" + BuildTranscript(messages) + "\n请给出 " + n + " 条回复建议。",
-            settings.Model,
-            settings.Temperature);
+        string userPrompt = "聊天记录：\n" + BuildTranscript(messages);
+        if (persona is { Traits.Count: > 0 })
+        {
+            userPrompt += "\n\n对方画像参考：\n" + string.Join("\n", persona.Traits.Select(t => $"- {t.Dimension}: {t.Attribute}"));
+        }
+        userPrompt += $"\n请给出 {n} 条贴合上下文的回复建议。";
+
+        return new AiRequest(system, userPrompt, settings.Model, settings.Temperature);
     }
 
     /// <summary>构建"潜台词分析"请求：六项标签固定格式，与 <see cref="AiOutputParser.ParseSubtext"/> 对应。</summary>
-    public static AiRequest BuildSubtextAnalysis(AiSettings settings, IReadOnlyList<ChatMessage> messages) =>
-        new(SubtextSystemPrompt,
-            "聊天记录：\n" + BuildTranscript(messages) + "\n请分析对方最近一条消息的潜台词。",
-            settings.Model,
-            settings.Temperature);
+    public static AiRequest BuildSubtextAnalysis(AiSettings settings, IReadOnlyList<ChatMessage> messages, Persona? persona = null)
+    {
+        string userPrompt = "聊天记录：\n" + BuildTranscript(messages);
+        if (persona is { Traits.Count: > 0 })
+        {
+            userPrompt += "\n\n对方已知画像参考：\n" + string.Join("\n", persona.Traits.Select(t => $"- {t.Dimension}: {t.Attribute}"));
+        }
+        userPrompt += "\n请分析对方最近一条消息的潜台词与真实意图。";
+
+        return new AiRequest(SubtextSystemPrompt, userPrompt, settings.Model, settings.Temperature);
+    }
+
 }

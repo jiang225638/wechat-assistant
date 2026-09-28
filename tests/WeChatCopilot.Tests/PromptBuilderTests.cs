@@ -99,13 +99,35 @@ public class PromptBuilderTests
     }
 
     [Fact]
-    public void BuildSubtextAnalysis_DistinctFromReply()
+    public void BuildReplySuggestions_WithPersona_IncludesPersonaContext()
     {
         var settings = new AiSettings();
-        var msgs = new[] { M(MessageRole.Incoming, "哦") };
-        var a = PromptBuilder.BuildReplySuggestions(settings, msgs);
-        var b = PromptBuilder.BuildSubtextAnalysis(settings, msgs);
+        var msgs = new[] { M(MessageRole.Incoming, "合同发过来了") };
+        var persona = new Persona("张三", new[]
+        {
+            new PersonaTrait("沟通风格", "喜欢直入主题", 0.9, new[] { "直接发我" })
+        }, DateTime.Now, 10);
 
-        Assert.NotEqual(a.SystemPrompt, b.SystemPrompt);
+        var req = PromptBuilder.BuildReplySuggestions(settings, msgs, count: 3, persona: persona);
+
+        Assert.Contains("对方画像参考：", req.UserPrompt);
+        Assert.Contains("喜欢直入主题", req.UserPrompt);
+    }
+
+    [Fact]
+    public void BuildSubtextAnalysis_WithPersona_IncludesPersonaContext()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "好的") };
+        var persona = new Persona("李四", new[]
+        {
+            new PersonaTrait("性格心理", "谨慎克制", 0.85, new[] { "我再想想" })
+        }, DateTime.Now, 15);
+
+        var req = PromptBuilder.BuildSubtextAnalysis(settings, msgs, persona: persona);
+
+        Assert.Contains("对方已知画像参考：", req.UserPrompt);
+        Assert.Contains("谨慎克制", req.UserPrompt);
     }
 }
+
