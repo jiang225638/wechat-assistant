@@ -60,6 +60,7 @@ public partial class OverlayWindow : Window
     private bool _autoRead;
     private bool _reading;
     private bool _autoSyncContact = true;
+    private bool _isSyncingPersonaSelection;
     private string _currentChatContact = string.Empty;
     private Persona? _currentLoadedPersona;
 
@@ -524,6 +525,11 @@ public partial class OverlayWindow : Window
 
     private void ContactBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_isSyncingPersonaSelection)
+        {
+            return;
+        }
+
         string name = ContactBox.Text.Trim();
         if (_autoSyncContact && name != _currentChatContact)
         {
@@ -532,7 +538,31 @@ public partial class OverlayWindow : Window
 
         if (!string.IsNullOrEmpty(name))
         {
+            _isSyncingPersonaSelection = true;
+            try
+            {
+                if (SavedPersonasCombo.ItemsSource is IEnumerable<string> list && list.Contains(name))
+                {
+                    SavedPersonasCombo.SelectedItem = name;
+                }
+                else
+                {
+                    SavedPersonasCombo.SelectedIndex = -1;
+                }
+            }
+            finally
+            {
+                _isSyncingPersonaSelection = false;
+            }
+
             CheckAndLoadPersona(name);
+        }
+        else
+        {
+            _currentLoadedPersona = null;
+            PersonaScroll.Visibility = Visibility.Collapsed;
+            PersonaEmptyCard.Visibility = Visibility.Visible;
+            PersonaEmptyTitle.Text = "请选择或输入联系人";
         }
     }
 
@@ -553,9 +583,23 @@ public partial class OverlayWindow : Window
 
     private void SavedPersonasCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_isSyncingPersonaSelection)
+        {
+            return;
+        }
+
         if (SavedPersonasCombo.SelectedItem is string name && !string.IsNullOrWhiteSpace(name))
         {
-            ContactBox.Text = name;
+            _isSyncingPersonaSelection = true;
+            try
+            {
+                ContactBox.Text = name;
+            }
+            finally
+            {
+                _isSyncingPersonaSelection = false;
+            }
+
             CheckAndLoadPersona(name);
         }
     }
@@ -739,17 +783,27 @@ public partial class OverlayWindow : Window
 
     private void CheckAndLoadPersona(string name)
     {
-        Persona? p = _personaStore.Load(name);
-        if (p is not null && p.Traits.Count > 0)
+        try
         {
-            ShowPersona(p);
+            Persona? p = _personaStore.Load(name);
+            if (p is not null && p.Traits.Count > 0)
+            {
+                ShowPersona(p);
+            }
+            else
+            {
+                _currentLoadedPersona = null;
+                PersonaScroll.Visibility = Visibility.Collapsed;
+                PersonaEmptyCard.Visibility = Visibility.Visible;
+                PersonaEmptyTitle.Text = $"暂无「{name}」的画像";
+            }
         }
-        else
+        catch (Exception ex)
         {
             _currentLoadedPersona = null;
             PersonaScroll.Visibility = Visibility.Collapsed;
             PersonaEmptyCard.Visibility = Visibility.Visible;
-            PersonaEmptyTitle.Text = $"暂无「{name}」的画像";
+            PersonaEmptyTitle.Text = $"读取「{name}」画像失败：{ex.Message}";
         }
     }
 

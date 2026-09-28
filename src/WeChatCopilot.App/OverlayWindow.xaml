@@ -674,7 +674,7 @@
                                                             <TextBlock Text="{Binding ConfidencePercentText}" Foreground="#34D399"
                                                                        FontWeight="SemiBold" FontSize="11" Margin="0,0,6,0" />
                                                             <ProgressBar Width="50" Height="5" Maximum="100"
-                                                                         Value="{Binding ConfidencePercent}"
+                                                                         Value="{Binding ConfidencePercent, Mode=OneWay}"
                                                                          Foreground="{StaticResource GreenBrush}"
                                                                          Background="#33FFFFFF" VerticalAlignment="Center" />
                                                         </StackPanel>
