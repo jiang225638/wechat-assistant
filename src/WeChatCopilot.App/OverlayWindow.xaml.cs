@@ -659,14 +659,16 @@ public partial class OverlayWindow : Window
             using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
 
             Persona? existing = _personaStore.Load(name);
-            Persona persona = await PersonaDistiller.DistillAsync(provider, settings, name, _history, existing);
+            var distillResult = await PersonaDistiller.DistillDetailedAsync(provider, settings, name, _history, existing);
 
-            if (persona.Traits.Count == 0)
+            if (!distillResult.Success || distillResult.Persona.Traits.Count == 0)
             {
-                SetPersonaStatus("蒸馏结果为空：大模型未按约定格式输出，请重试或在设置中更换模型。", isBusy: false);
+                string err = distillResult.ErrorMessage ?? "大模型未按约定格式输出，请重试或在设置中更换模型。";
+                SetPersonaStatus($"❌ 蒸馏失败：{err}", isBusy: false);
                 return;
             }
 
+            Persona persona = distillResult.Persona;
             _personaStore.Save(persona);
             ShowPersona(persona);
             RefreshSavedPersonasCombo();

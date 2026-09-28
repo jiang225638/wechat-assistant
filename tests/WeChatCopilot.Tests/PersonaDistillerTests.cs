@@ -119,6 +119,56 @@ public class PersonaDistillerTests
         Assert.Equal("观察项", persona.Traits[0].Attribute);
     }
 
+    [Fact]
+    public void ParseTraits_MarkdownTable_ParsesCorrectly()
+    {
+        string table = """
+            | 维度 | 特质描述 | 置信度 | 证据 |
+            | :--- | :--- | :--- | :--- |
+            | 沟通偏好 | 喜欢发语音短句与表情包 | 0.92 | "好的马上来";;[微笑] |
+            | 情绪模式 | 情绪稳定，语气温和 | 85% | 好的没问题 |
+            """;
+
+        var traits = PersonaDistiller.ParseTraits(table);
+
+        Assert.Equal(2, traits.Count);
+        Assert.Equal("沟通偏好", traits[0].Dimension);
+        Assert.Equal("喜欢发语音短句与表情包", traits[0].Attribute);
+        Assert.Equal(0.92, traits[0].Confidence);
+        Assert.Equal(2, traits[0].Evidence.Count);
+
+        Assert.Equal("情绪模式", traits[1].Dimension);
+        Assert.Equal("情绪稳定，语气温和", traits[1].Attribute);
+        Assert.Equal(0.85, traits[1].Confidence);
+    }
+
+    [Fact]
+    public void ParseTraits_NumberedList_And_JsonFallback_ParseCorrectly()
+    {
+        string list = """
+            1. 互动动力 | 倾向于主动发起话题 | 置信度: 0.88 | 证据: 今天天气不错
+            - 价值取向 | 看重效率与及时回复 | 0.75 | 麻烦快一点
+            """;
+
+        var listTraits = PersonaDistiller.ParseTraits(list);
+        Assert.Equal(2, listTraits.Count);
+        Assert.Equal("互动动力", listTraits[0].Dimension);
+        Assert.Equal("倾向于主动发起话题", listTraits[0].Attribute);
+
+        string json = """
+            以下是为你生成的画像：
+            [
+              {"dimension": "社交关系", "attribute": "礼貌客气，保持边界感", "confidence": 0.8, "evidence": ["谢谢您", "麻烦了"]}
+            ]
+            """;
+
+        var jsonTraits = PersonaDistiller.ParseTraits(json);
+        Assert.Single(jsonTraits);
+        Assert.Equal("社交关系", jsonTraits[0].Dimension);
+        Assert.Equal("礼貌客气，保持边界感", jsonTraits[0].Attribute);
+        Assert.Equal(2, jsonTraits[0].Evidence.Count);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {
