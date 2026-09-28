@@ -1,0 +1,38 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Visual Studio Code
+.vscode/
+
+# Rider / JetBrains
+.idea/
+
+# Test Results
+TestResults/
+[Tt]est[Rr]esult*/
+
+# Database / SQLite / Temp
+*.db
+*.sqlite
+*.sqlite3
+*.tmp
+*.temp
+
+# Codegraph / Local caches
+.codegraph/
+*.local
+
+# OS generated files
+.DS_Store
+Thumbs.db

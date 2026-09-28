@@ -1,0 +1,179 @@
+<Window x:Class="WeChatCopilot.App.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WeChat Copilot"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        Width="380" Height="600"
+        Left="120" Top="120">
+    <Border CornerRadius="10" Background="#EE1E1E2E" BorderBrush="#55FFFFFF" BorderThickness="1" Padding="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题栏：已固定后可拖拽移动 -->
+            <TextBlock x:Name="HeaderTitle" Grid.Row="0"
+                       Text="微信 Copilot · 聊天副驾"
+                       Foreground="White" FontWeight="Bold" FontSize="14"
+                       MouseLeftButtonDown="HeaderTitle_MouseLeftButtonDown" />
+
+            <!-- 状态与窗口信息 -->
+            <TextBlock x:Name="StatusText" Grid.Row="1"
+                       Text="正在查找微信窗口..."
+                       Foreground="#FFDDDDDD" FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" />
+            <TextBlock x:Name="BoundsText" Grid.Row="2"
+                       Text=""
+                       Foreground="#FF9CDCFE" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap" />
+
+            <!-- 窗口级操作：跟随/定位/退出 -->
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+                <ToggleButton x:Name="PinButton" Content="跟随中" Width="76"
+                              Checked="PinButton_Changed" Unchecked="PinButton_Changed" />
+                <Button x:Name="RelocateButton" Content="重新定位" Width="76" Margin="8,0,0,0" Click="RelocateButton_Click" />
+                <Button x:Name="QuitButton" Content="退出" Width="56" Margin="8,0,0,0" Click="QuitButton_Click" />
+            </StackPanel>
+
+            <!-- 功能分区：对话 / AI / 帮助 -->
+            <TabControl Grid.Row="4" Margin="0,10,0,0" MinHeight="118"
+                        Background="#22000000" BorderBrush="#33FFFFFF" BorderThickness="1"
+                        Foreground="#FFDDDDDD" Padding="8">
+                <TabItem Header="对话" Foreground="#FFDDDDDD">
+                    <StackPanel Margin="4,8,4,4">
+                        <WrapPanel>
+                            <Button x:Name="ReadButton" Content="读取对话" Width="104" FontWeight="Bold" Click="ReadButton_Click" />
+                            <ToggleButton x:Name="AutoReadButton" Content="自动读取:关" Width="96" Margin="8,0,0,0"
+                                          Checked="AutoReadButton_Changed" Unchecked="AutoReadButton_Changed" />
+                            <Button x:Name="OcrButton" Content="OCR 原文" Width="96" Margin="8,0,0,0" Click="OcrButton_Click" />
+                            <Button x:Name="ClearButton" Content="清空缓冲" Width="80" Margin="8,0,0,0" Click="ClearButton_Click" />
+                        </WrapPanel>
+                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="读取对话＝裁剪聊天区解析收发方向；OCR 原文＝整窗识别（调试用）。开启自动读取后每 3 秒静默检测新消息。" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="AI" Foreground="#FFDDDDDD">
+                    <StackPanel Margin="4,8,4,4">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="ReplyModeRadio" Content="回复建议(多候选)" IsChecked="True"
+                                         Foreground="#FFDDDDDD" VerticalContentAlignment="Center"
+                                         Checked="ModeRadio_Changed" />
+                            <RadioButton x:Name="SubtextModeRadio" Content="潜台词分析" Margin="14,0,0,0"
+                                         Foreground="#FFDDDDDD" VerticalContentAlignment="Center"
+                                         Checked="ModeRadio_Changed" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="候选数" Foreground="#FFDDDDDD" FontSize="12" VerticalAlignment="Center" />
+                            <ComboBox x:Name="CountBox" Width="52" Margin="6,0,0,0" SelectedIndex="0">
+                                <ComboBoxItem Content="3" IsSelected="True" />
+                                <ComboBoxItem Content="5" />
+                            </ComboBox>
+                            <Button x:Name="GenerateButton" Content="生成" Width="76" Margin="10,0,0,0"
+                                    FontWeight="Bold" Click="GenerateButton_Click" />
+                            <Button x:Name="AiSettingsButton" Content="AI 设置" Width="76" Margin="8,0,0,0" Click="AiSettingsButton_Click" />
+                        </StackPanel>
+                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="基于对话缓冲生成：回复建议＝多语气候选卡片(可一键复制)；潜台词＝六维意图面板。模型与密钥在「AI 设置」配置(DPAPI 加密)。" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="画像" Foreground="#FFDDDDDD">
+                    <StackPanel Margin="4,8,4,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox x:Name="ContactBox" Width="116" FontSize="12" VerticalContentAlignment="Center" />
+                            <Button x:Name="ImportCsvButton" Content="导入CSV" Width="76" Margin="8,0,0,0" Click="ImportCsvButton_Click" />
+                            <Button x:Name="FetchHistoryButton" Content="拉取TraceMemo" Width="104" Margin="8,0,0,0" Click="FetchHistoryButton_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button x:Name="DistillButton" Content="蒸馏/更新画像" Width="116" FontWeight="Bold" Click="DistillButton_Click" />
+                            <Button x:Name="ViewPersonaButton" Content="查看已存" Width="76" Margin="8,0,0,0" Click="ViewPersonaButton_Click" />
+                        </StackPanel>
+                        <TextBlock Foreground="#FF8888AA" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="冷链路：导入 CSV 历史或从 TraceMemo 拉取（地址在 AI 设置），蒸馏七维画像并增量合并；卡片含置信度与证据原话，落盘 %AppData%/WeChatCopilot/personas。" />
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="帮助" Foreground="#FFDDDDDD">
+                    <TextBlock x:Name="HintText" Margin="4,8,4,4"
+                               Foreground="#FF8888AA" FontSize="11" TextWrapping="Wrap"
+                               Text="热键：Ctrl+Alt+W 显隐 · Ctrl+Alt+E 重定位 · Ctrl+Alt+D 读取对话 · Ctrl+Alt+O OCR原文&#10;「已固定」后可拖动标题栏自由摆放；跟随模式下自动贴微信右缘。&#10;本工具只读+建议，不会代发消息。" />
+                </TabItem>
+            </TabControl>
+
+            <!-- 输出区标签 -->
+            <TextBlock Grid.Row="5" Text="输出" Foreground="#FFDDDDDD" FontSize="12" Margin="0,10,0,4" />
+
+            <!-- 输出区：文本输出 与 建议卡片 二选一显示 -->
+            <Grid Grid.Row="6">
+                <TextBox x:Name="OcrOutput"
+                         IsReadOnly="True"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontSize="12"
+                         Background="#FF141420"
+                         Foreground="#FFD4D4D4"
+                         BorderBrush="#55FFFFFF"
+                         Text="" />
+                <ScrollViewer x:Name="SuggestionScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="SuggestionCards">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#FF252537" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                                        BorderBrush="#33FFFFFF" BorderThickness="1">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="{Binding Tone}" Foreground="#FF9CDCFE"
+                                                       FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                            <Button Content="复制" HorizontalAlignment="Right" Padding="10,2"
+                                                    FontSize="11" Click="CopySuggestion_Click" Tag="{Binding Text}" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Text}" Foreground="#FFE8E8E8" FontSize="13"
+                                                   TextWrapping="Wrap" Margin="0,6,0,0" />
+                                        <TextBlock Text="{Binding ReasonLine}" Foreground="#FF8888AA" FontSize="11"
+                                                   TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <ScrollViewer x:Name="PersonaScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="PersonaCards">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#FF252537" CornerRadius="6" Padding="10" Margin="0,0,0,8"
+                                        BorderBrush="#33FFFFFF" BorderThickness="1">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="{Binding Dimension}" Foreground="#FF7EC87E"
+                                                       FontWeight="Bold" FontSize="12" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding ConfidenceText}" HorizontalAlignment="Right"
+                                                       Foreground="#FF8888AA" FontSize="11" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="{Binding Attribute}" Foreground="#FFE8E8E8" FontSize="13"
+                                                   TextWrapping="Wrap" Margin="0,6,0,0" />
+                                        <TextBlock Text="{Binding EvidenceText}" Foreground="#FF8888AA" FontSize="11"
+                                                   TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

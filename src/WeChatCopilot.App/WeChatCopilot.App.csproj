@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>WeChatCopilot</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WeChatCopilot.Core\WeChatCopilot.Core.csproj" />
+    <ProjectReference Include="..\WeChatCopilot.Windows\WeChatCopilot.Windows.csproj" />
+    <ProjectReference Include="..\WeChatCopilot.Ocr\WeChatCopilot.Ocr.csproj" />
+    <ProjectReference Include="..\WeChatCopilot.AI\WeChatCopilot.AI.csproj" />
+    <ProjectReference Include="..\WeChatCopilot.Data\WeChatCopilot.Data.csproj" />
+  </ItemGroup>
+
+  <!-- 启用 WinForms 后 SDK 会注入 System.Windows.Forms/System.Drawing 的隐式全局 using，
+       导致 WPF 的 Application 歧义。这里移除它们；代码中对 WinForms/Drawing 类型均用全限定名。 -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>

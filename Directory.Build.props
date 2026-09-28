@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Product>WeChat Copilot</Product>
+    <Company>huanmai</Company>
+  </PropertyGroup>
+</Project>
