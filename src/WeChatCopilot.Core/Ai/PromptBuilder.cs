@@ -100,4 +100,59 @@ public static class PromptBuilder
         return new AiRequest(SubtextSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
+    private const string UnifiedAdviceSystemPrompt =
+        "你是一位精通人际交往心理学、微表情与对话攻防的顶级高情商聊天副驾大师。\n" +
+        "用户会提供一段微信聊天上下文，以及【对方已知的人格画像特质】（如沟通风格、性格能量、决策模式、情绪阈值、价值锚点、隐形雷区等）。\n" +
+        "你需要穿透对方最新发言的字面表象，深度剖析其弦外之音与心理诉求，并结合其人格画像给出量身定制的多风格回复建议。\n" +
+        "严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n\n" +
+        "=== 意图剖析 ===\n" +
+        "字面意思：对方表面上说了什么\n" +
+        "潜台词洞察：结合其性格特征，分析对方不敢明说、委婉暗示或隐藏在背后的真实弦外之音\n" +
+        "真实心理：对方潜意识里真正想推动什么、防范什么或此时情绪状态\n" +
+        "应对策略：针对其性格特征与雷区，建议我方采取的最佳破局沟通策略与避坑指南\n\n" +
+        "=== 回复建议 ===\n" +
+        "[高情商] 回复内容 | 理由：为什么这么说\n" +
+        "[直接] 回复内容 | 理由：为什么这么说\n" +
+        "[专业] 回复内容 | 理由：为什么这么说\n";
+
+    /// <summary>
+    /// 构建全能 AI 建议请求（合并潜台词剖析与多候选回复建议）：
+    /// 深度融合对方人格画像，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
+    /// </summary>
+    public static AiRequest BuildUnifiedAdvice(
+        AiSettings settings,
+        IReadOnlyList<ChatMessage> messages,
+        int count = 3,
+        Persona? persona = null,
+        string? contactName = null)
+    {
+        int n = Math.Clamp(count, 1, ReplyTones.Length);
+        var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
+        string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
+
+        var sb = new StringBuilder();
+        string targetName = !string.IsNullOrWhiteSpace(contactName) ? contactName : (persona?.ContactName ?? "对方");
+        sb.AppendLine($"当前对话对象：{targetName}");
+        sb.AppendLine();
+        sb.AppendLine("聊天上下文（[对方]=对方消息，[我]=用户自己消息）：");
+        sb.AppendLine(BuildTranscript(messages));
+
+        if (persona is { Traits.Count: > 0 })
+        {
+            sb.AppendLine();
+            sb.AppendLine($"【🎯 对方已知人格特质画像（{persona.ContactName}）】：");
+            foreach (var t in persona.Traits)
+            {
+                sb.AppendLine($"- 【{t.Dimension}】: {t.Attribute} (量化评分: {t.ScoreInt}分, 置信度: {t.ConfidenceText})");
+            }
+            sb.AppendLine("（重要约束：意图剖析与候选回复必须高度契合上述画像特征，切忌千篇一律的套话！）");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
+        sb.AppendLine();
+        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条风格差异鲜明的【回复建议】（建议语气：高情商/直接/专业/缓和/幽默）：");
+
+        return new AiRequest(UnifiedAdviceSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+    }
 }

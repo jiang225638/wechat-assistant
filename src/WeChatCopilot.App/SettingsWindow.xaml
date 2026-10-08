@@ -10,23 +10,23 @@
     <Border Padding="18,16,18,18">
         <StackPanel>
             <TextBlock Text="接口基址（OpenAI 兼容，含 /v1）" Foreground="#FFE0E0E0" FontSize="12" />
-            <TextBox x:Name="EndpointBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+            <TextBox x:Name="EndpointBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <TextBlock Text="模型名" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
-            <TextBox x:Name="ModelBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+            <TextBox x:Name="ModelBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <StackPanel>
                     <TextBlock Text="温度 (0-1)" Foreground="#FFE0E0E0" FontSize="12" />
-                    <TextBox x:Name="TempBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+                    <TextBox x:Name="TempBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
                 </StackPanel>
             </StackPanel>
 
             <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
-            <PasswordBox x:Name="KeyBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+            <PasswordBox x:Name="KeyBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <TextBlock Text="TraceMemo Local API 基址（冷链路画像，如 http://127.0.0.1:8080）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
-            <TextBox x:Name="TraceMemoBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+            <TextBox x:Name="TraceMemoBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <!-- 测试结果卡片 -->
             <Border x:Name="TestResultBorder" Visibility="Collapsed" Margin="0,14,0,0"

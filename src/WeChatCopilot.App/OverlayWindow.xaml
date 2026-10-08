@@ -400,156 +400,174 @@
                     </Grid>
                 </Grid>
 
-                <!-- VIEW 1: AI 建议 TAB 内容 -->
+                <!-- VIEW 1: AI 建议 TAB 内容 (一体化合并展示) -->
                 <Grid x:Name="ViewAi" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /> <!-- 模式与参数行 -->
-                        <RowDefinition Height="Auto" /> <!-- 状态条 -->
-                        <RowDefinition Height="*" />    <!-- AI 输出结果卡片 -->
+                        <RowDefinition Height="Auto" /> <!-- 顶部参数与生成操作行 -->
+                        <RowDefinition Height="Auto" /> <!-- 状态进度条 -->
+                        <RowDefinition Height="*" />    <!-- 合并后的一体化滚动展示区 -->
                     </Grid.RowDefinitions>
 
-                    <!-- 模式选择与生成操作 -->
+                    <!-- 顶部操作栏 -->
                     <Border Grid.Row="0" Background="{StaticResource CardSubtleBgBrush}"
                             CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
                             Padding="10,8" Margin="0,0,0,8">
-                        <StackPanel>
-                            <!-- 模式单选 -->
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton x:Name="ReplyModeRadio" Content="💡 多候选回复建议" IsChecked="True"
-                                             Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"
-                                             VerticalContentAlignment="Center" Checked="ModeRadio_Changed" />
-                                <RadioButton x:Name="SubtextModeRadio" Content="🔍 潜台词与深层意图" Margin="16,0,0,0"
-                                             Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"
-                                             VerticalContentAlignment="Center" Checked="ModeRadio_Changed" />
-                            </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                            <!-- 参数与生成按钮 -->
-                            <Grid Margin="0,10,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
+                            <!-- 左侧：当前分析对象与画像徽章 -->
+                            <StackPanel VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="候选数:" Foreground="{StaticResource TextSecondaryBrush}"
-                                               FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                    <ComboBox x:Name="CountBox" Width="60" SelectedIndex="0" FontSize="12">
+                                    <TextBlock Text="分析对象:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,4,0" />
+                                    <TextBlock x:Name="AiTargetContactText" Text="当前对话好友" FontWeight="Bold" Foreground="#60A5FA" FontSize="11" />
+                                    <Border x:Name="AiPersonaBadge" Margin="8,0,0,0" Background="#2210B981" BorderBrush="#4410B981" BorderThickness="1"
+                                            CornerRadius="4" Padding="5,1" Visibility="Collapsed">
+                                        <TextBlock x:Name="AiPersonaBadgeText" Text="已融入画像" Foreground="#10B981" FontSize="10" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
+                                    <CheckBox x:Name="IncludePersonaCheck" Content="融入人格画像" IsChecked="True"
+                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
+                                    <TextBlock Text="候选数:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="12,0,4,0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="CountBox" Width="60" SelectedIndex="0" FontSize="11">
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
                                         <ComboBoxItem Content="5 条" />
                                     </ComboBox>
                                 </StackPanel>
+                            </StackPanel>
 
-                                <CheckBox x:Name="IncludePersonaCheck" Grid.Column="1" Content="融入当前画像"
-                                          IsChecked="True" Foreground="{StaticResource TextSecondaryBrush}"
-                                          FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" />
-
-                                <Button x:Name="GenerateButton" Grid.Column="2" Content="🚀 立即生成"
-                                        Style="{StaticResource PrimaryAccentButton}" Click="GenerateButton_Click" />
-                            </Grid>
-                        </StackPanel>
+                            <!-- 右侧：生成按钮 -->
+                            <Button x:Name="GenerateButton" Grid.Column="1" Content="🚀 智能分析与建议"
+                                    Style="{StaticResource PrimaryAccentButton}" VerticalAlignment="Center" Padding="12,8"
+                                    Click="GenerateButton_Click" />
+                        </Grid>
                     </Border>
 
-                    <!-- 生成状态提示 -->
+                    <!-- 生成中状态条 -->
                     <Border x:Name="AiStatusBanner" Grid.Row="1" Visibility="Collapsed"
                             Background="#223B82F6" CornerRadius="6" BorderBrush="#553B82F6" BorderThickness="1"
                             Padding="8,6" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <ProgressBar Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0" />
-                            <TextBlock x:Name="AiStatusText" Text="AI 正在思考分析中..."
+                            <TextBlock x:Name="AiStatusText" Text="AI 正在结合对方画像深度剖析意图并生成回复建议..."
                                        Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
 
-                    <!-- AI 卡片结果展示 -->
-                    <Grid Grid.Row="2">
-                        <!-- 回复建议卡片列表 -->
-                        <ScrollViewer x:Name="SuggestionScroll" Visibility="Visible" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl x:Name="SuggestionCards">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
-                                                Padding="12" Margin="0,0,0,10">
+                    <!-- 一体化展示区 -->
+                    <ScrollViewer x:Name="UnifiedAiScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="UnifiedAiContainer">
+                            <!-- 空状态占位 -->
+                            <Border x:Name="AiEmptyPlaceholder" Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                    BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
+                                    Padding="20" Margin="0,20,0,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="💡" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                    <TextBlock Text="智能副驾已就绪" FontWeight="Bold" FontSize="14"
+                                               Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                    <TextBlock Text="点击上方【🚀 智能分析与建议】，AI 将深度穿透对方人格画像与最新发言，一网打尽「意图与潜台词洞察」与「多风格回复方案」。"
+                                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
+                                               TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" LineHeight="18" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 结果面板 (默认折叠，生成后显示) -->
+                            <StackPanel x:Name="AiResultPanel" Visibility="Collapsed">
+                                <!-- 卡片 1: 对方最新发言与意图剖析 -->
+                                <Border Background="#1C2136" CornerRadius="10" BorderBrush="#3B4B75" BorderThickness="1"
+                                        Padding="12" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <!-- 标头 -->
+                                        <Grid Margin="0,0,0,8">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🔍" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="对方最新发言与意图剖析" FontWeight="Bold" FontSize="12" Foreground="#93C5FD" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <Border HorizontalAlignment="Right" Background="#333B82F6" CornerRadius="4" Padding="6,2">
+                                                <TextBlock x:Name="SubtextTargetAuthor" Text="对方原话" Foreground="#60A5FA" FontSize="10" />
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- 对方原话引用气泡 -->
+                                        <Border Background="#2A3352" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                                            <TextBlock x:Name="SubtextTargetText" Text="“原话”" Foreground="#F3F4F6"
+                                                       FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="18" />
+                                        </Border>
+
+                                        <!-- 潜台词洞察 -->
+                                        <Border Background="#231F3D" CornerRadius="6" BorderBrush="#558B5CF6" BorderThickness="1"
+                                                Padding="10,8" Margin="0,0,0,6">
                                             <StackPanel>
-                                                <Grid>
-                                                    <Border HorizontalAlignment="Left" Background="#223B82F6" CornerRadius="4" Padding="6,2">
-                                                        <TextBlock Text="{Binding Tone}" Foreground="#60A5FA"
-                                                                   FontWeight="Bold" FontSize="11" />
-                                                    </Border>
-                                                    <Button Content="📋 复制" HorizontalAlignment="Right"
-                                                            Style="{StaticResource FluentButton}" Padding="8,3" FontSize="11"
-                                                            Click="CopySuggestion_Click" Tag="{Binding Text}" />
-                                                </Grid>
-                                                <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextPrimaryBrush}"
-                                                           FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
-                                                <TextBlock Text="{Binding ReasonLine}" Foreground="{StaticResource TextSecondaryBrush}"
-                                                           FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                                <TextBlock Text="💡 潜台词洞察（弦外之音）" Foreground="#C4B5FD" FontSize="11" FontWeight="Bold" />
+                                                <TextBlock x:Name="SubtextSubtextText" Foreground="#EDE9FE" FontSize="12"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="18" />
                                             </StackPanel>
                                         </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
 
-                        <!-- 潜台词卡片视图 -->
-                        <ScrollViewer x:Name="SubtextScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                            <StackPanel x:Name="SubtextCardsContainer">
-                                <!-- 正在剖析的目标原话卡片 -->
-                                <Border Background="#253B82F6" CornerRadius="10"
-                                        BorderBrush="#553B82F6" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="🎯 正在深度剖析对方最新发言" Foreground="#60A5FA" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextTargetText" Text="（尚未读取到对方具体发言）"
-                                                   Foreground="#FFFFFF" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
+                                        <!-- 真实心理诉求 -->
+                                        <Border Background="#1E293B" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                            <StackPanel>
+                                                <TextBlock Text="🎯 真实心理诉求" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" />
+                                                <TextBlock x:Name="SubtextIntentText" Foreground="#E2E8F0" FontSize="12"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="18" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- 破局建议策略 -->
+                                        <Border Background="#182E2B" CornerRadius="6" BorderBrush="#3310B981" BorderThickness="1"
+                                                Padding="10,8">
+                                            <StackPanel>
+                                                <TextBlock Text="⚡ 破局沟通策略与避坑指南" Foreground="#6EE7B7" FontSize="11" FontWeight="Bold" />
+                                                <TextBlock x:Name="SubtextStrategyText" Foreground="#D1FAE5" FontSize="12"
+                                                           TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="18" />
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
+                                <!-- 卡片 2: 精选回复方案 -->
+                                <Border Margin="0,4,0,4">
                                     <StackPanel>
-                                        <TextBlock Text="💬 字面意思" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextLiteralText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#258B5CF6" CornerRadius="10"
-                                        BorderBrush="#668B5CF6" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="🔍 潜台词与深层含义" Foreground="#A78BFA" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextSubtextText" Foreground="#F5F3FF" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="🎭 情绪倾向" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextEmotionText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="🎯 真实核心诉求" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextIntentText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
-                                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="💡 期望的回应类型" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextDesiredResponseText" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#2510B981" CornerRadius="10"
-                                        BorderBrush="#5510B981" BorderThickness="1" Padding="12" Margin="0,0,0,8">
-                                    <StackPanel>
-                                        <TextBlock Text="🛡️ 建议应对策略" Foreground="#34D399" FontSize="11" FontWeight="Bold" />
-                                        <TextBlock x:Name="SubtextStrategyText" Foreground="#ECFDF5" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" LineHeight="19" />
+                                        <StackPanel Orientation="Horizontal" Margin="2,0,0,8">
+                                            <TextBlock Text="💬" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="多风格回复建议" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                            <TextBlock Text="(点击「复制」可直接粘贴发微信)" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+
+                                        <ItemsControl x:Name="SuggestionCards">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource CardBgBrush}" CornerRadius="10"
+                                                            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                                            Padding="12" Margin="0,0,0,8">
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Border HorizontalAlignment="Left" Background="#223B82F6" CornerRadius="4" Padding="6,2">
+                                                                    <TextBlock Text="{Binding Tone}" Foreground="#60A5FA"
+                                                                               FontWeight="Bold" FontSize="11" />
+                                                                </Border>
+                                                                <Button Content="📋 复制" HorizontalAlignment="Right"
+                                                                        Style="{StaticResource FluentButton}" Padding="8,3" FontSize="11"
+                                                                        Click="CopySuggestion_Click" Tag="{Binding Text}" />
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
+                                                            <TextBlock Text="{Binding ReasonLine}" Foreground="{StaticResource TextSecondaryBrush}"
+                                                                       FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- VIEW 2: 人格画像 TAB 内容 -->

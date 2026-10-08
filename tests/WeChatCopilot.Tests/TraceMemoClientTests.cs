@@ -78,6 +78,7 @@ public class TraceMemoClientTests
     public async Task GetActiveContactName_FiltersGroupsAndSystem_ReturnsFirst1v1()
     {
         const string recentChatsJson = "[" +
+            "{\"type\":\"single\",\"m_nsNickName\":\"服务通知\",\"wxid\":\"notifymessage\"}," +
             "{\"type\":\"group\",\"m_nsNickName\":\"某某大群\",\"wxid\":\"12345@chatroom\"}," +
             "{\"type\":\"single\",\"isOfficialAccount\":true,\"m_nsNickName\":\"微信支付\",\"wxid\":\"gh_001\"}," +
             "{\"type\":\"single\",\"m_nsNickName\":\"微信团队\",\"wxid\":\"weixin\"}," +
@@ -90,6 +91,22 @@ public class TraceMemoClientTests
         string? contact = await client.GetActiveContactNameAsync();
 
         Assert.Equal("杨柳依依", contact);
+    }
+
+    [Theory]
+    [InlineData("notifymessage", "服务通知", true)]
+    [InlineData("notifymessage", "", true)]
+    [InlineData("mphelper", "公众平台", true)]
+    [InlineData("gh_abcdef", "某公众号", true)]
+    [InlineData("123@chatroom", "工作群", true)]
+    [InlineData("brandsessionholder", "", true)]
+    [InlineData("", "微信支付", true)]
+    [InlineData(null, null, true)]
+    [InlineData("wxid_friend888", "杨柳依依", false)]
+    [InlineData("wxid_user1", "张三", false)]
+    public void IsSystemContact_ClassifiesCorrectly(string? wxid, string? nick, bool expected)
+    {
+        Assert.Equal(expected, TraceMemoClient.IsSystemContact(wxid, nick));
     }
 
     /// <summary>按路径返回固定 JSON 的测试 handler；body 为 null 时返回 500。</summary>

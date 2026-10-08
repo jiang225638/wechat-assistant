@@ -125,4 +125,63 @@ public class AiOutputParserTests
         Assert.Equal(string.Empty, a.Literal);
         Assert.Equal(string.Empty, a.Strategy);
     }
+
+    [Fact]
+    public void ParseUnifiedAdvice_WellFormedOutput()
+    {
+        string raw =
+            "=== 意图剖析 ===\n" +
+            "目标原话：行吧，尽快给我答复。\n" +
+            "字面意思：要求尽快给出方案结果。\n" +
+            "潜台词洞察：对拖延零容忍，目前正在等待你的承诺而非借口。\n" +
+            "真实心理：希望掌控推进节点，追求高效闭环。\n" +
+            "应对策略：给出明确的时间承诺，不要解释过多客观理由。\n" +
+            "\n" +
+            "=== 回复建议 ===\n" +
+            "[高情商] 收到！我正在敲定最后两项核心细节，今天下午16点前准时发送给您。 | 理由：给出精准确定时刻，打消焦虑\n" +
+            "[直接] 明白，方案已进入汇总收尾，下午下班前给到。 | 理由：干脆利落不拖泥带水\n" +
+            "[专业] 已梳理到第4阶段，预计16:00整提交最终定稿。 | 理由：体现流程把控力";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, fallbackTargetQuote: "兜底原话");
+
+        Assert.Equal("行吧，尽快给我答复。", advice.TargetQuote);
+        Assert.Equal("要求尽快给出方案结果。", advice.Literal);
+        Assert.Equal("对拖延零容忍，目前正在等待你的承诺而非借口。", advice.Subtext);
+        Assert.Equal("希望掌控推进节点，追求高效闭环。", advice.Intent);
+        Assert.Equal("给出明确的时间承诺，不要解释过多客观理由。", advice.Strategy);
+        Assert.Equal(3, advice.Suggestions.Count);
+        Assert.Equal("高情商", advice.Suggestions[0].Tone);
+        Assert.Equal("收到！我正在敲定最后两项核心细节，今天下午16点前准时发送给您。", advice.Suggestions[0].Text);
+        Assert.Equal("给出精准确定时刻，打消焦虑", advice.Suggestions[0].Reason);
+        Assert.Equal("直接", advice.Suggestions[1].Tone);
+        Assert.Equal("专业", advice.Suggestions[2].Tone);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_FallbackTargetQuote_WhenMissingInRaw()
+    {
+        string raw =
+            "潜台词洞察：想尽快结束对话\n" +
+            "真实心理：感到烦躁\n" +
+            "[缓和] 好的，你先忙，稍后再联系 | 理由：退一步给对方空间";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, fallbackTargetQuote: "你先忙吧");
+
+        Assert.Equal("你先忙吧", advice.TargetQuote);
+        Assert.Equal("想尽快结束对话", advice.Subtext);
+        Assert.Equal("感到烦躁", advice.Intent);
+        Assert.Single(advice.Suggestions);
+        Assert.Equal("缓和", advice.Suggestions[0].Tone);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_NullOrEmpty_ReturnsFallbackQuoteAndEmptySuggestions()
+    {
+        var advice = AiOutputParser.ParseUnifiedAdvice(null, "默认发言");
+
+        Assert.Equal("默认发言", advice.TargetQuote);
+        Assert.Empty(advice.Literal);
+        Assert.Empty(advice.Subtext);
+        Assert.Empty(advice.Suggestions);
+    }
 }

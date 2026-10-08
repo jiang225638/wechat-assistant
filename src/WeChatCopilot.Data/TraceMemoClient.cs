@@ -212,8 +212,51 @@ public sealed class TraceMemoClient : IDisposable
         }
     }
 
+    private static readonly HashSet<string> SystemWxids = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "notifymessage", "mphelper", "weixin", "filehelper", "fmessage", "medianote",
+        "floatbottle", "qmessage", "newsapp", "brandsessionholder", "brandservicesessionholder",
+        "weixinguanhaozhushou", "weibo", "qqmail", "tmessage", "voiceinputapp", "voicevoipapp",
+        "feedsapp", "shakeapp", "lbsapp", "masssendapp", "readerapp", "topstoryapp", "notification_messages"
+    };
+
+    private static readonly HashSet<string> SystemNicks = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "服务通知", "微信团队", "文件传输助手", "订阅号", "订阅号消息", "微信支付",
+        "微信运动", "微信游戏", "微信公众平台", "腾讯新闻", "QQ邮箱提醒", "群发助手",
+        "支付凭证", "公众号", "服务号"
+    };
+
+    /// <summary>判定某联系人是否属于系统号、公众号、群聊或服务通知，而非真实单聊好友。</summary>
+    public static bool IsSystemContact(string? wxid, string? nick)
+    {
+        if (string.IsNullOrWhiteSpace(wxid) && string.IsNullOrWhiteSpace(nick))
+        {
+            return true;
+        }
+
+        string w = wxid ?? string.Empty;
+        string n = nick ?? string.Empty;
+
+        if (w.StartsWith("gh_", StringComparison.OrdinalIgnoreCase) ||
+            w.EndsWith("@chatroom", StringComparison.OrdinalIgnoreCase) ||
+            w.EndsWith("@im.chatroom", StringComparison.OrdinalIgnoreCase) ||
+            w.EndsWith("@app", StringComparison.OrdinalIgnoreCase) ||
+            w.Contains("sessionholder", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (SystemWxids.Contains(w) || SystemNicks.Contains(n))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
-    /// 从 TraceMemo 的 recent_chat 活跃会话流中获取当前正在沟通的单聊好友昵称（排在首位的非群聊、非公众号好友）。
+    /// 从 TraceMemo 的 recent_chat 活跃会话流中获取当前正在沟通的真实单聊好友昵称（排在首位的非群聊、非公众号、非服务通知好友）。
     /// </summary>
     public async Task<string?> GetActiveContactNameAsync(CancellationToken cancellationToken = default)
     {
@@ -246,17 +289,19 @@ public sealed class TraceMemoClient : IDisposable
                     continue;
                 }
 
-                string nick = GetStringAny(item, "m_nsNickName", "remark", "nickname", "name");
+                string nick = GetStringAny(item, "m_nsNickName", "nickname", "name");
+                string remark = GetStringAny(item, "remark");
                 string wxid = GetStringAny(item, "wxid", "m_nsUsrName");
 
-                if (wxid is "brandsessionholder" or "fmessage" or "medianote" or "floatbottle" or "qmessage" or "weixin" or "newsapp")
+                if (IsSystemContact(wxid, nick) || IsSystemContact(wxid, remark))
                 {
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(nick))
+                string candidate = !string.IsNullOrWhiteSpace(remark) ? remark : nick;
+                if (!string.IsNullOrWhiteSpace(candidate))
                 {
-                    return nick;
+                    return candidate;
                 }
             }
         }

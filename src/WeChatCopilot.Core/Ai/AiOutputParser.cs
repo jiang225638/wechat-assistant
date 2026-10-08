@@ -110,4 +110,92 @@ public static class AiOutputParser
             Get("Literal"), Get("Subtext"), Get("Emotion"),
             Get("Intent"), Get("DesiredResponse"), Get("Strategy"));
     }
+
+    /// <summary>
+    /// 解析一体化 AI 建议响应：同时提取意图剖析（原话、字面、潜台词、心理、策略）与多风格回复建议。
+    /// 无论模型输出是否严格遵守分块标记，均能强力容错解析。
+    /// </summary>
+    public static UnifiedAiAdvice ParseUnifiedAdvice(string? raw, string? fallbackTargetQuote = null)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return new UnifiedAiAdvice(fallbackTargetQuote ?? string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Array.Empty<ReplySuggestion>());
+        }
+
+        string targetQuote = fallbackTargetQuote ?? string.Empty;
+        string literal = string.Empty;
+        string subtext = string.Empty;
+        string intent = string.Empty;
+        string strategy = string.Empty;
+
+        var suggestions = new List<ReplySuggestion>();
+
+        foreach (string rawLine in raw.Split('\n'))
+        {
+            string line = rawLine.Trim('\r', ' ', '\t');
+            if (line.Length == 0 || line.StartsWith("===") || line.StartsWith("---") || line.StartsWith("```"))
+            {
+                continue;
+            }
+
+            // 1. 尝试匹配意图剖析键值
+            int colonIdx = line.IndexOfAny(new[] { ':', '：' });
+            if (colonIdx > 0)
+            {
+                string prefix = line[..colonIdx].Trim();
+                string val = line[(colonIdx + 1)..].Trim(' ', '"', '“', '”', '‘', '’');
+
+                if (prefix is "目标原话" or "原话")
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) targetQuote = val;
+                    continue;
+                }
+                if (prefix is "字面意思" or "字面")
+                {
+                    literal = val;
+                    continue;
+                }
+                if (prefix is "潜台词洞察" or "潜台词" or "弦外之音")
+                {
+                    subtext = val;
+                    continue;
+                }
+                if (prefix is "真实心理" or "真实意图" or "心理诉求" or "核心诉求" or "意图")
+                {
+                    intent = val;
+                    continue;
+                }
+                if (prefix is "应对策略" or "建议策略" or "破局策略" or "沟通策略" or "策略")
+                {
+                    strategy = val;
+                    continue;
+                }
+            }
+
+            // 2. 尝试匹配回复建议格式: [语气] 内容 | 理由：xxx
+            string cleaned = NumberPrefix.Replace(line, string.Empty);
+            Match m = SuggestionLine.Match(cleaned);
+            if (m.Success)
+            {
+                string tone = m.Groups["tone"].Value.Trim();
+                string rest = m.Groups["rest"].Value.Trim();
+                Match r = ReasonSplit.Match(rest);
+                if (r.Success)
+                {
+                    suggestions.Add(new ReplySuggestion(tone, r.Groups["text"].Value.Trim(), r.Groups["reason"].Value.Trim()));
+                }
+                else
+                {
+                    suggestions.Add(new ReplySuggestion(tone, rest, string.Empty));
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(targetQuote) && !string.IsNullOrWhiteSpace(fallbackTargetQuote))
+        {
+            targetQuote = fallbackTargetQuote;
+        }
+
+        return new UnifiedAiAdvice(targetQuote, literal, subtext, intent, strategy, suggestions);
+    }
 }

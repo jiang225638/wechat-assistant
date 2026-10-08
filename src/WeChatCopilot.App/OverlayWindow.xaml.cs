@@ -226,7 +226,11 @@ public partial class OverlayWindow : Window
         ViewPersona.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
         ViewHelp.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
 
-        if (index == 2)
+        if (index == 1)
+        {
+            UpdateAiTargetInfo();
+        }
+        else if (index == 2)
         {
             RefreshSavedPersonasCombo();
             string target = ContactBox.Text.Trim();
@@ -405,32 +409,47 @@ public partial class OverlayWindow : Window
 
     // ===================== VIEW 1: AI 建议 TAB =====================
 
-    private void ModeRadio_Changed(object sender, RoutedEventArgs e)
+    private void UpdateAiTargetInfo()
     {
-        if (SuggestionScroll is null || SubtextScroll is null)
+        string target = ContactBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(target))
         {
-            return;
+            target = _currentChatContact;
         }
 
-        bool subtext = SubtextModeRadio.IsChecked == true;
-        SuggestionScroll.Visibility = subtext ? Visibility.Collapsed : Visibility.Visible;
-        SubtextScroll.Visibility = subtext ? Visibility.Visible : Visibility.Collapsed;
+        if (!string.IsNullOrWhiteSpace(target))
+        {
+            AiTargetContactText.Text = target;
+            var persona = _personaStore.Load(target);
+            if (persona is { Traits.Count: > 0 })
+            {
+                AiPersonaBadge.Visibility = Visibility.Visible;
+                AiPersonaBadgeText.Text = $"已融入画像 ({persona.Traits.Count}项)";
+            }
+            else
+            {
+                AiPersonaBadge.Visibility = Visibility.Collapsed;
+            }
+        }
+        else
+        {
+            AiTargetContactText.Text = "当前对话好友";
+            AiPersonaBadge.Visibility = Visibility.Collapsed;
+        }
     }
 
     private async void GenerateButton_Click(object sender, RoutedEventArgs e)
     {
         if (_conversation.Count == 0)
         {
-            SetAiStatus("对话缓冲为空，请先在「当前对话」点【读取当前对话】。", isError: true);
+            SetAiStatus("对话缓冲为空，请先在「当前对话」点击【⚡ 读取当前对话】。", isError: true);
             return;
         }
 
-        bool subtext = SubtextModeRadio.IsChecked == true;
         int count = CountBox.SelectedIndex == 1 ? 5 : 3;
-
         GenerateButton.IsEnabled = false;
         AiStatusBanner.Visibility = Visibility.Visible;
-        AiStatusText.Text = subtext ? "AI 正在深度分析潜台词与真实意图..." : $"AI 正在生成 {count} 种风格回复建议...";
+        AiStatusText.Text = $"AI 正在结合对方画像深度剖析意图并生成 {count} 条针对性回复建议...";
 
         try
         {
@@ -438,20 +457,27 @@ public partial class OverlayWindow : Window
             string key = DpapiProtector.Unprotect(settings.EncryptedApiKey);
             using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
 
-            // 融入当前联系人画像
-            Persona? personaContext = null;
-            if (IncludePersonaCheck.IsChecked == true)
+            string target = ContactBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(target))
             {
-                string target = ContactBox.Text.Trim();
-                if (!string.IsNullOrEmpty(target))
-                {
-                    personaContext = _personaStore.Load(target);
-                }
+                target = _currentChatContact;
             }
 
-            AiRequest req = subtext
-                ? PromptBuilder.BuildSubtextAnalysis(settings, _conversation.Messages, personaContext)
-                : PromptBuilder.BuildReplySuggestions(settings, _conversation.Messages, count, personaContext);
+            Persona? personaContext = null;
+            if (IncludePersonaCheck.IsChecked == true && !string.IsNullOrEmpty(target))
+            {
+                personaContext = _personaStore.Load(target);
+            }
+
+            var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
+            string targetStatement = latestIncoming?.Text ?? string.Empty;
+
+            AiRequest req = PromptBuilder.BuildUnifiedAdvice(
+                settings,
+                _conversation.Messages,
+                count,
+                personaContext,
+                target);
 
             AiReply reply = await provider.CompleteAsync(req);
             AiStatusBanner.Visibility = Visibility.Collapsed;
@@ -462,18 +488,8 @@ public partial class OverlayWindow : Window
                 return;
             }
 
-            if (subtext)
-            {
-                var parsedSubtext = AiOutputParser.ParseSubtext(reply.Text);
-                ShowSubtextAnalysis(parsedSubtext);
-            }
-            else
-            {
-                var suggestions = AiOutputParser.ParseReplySuggestions(reply.Text);
-                SuggestionCards.ItemsSource = suggestions;
-                SuggestionScroll.Visibility = Visibility.Visible;
-                SubtextScroll.Visibility = Visibility.Collapsed;
-            }
+            var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
+            ShowUnifiedAdvice(advice, target);
         }
         catch (Exception ex)
         {
@@ -486,21 +502,32 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void ShowSubtextAnalysis(SubtextAnalysis s)
+    private void ShowUnifiedAdvice(UnifiedAiAdvice advice, string? contactName)
     {
-        var targetMsg = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
-        string targetText = targetMsg?.Text ?? "（未找到对方具体发言）";
-        SubtextTargetText.Text = $"“{targetText}”";
+        AiEmptyPlaceholder.Visibility = Visibility.Collapsed;
+        AiResultPanel.Visibility = Visibility.Visible;
 
-        SubtextLiteralText.Text = string.IsNullOrWhiteSpace(s.Literal) ? "（未解析）" : s.Literal;
-        SubtextSubtextText.Text = string.IsNullOrWhiteSpace(s.Subtext) ? "（未解析）" : s.Subtext;
-        SubtextEmotionText.Text = string.IsNullOrWhiteSpace(s.Emotion) ? "（未解析）" : s.Emotion;
-        SubtextIntentText.Text = string.IsNullOrWhiteSpace(s.Intent) ? "（未解析）" : s.Intent;
-        SubtextDesiredResponseText.Text = string.IsNullOrWhiteSpace(s.DesiredResponse) ? "（未解析）" : s.DesiredResponse;
-        SubtextStrategyText.Text = string.IsNullOrWhiteSpace(s.Strategy) ? "（未解析）" : s.Strategy;
+        string targetAuthor = !string.IsNullOrWhiteSpace(contactName) ? $"{contactName} 原话" : "对方最新发言";
+        SubtextTargetAuthor.Text = targetAuthor;
 
-        SuggestionScroll.Visibility = Visibility.Collapsed;
-        SubtextScroll.Visibility = Visibility.Visible;
+        SubtextTargetText.Text = !string.IsNullOrWhiteSpace(advice.TargetQuote)
+            ? $"“{advice.TargetQuote}”"
+            : "（无具体原话）";
+
+        SubtextSubtextText.Text = !string.IsNullOrWhiteSpace(advice.Subtext)
+            ? advice.Subtext
+            : (!string.IsNullOrWhiteSpace(advice.Literal) ? advice.Literal : "通过语气分析，对方此时较为平静务实。");
+
+        SubtextIntentText.Text = !string.IsNullOrWhiteSpace(advice.Intent)
+            ? advice.Intent
+            : "希望就当前事项目标取得共识或明确后续推进要求。";
+
+        SubtextStrategyText.Text = !string.IsNullOrWhiteSpace(advice.Strategy)
+            ? advice.Strategy
+            : "建议保持积极客气、就事论事的态度，明确时间与具体要求。";
+
+        SuggestionCards.ItemsSource = advice.Suggestions;
+        UnifiedAiScroll.ScrollToTop();
     }
 
     private void SetAiStatus(string text, bool isError = false)
@@ -565,6 +592,7 @@ public partial class OverlayWindow : Window
             }
 
             CheckAndLoadPersona(name);
+            UpdateAiTargetInfo();
         }
         else
         {
@@ -573,64 +601,112 @@ public partial class OverlayWindow : Window
             PersonaEmptyCard.Visibility = Visibility.Visible;
             PersonaEmptyTitle.Text = "请选择或输入联系人";
             RadarCanvas.Children.Clear();
+            UpdateAiTargetInfo();
         }
+    }
+
+    /// <summary>
+    /// 尝试通过微信窗口探测当前聊天好友名称：
+    /// 1. 若为独立聊天窗口（ChatWnd），直接从窗口标题获取；
+    /// 2. 若为微信主窗口，通过截取聊天窗顶端标题栏区域进行轻量 OCR 识别。
+    /// </summary>
+    private async Task<string?> DetectContactFromWeChatHeaderAsync()
+    {
+        var info = _tracker.GetCurrent();
+        if (info is null)
+        {
+            return null;
+        }
+
+        if (info.ClassName == "ChatWnd")
+        {
+            string contact = CleanContactName(info.Title);
+            if (!string.IsNullOrEmpty(contact) && contact != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, contact))
+            {
+                return contact;
+            }
+        }
+
+        // 针对微信主界面：截取聊天面板上方中央的联系人/群聊标题区域（横向约 28%~72%，纵向约 0%~8%）
+        try
+        {
+            int hX = info.Bounds.X + (int)(info.Bounds.Width * 0.28);
+            int hY = info.Bounds.Y + (int)(info.Bounds.Height * 0.02);
+            int hW = (int)(info.Bounds.Width * 0.45);
+            int hH = (int)(info.Bounds.Height * 0.07);
+
+            var headerBounds = new WindowBounds(hX, hY, Math.Max(10, hW), Math.Max(10, hH));
+            var headerImg = ScreenCapture.CaptureRegion(headerBounds);
+            if (headerImg is not null)
+            {
+                headerImg = headerImg.ScaleNearest(OcrUpscaleFactor);
+                var ocr = await _ocrEngine.RecognizeAsync(headerImg);
+                foreach (var line in ocr.Lines)
+                {
+                    string text = CleanContactName(line.Text);
+                    if (text.Length >= 2 && text != "微信" && text != "WeChat" && text != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, text))
+                    {
+                        return text;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // 忽略图像或 OCR 探测异常
+        }
+
+        return null;
     }
 
     private async void SyncContactButton_Click(object sender, RoutedEventArgs e)
     {
         _autoSyncContact = true;
         SyncContactButton.IsEnabled = false;
-        SetPersonaStatus("正在从微信与 TraceMemo 探测当前对话好友...", isBusy: true);
+        SetPersonaStatus("正在探测当前对话好友...", isBusy: true);
 
         try
         {
             string? detectedName = null;
 
-            // 1. 优先尝试从 TraceMemo 获取当前活跃单聊好友（排除群聊和系统号）
-            var settings = new SettingsStore().Load();
-            if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
-            {
-                try
-                {
-                    using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
-                    detectedName = await client.GetActiveContactNameAsync();
-                }
-                catch
-                {
-                    // 忽略网络或服务不可用异常
-                }
-            }
+            // 1. 优先尝试从微信窗口探测当前好友（独立窗口标题或主窗口顶部标题区 OCR）
+            detectedName = await DetectContactFromWeChatHeaderAsync();
 
-            // 2. 如果当前窗口是独立聊天窗口 (ChatWnd)，取窗口标题
+            // 2. 若窗口探测未成功，尝试从 TraceMemo 获取当前活跃单聊好友（已强力过滤服务通知与公众号）
             if (string.IsNullOrWhiteSpace(detectedName))
             {
-                var info = _tracker.GetCurrent();
-                if (info is not null && info.ClassName == "ChatWnd")
+                var settings = new SettingsStore().Load();
+                if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
                 {
-                    string titleContact = CleanContactName(info.Title);
-                    if (!string.IsNullOrEmpty(titleContact) && titleContact != _mySelfNickname)
+                    try
                     {
-                        detectedName = titleContact;
+                        using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
+                        detectedName = await client.GetActiveContactNameAsync();
+                    }
+                    catch
+                    {
+                        // 忽略网络或服务不可用异常
                     }
                 }
             }
 
             // 3. 检查已记录的当前非本人联系人
-            if (string.IsNullOrWhiteSpace(detectedName) && !string.IsNullOrEmpty(_currentChatContact) && _currentChatContact != _mySelfNickname)
+            if (string.IsNullOrWhiteSpace(detectedName) && !string.IsNullOrEmpty(_currentChatContact) && _currentChatContact != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, _currentChatContact))
             {
                 detectedName = _currentChatContact;
             }
 
-            if (!string.IsNullOrEmpty(detectedName) && detectedName != _mySelfNickname)
+            if (!string.IsNullOrEmpty(detectedName) && detectedName != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, detectedName))
             {
                 _currentChatContact = detectedName;
                 ContactBox.Text = detectedName;
                 CheckAndLoadPersona(detectedName);
+                UpdateAiTargetInfo();
                 SetPersonaStatus($"✅ 已同步当前微信聊天对象：「{detectedName}」", isBusy: false);
             }
             else
             {
-                SetPersonaStatus("未能从 TraceMemo 识别到活跃会话。如为独立聊天窗口请先点击激活，或在上方直接输入好友昵称/备注。", isBusy: false);
+                SetPersonaStatus("未能自动识别到好友。可在上方直接输入好友昵称/备注，或在下方「已存档案」中直接选取。", isBusy: false);
             }
         }
         catch (Exception ex)

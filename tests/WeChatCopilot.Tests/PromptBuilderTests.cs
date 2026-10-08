@@ -129,5 +129,33 @@ public class PromptBuilderTests
         Assert.Contains("对方已知画像参考：", req.UserPrompt);
         Assert.Contains("谨慎克制", req.UserPrompt);
     }
+
+    [Fact]
+    public void BuildUnifiedAdvice_IncludesPersonaAndTargetQuote()
+    {
+        var settings = new AiSettings { Model = "deepseek-chat", Temperature = 0.4 };
+        var msgs = new[]
+        {
+            M(MessageRole.Incoming, "你觉得这个方案怎么样？"),
+            M(MessageRole.Outgoing, "我正在看"),
+            M(MessageRole.Incoming, "行吧，尽快给我答复。")
+        };
+        var persona = new Persona("王五", new[]
+        {
+            new PersonaTrait("沟通风格", "雷厉风行，追求效率", 0.92, new[] { "尽快" })
+        }, DateTime.Now, 20);
+
+        var req = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 4, persona: persona, contactName: "王五");
+
+        Assert.Equal("deepseek-chat", req.Model);
+        Assert.Equal(0.4, req.Temperature);
+        Assert.Contains("=== 意图剖析 ===", req.SystemPrompt);
+        Assert.Contains("=== 回复建议 ===", req.SystemPrompt);
+        Assert.Contains("当前对话对象：王五", req.UserPrompt);
+        Assert.Contains("雷厉风行，追求效率", req.UserPrompt);
+        Assert.Contains("92分", req.UserPrompt);
+        Assert.Contains("行吧，尽快给我答复。", req.UserPrompt);
+        Assert.Contains("4 条", req.UserPrompt);
+    }
 }
 
