@@ -126,8 +126,36 @@ public class MessageSegmenterTests
         // 自定义：左锚点放宽到 0.5，则 x=450 也算对方
         var seg = new MessageSegmenter(new SegmentationOptions { AnchorLeftMaxRatio = 0.5 });
         var msgs = seg.Segment(Result(Line("中间偏左", x: 450, y: 100, w: 100)), Width);
-
         Assert.Single(msgs);
         Assert.Equal(MessageRole.Incoming, msgs[0].Role);
+    }
+
+    [Theory]
+    [InlineData("-_-", true)]
+    [InlineData("><", true)]
+    [InlineData("12:30", true)]
+    [InlineData("撤回了一条消息", true)]
+    [InlineData("你好", false)]
+    [InlineData("在的，马上看", false)]
+    [InlineData("meeting at 3pm", false)]
+    public void IsGarbageOrEmojiNoise_FiltersJunkSymbols(string text, bool expectedGarbage)
+    {
+        Assert.Equal(expectedGarbage, MessageSegmenter.IsGarbageOrEmojiNoise(text));
+    }
+
+    [Fact]
+    public void Segment_FiltersGarbageLinesFromEmojiOrSticker()
+    {
+        var seg = new MessageSegmenter();
+        var ocr = Result(
+            Line("在吗", x: 50, y: 100),
+            Line("-_-", x: 50, y: 125), // 表情包杂散符号，被清洗
+            Line("在的", x: 700, y: 200, w: 250));
+
+        var msgs = seg.Segment(ocr, Width);
+
+        Assert.Equal(2, msgs.Count);
+        Assert.Equal("在吗", msgs[0].Text);
+        Assert.Equal("在的", msgs[1].Text);
     }
 }

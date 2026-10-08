@@ -138,11 +138,19 @@ public static class PromptBuilder
         {
             return "商务合作/客户：注重利益共赢、专业信任感与礼貌距离。严谨周全，以解决实际问题与推动合作为导向。";
         }
+        if (rel.Contains("冷战") || rel.Contains("挽回") || rel.Contains("矛盾") || rel.Contains("吵架"))
+        {
+            return "矛盾/冷战挽回情境：重在破冰降温、真诚接住情绪与自我反思。切忌争辩对错、推卸责任或翻旧账，给出合理台阶与温暖关怀。";
+        }
+        if (rel.Contains("相亲") || rel.Contains("初识") || rel.Contains("刚加"))
+        {
+            return "相亲初识情境：重在展示良好教养、真诚好奇与共同话题发掘。保持轻松幽默与适度分寸，避免查户口式盘问与过度自嗨。";
+        }
         if (rel.Contains("网友") || rel.Contains("陌生人") || rel.Contains("普通"))
         {
             return "普通网友/泛泛之交：保持适度礼貌、安全边界与分寸感，既不冷漠敷衍，也不过分热情窥探隐私。";
         }
-        return $"特定关系（{rel}）：请根据此关系场景严格拿捏沟通分寸与表达策略。";
+        return $"用户自定义专属关系与情境（{rel}）：请深度契合用户指定的这一具体情境背景与心理预期，拿捏最精准的社交边界、潜台词洞察与语气分寸！";
     }
 
     /// <summary>

@@ -75,6 +75,49 @@ public sealed class MessageSegmenter
         return messages;
     }
 
+    /// <summary>
+    /// 判断某段 OCR 文本是否为表情包/图片边框/无效杂散符号乱码。
+    /// 表情包通常产生纯符号（如 \-~ 、^~^ 、==）、纯时间戳或毫无意义的碎片字符。
+    /// </summary>
+    public static bool IsGarbageOrEmojiNoise(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        string t = text.Trim();
+
+        // 包含任何汉字，通常是有意义的内容，不随意过滤（除非纯系统提示）
+        bool hasChinese = System.Text.RegularExpressions.Regex.IsMatch(t, @"[\u4e00-\u9fa5]");
+        if (hasChinese)
+        {
+            if (t is "撤回了一条消息" or "拍了拍我" or "加入了群聊" or "查看更多消息")
+            {
+                return true;
+            }
+            return false;
+        }
+
+        // 1. 过滤纯时间戳行 (如 12:30, 09:15)
+        if (System.Text.RegularExpressions.Regex.IsMatch(t, @"^\d{1,2}:\d{2}$"))
+        {
+            return true;
+        }
+
+        // 2. 纯标点或特殊符号串（表情包边框/线条最常产生的乱码）
+        bool hasWords = System.Text.RegularExpressions.Regex.IsMatch(t, @"[a-zA-Z0-9]{2,}");
+        if (!hasWords)
+        {
+            return true;
+        }
+
+        // 3. 乱码符号比例过高检测 (如 ".-/_><")
+        int symbolCount = t.Count(c => char.IsPunctuation(c) || char.IsSymbol(c) || char.IsWhiteSpace(c));
+        if (t.Length > 0 && (double)symbolCount / t.Length > 0.70 && t.Length <= 8)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private void Flush(List<ChatMessage> messages, MessageRole role, List<string> lines)
     {
         // 居中/未知行（时间戳、系统提示）仅作为分隔，不产出消息
@@ -83,10 +126,22 @@ public sealed class MessageSegmenter
             return;
         }
 
-        string text = string.Join("\n", lines).Trim();
+        var cleanLines = lines.Where(l => !IsGarbageOrEmojiNoise(l)).ToList();
+        if (cleanLines.Count == 0)
+        {
+            return;
+        }
+
+        string text = string.Join("\n", cleanLines).Trim();
         if (text.Length == 0)
         {
             return;
+        }
+
+        // 清洗链接卡片杂乱域名
+        if (text.StartsWith("http://") || text.StartsWith("https://") || text.Contains("mp.weixin.qq.com"))
+        {
+            text = "[分享链接] " + text.Replace("mp.weixin.qq.com", "").Trim();
         }
 
         messages.Add(new ChatMessage(role, text));

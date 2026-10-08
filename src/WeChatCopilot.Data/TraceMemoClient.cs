@@ -182,12 +182,13 @@ public sealed class TraceMemoClient : IDisposable
 
             foreach (JsonElement el in enumerator)
             {
-                string text = GetStringAny(el, "text", "content", "message", "msg", "m_nsContent");
-                if (text.Length == 0 && el.TryGetProperty("contentData", out var cd) && cd.ValueKind == JsonValueKind.Object)
+                string rawText = GetStringAny(el, "text", "content", "message", "msg", "m_nsContent");
+                if (rawText.Length == 0 && el.TryGetProperty("contentData", out var cd) && cd.ValueKind == JsonValueKind.Object)
                 {
-                    text = GetStringAny(cd, "title", "des", "text");
+                    rawText = GetStringAny(cd, "title", "des", "text");
                 }
 
+                string text = NormalizeWeChatMessageText(rawText, el);
                 if (text.Length == 0)
                 {
                     continue;
@@ -210,6 +211,49 @@ public sealed class TraceMemoClient : IDisposable
 
             return list;
         }
+    }
+
+    /// <summary>规范化微信消息文本：将动画表情、图片及包含 XML 的分享卡片转换为人类可读标签，消除乱码。</summary>
+    public static string NormalizeWeChatMessageText(string text, JsonElement el)
+    {
+        int type = 0;
+        if (el.TryGetProperty("type", out var tProp))
+        {
+            if (tProp.ValueKind == JsonValueKind.Number) type = tProp.GetInt32();
+            else if (tProp.ValueKind == JsonValueKind.String && int.TryParse(tProp.GetString(), out int pv)) type = pv;
+        }
+
+        // 1. 若文本包含微信卡片 XML (type 49 或包含 <appmsg / <msg)
+        if (text.Contains("<appmsg") || text.Contains("<msg"))
+        {
+            if (text.Contains("<emoji") || type == 47)
+            {
+                return "[动画表情]";
+            }
+            var mTitle = System.Text.RegularExpressions.Regex.Match(text, @"<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</title>");
+            if (mTitle.Success && !string.IsNullOrWhiteSpace(mTitle.Groups[1].Value))
+            {
+                return "[分享链接] " + mTitle.Groups[1].Value.Trim();
+            }
+            return "[分享卡片]";
+        }
+
+        // 2. 根据微信消息类型进行兜底标注
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return type switch
+            {
+                47 => "[动画表情]",
+                3 => "[图片]",
+                34 => "[语音消息]",
+                43 => "[视频]",
+                49 => "[分享链接/小程序]",
+                10000 => "[系统通知]",
+                _ => string.Empty
+            };
+        }
+
+        return text.Trim();
     }
 
     private static readonly HashSet<string> SystemWxids = new(StringComparer.OrdinalIgnoreCase)

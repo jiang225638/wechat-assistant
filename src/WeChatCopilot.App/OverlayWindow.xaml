@@ -435,22 +435,24 @@
                                     </Border>
                                 </StackPanel>
 
-                                <!-- 右侧：关系定位选择器 -->
+                                <!-- 右侧：关系定位输入/选择框 -->
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="关系:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
-                                    <ComboBox x:Name="RelationshipBox" Width="108" Height="26" SelectedIndex="0" FontSize="11" VerticalAlignment="Center"
-                                              ToolTip="设定与对方的关系定位，AI 将严格遵循该关系的社交边界与沟通目标生成回复">
-                                        <ComboBoxItem Content="🤖 智能推断" Tag="智能推断" IsSelected="True" />
-                                        <ComboBoxItem Content="❤️ 追求 / 心仪" Tag="追求/心仪" />
-                                        <ComboBoxItem Content="💼 职场 / 同事" Tag="职场/同事" />
-                                        <ComboBoxItem Content="🍻 亲密 / 好友" Tag="亲密好友" />
-                                        <ComboBoxItem Content="🤝 商务 / 客户" Tag="商务/客户" />
-                                        <ComboBoxItem Content="🌐 普通 / 网友" Tag="普通网友" />
+                                    <ComboBox x:Name="RelationshipBox" IsEditable="True" Width="138" Height="32" Text="🤖 智能推断"
+                                              FontSize="11.5" VerticalContentAlignment="Center"
+                                              ToolTip="支持直接输入任意自定义关系（如'刚加上的相亲对象'、'严肃领导'、'冷战中女友'），也可点击下拉选择常用预设">
+                                        <ComboBoxItem Content="🤖 智能推断" Tag="智能推断" />
+                                        <ComboBoxItem Content="❤️ 追求 / 恋爱心仪" Tag="追求/心仪" />
+                                        <ComboBoxItem Content="💼 职场 / 同事汇报" Tag="职场/同事" />
+                                        <ComboBoxItem Content="🍻 亲密 / 死党好友" Tag="亲密好友" />
+                                        <ComboBoxItem Content="🤝 商务 / 客户合作" Tag="商务/客户" />
+                                        <ComboBoxItem Content="❄️ 矛盾 / 冷战挽回" Tag="冷战/挽回" />
+                                        <ComboBoxItem Content="🌹 相亲 / 刚加好友" Tag="相亲/初识" />
                                     </ComboBox>
                                 </StackPanel>
                             </Grid>
 
-                            <!-- 第 2 行：参数与生成按钮（严格同一行水平对齐） -->
+                            <!-- 第 2 行：参数与生成按钮（严格同一行水平对齐，高度均为 32px） -->
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -460,17 +462,18 @@
                                 <!-- 左侧：融入画像与候选数 -->
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <CheckBox x:Name="IncludePersonaCheck" Content="融入人格画像" IsChecked="True"
-                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBlock Text="候选:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="4,0,3,0" VerticalAlignment="Center" />
-                                    <ComboBox x:Name="CountBox" Width="56" Height="26" SelectedIndex="0" FontSize="11" VerticalAlignment="Center">
+                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                    <TextBlock Text="候选:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="2,0,4,0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="CountBox" Width="68" Height="32" SelectedIndex="0" FontSize="11.5"
+                                              VerticalContentAlignment="Center" VerticalAlignment="Center">
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
                                         <ComboBoxItem Content="5 条" />
                                     </ComboBox>
                                 </StackPanel>
 
-                                <!-- 右侧：智能分析与建议按钮（同在第2行，与左侧控件绝对居中对齐） -->
+                                <!-- 右侧：智能分析与建议按钮（高度 32px，与左侧控件绝对居中对齐） -->
                                 <Button x:Name="GenerateButton" Grid.Column="1" Content="🚀 智能分析与建议"
-                                        Style="{StaticResource PrimaryAccentButton}" Height="30" Padding="12,0"
+                                        Style="{StaticResource PrimaryAccentButton}" Height="32" Padding="14,0"
                                         VerticalAlignment="Center" HorizontalAlignment="Right"
                                         Click="GenerateButton_Click" />
                             </Grid>

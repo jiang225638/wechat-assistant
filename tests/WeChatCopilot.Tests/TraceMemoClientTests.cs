@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using WeChatCopilot.Core.Models;
 using WeChatCopilot.Data;
 
@@ -107,6 +108,23 @@ public class TraceMemoClientTests
     public void IsSystemContact_ClassifiesCorrectly(string? wxid, string? nick, bool expected)
     {
         Assert.Equal(expected, TraceMemoClient.IsSystemContact(wxid, nick));
+    }
+
+    [Fact]
+    public void NormalizeWeChatMessageText_ConvertsEmojiAndLinkCards()
+    {
+        using var doc1 = JsonDocument.Parse("{\"type\":47}");
+        Assert.Equal("[动画表情]", TraceMemoClient.NormalizeWeChatMessageText("", doc1.RootElement));
+
+        using var doc2 = JsonDocument.Parse("{\"type\":3}");
+        Assert.Equal("[图片]", TraceMemoClient.NormalizeWeChatMessageText("", doc2.RootElement));
+
+        using var doc3 = JsonDocument.Parse("{\"type\":49}");
+        string xml = "<msg><appmsg><title>AI深度洞察文章</title></appmsg></msg>";
+        Assert.Equal("[分享链接] AI深度洞察文章", TraceMemoClient.NormalizeWeChatMessageText(xml, doc3.RootElement));
+
+        using var doc4 = JsonDocument.Parse("{\"type\":1}");
+        Assert.Equal("你好呀", TraceMemoClient.NormalizeWeChatMessageText("你好呀", doc4.RootElement));
     }
 
     /// <summary>按路径返回固定 JSON 的测试 handler；body 为 null 时返回 500。</summary>
