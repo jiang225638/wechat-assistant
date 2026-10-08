@@ -706,7 +706,7 @@
                                 <TextBlock Text="👤" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
                                 <TextBlock x:Name="PersonaEmptyTitle" Text="暂无此人画像" FontWeight="SemiBold" FontSize="14"
                                            Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
-                                <TextBlock Text="点击【⚡ 拉取 TraceMemo】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 蒸馏/更新画像】，AI 将深度提取七维画像并持久化保存。"
+                                <TextBlock Text="点击【⚡ 拉取 TraceMemo】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 蒸馏/更新画像】，AI 将基于女娲 (Nuwa Skill) 心智蒸馏方法论，深度提炼心智模型、决策启发式、表达DNA等认知操作系统全景。"
                                            Foreground="{StaticResource TextSecondaryBrush}" FontSize="12"
                                            TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" LineHeight="18" />
                             </StackPanel>
@@ -747,8 +747,11 @@
                                                 <TextBlock Text="多维性格与沟通雷达图谱" FontWeight="Bold" FontSize="12.5"
                                                            Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                             </StackPanel>
-                                            <TextBlock Text="量化特征图谱" HorizontalAlignment="Right" FontSize="10.5"
-                                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <Border Background="#2038BDF8" BorderBrush="#5038BDF8" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                                                    <TextBlock Text="🧬 女娲心智蒸馏 (Nuwa Skill)" Foreground="#38BDF8" FontSize="10" FontWeight="SemiBold" />
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
                                         <Canvas x:Name="RadarCanvas" Width="360" Height="200" Margin="0,6,0,0" HorizontalAlignment="Center" />
                                     </StackPanel>
@@ -762,17 +765,23 @@
                                                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
                                                     Padding="12" Margin="0,0,0,8">
                                                 <StackPanel>
-                                                    <!-- 头部：维度名称 + 评分 + 置信度进度条 -->
+                                                    <!-- 头部：维度名称 + 女娲认知层级Tag + 评分 + 置信度进度条 -->
                                                     <Grid>
-                                                        <Border HorizontalAlignment="Left" Background="#2210B981" CornerRadius="4" Padding="6,2">
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding Dimension}" Foreground="#34D399"
-                                                                           FontWeight="Bold" FontSize="11" />
-                                                                <TextBlock Text=" · " Foreground="#6634D399" FontSize="11" />
-                                                                <TextBlock Text="{Binding ScoreText}" Foreground="#A7F3D0"
-                                                                           FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" />
-                                                            </StackPanel>
-                                                        </Border>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Border HorizontalAlignment="Left" Background="#2210B981" CornerRadius="4" Padding="6,2">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="{Binding Dimension}" Foreground="#34D399"
+                                                                               FontWeight="Bold" FontSize="11" />
+                                                                    <TextBlock Text=" · " Foreground="#6634D399" FontSize="11" />
+                                                                    <TextBlock Text="{Binding ScoreText}" Foreground="#A7F3D0"
+                                                                               FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <!-- 女娲认知分层标签 -->
+                                                            <Border Margin="6,0,0,0" Background="#1E293B" BorderBrush="#4038BDF8" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                                                <TextBlock Text="{Binding NuwaTag}" Foreground="#38BDF8" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                            </Border>
+                                                        </StackPanel>
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                                             <TextBlock Text="置信度: " Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" />
                                                             <TextBlock Text="{Binding ConfidencePercentText}" Foreground="#34D399"

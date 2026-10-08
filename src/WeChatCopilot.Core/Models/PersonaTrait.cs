@@ -51,9 +51,37 @@ public sealed record PersonaTrait(
             ? string.Empty
             : string.Join("\n", Evidence.Select(q => "“" + q + "”"));
 
+    /// <summary>
+    /// 女娲心智蒸馏分层标签（Nuwa Skill 认知操作系统对应层级）：
+    /// 表达DNA / 心智模型 / 决策启发式 / 诚实边界 / 价值锚点 / 反模式雷区。
+    /// </summary>
+    public string NuwaTag => NormalizeNuwaTag(Dimension, Attribute);
+
+    /// <summary>
+    /// 根据维度与特质描述归类到女娲 5 层认知操作系统。
+    /// </summary>
+    public static string NormalizeNuwaTag(string dimension, string attribute)
+    {
+        string text = (dimension + " " + attribute).ToLowerInvariant();
+        if (text.Contains("表达dna") || text.Contains("表达风格") || text.Contains("沟通风格") || text.Contains("语言风格"))
+            return "🧬 表达DNA";
+        if (text.Contains("心智模型") || text.Contains("性格能量") || text.Contains("性格心理") || text.Contains("mbti"))
+            return "🧠 心智模型";
+        if (text.Contains("决策启发式") || text.Contains("决策模式") || text.Contains("启发式") || text.Contains("决断"))
+            return "⚡ 决策启发式";
+        if (text.Contains("诚实边界") || text.Contains("情绪阈值") || text.Contains("情绪模式") || text.Contains("压力应对"))
+            return "🛡️ 诚实边界";
+        if (text.Contains("反模式") || text.Contains("隐形雷区") || text.Contains("边界禁忌") || text.Contains("雷区"))
+            return "⚠️ 反模式·雷区";
+        if (text.Contains("价值锚点") || text.Contains("意图需求") || text.Contains("核心关切"))
+            return "🎯 价值锚点";
+        return "🧩 认知操作系统";
+    }
+
     /// <summary>提示词/解析共用行格式：维度 | 特质 | 置信度: x | 证据: 原话;;原话。</summary>
     public string FormatLine() =>
         Dimension + " | " + Attribute +
         " | 置信度: " + ConfidenceText +
         " | 证据: " + (Evidence is null ? string.Empty : string.Join(";;", Evidence));
 }
+

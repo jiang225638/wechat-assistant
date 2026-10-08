@@ -878,7 +878,7 @@ public partial class OverlayWindow : Window
         }
 
         DistillButton.IsEnabled = false;
-        SetPersonaStatus($"🧠 AI 正在深度分析 {name} 的 {_history.Count} 条历史消息，蒸馏七维特质画像（约需数秒）...", isBusy: true);
+        SetPersonaStatus($"🧬 正在调用女娲 (Nuwa) 心智蒸馏技能，分析 {name} 的 {_history.Count} 条历史（提炼心智模型·决策启发式·表达DNA）...", isBusy: true);
 
         try
         {
@@ -900,7 +900,7 @@ public partial class OverlayWindow : Window
             _personaStore.Save(persona);
             ShowPersona(persona);
             RefreshSavedPersonasCombo();
-            SetPersonaStatus($"✅「{name}」画像蒸馏成功并已持久化保存！（含 {persona.Traits.Count} 项特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false);
+            SetPersonaStatus($"✅「{name}」女娲心智画像蒸馏成功并已持久化保存！（提取心智模型、决策启发式、表达DNA等 {persona.Traits.Count} 项认知特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false);
         }
         catch (Exception ex)
         {

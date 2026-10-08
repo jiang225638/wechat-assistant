@@ -226,6 +226,52 @@ public class PersonaDistillerTests
         Assert.Equal("好的没问题，准时到", filtered[0]);
     }
 
+    [Fact]
+    public void NuwaTag_CategorizesCognitiveLayersCorrectly()
+    {
+        var dna = new PersonaTrait("沟通风格", "【表达DNA】短句口语化，高频反问", 0.9, new[] { "为什么不呢？" });
+        var mental = new PersonaTrait("性格能量", "【心智模型】「第一性原理」：凡事先算极限，抗拒流程冗余", 0.95, new[] { "先算物理极限" });
+        var heuristic = new PersonaTrait("决策模式", "【决策启发式】「先控风险再谈收益」", 0.88, new[] { "风险点在哪" });
+        var boundary = new PersonaTrait("情绪阈值", "【诚实边界】遇到未知保持适度怀疑，不轻易承诺", 0.82, new[] { "这个我还不确定" });
+        var antiPattern = new PersonaTrait("隐形雷区", "【反模式】极度反感空洞承诺与推诿借口", 0.91, new[] { "别扯借口" });
+        var anchor = new PersonaTrait("价值锚点", "极度追求确定性与闭环反馈", 0.9, new[] { "必须今天定下来" });
+
+        Assert.Equal("🧬 表达DNA", dna.NuwaTag);
+        Assert.Equal("🧠 心智模型", mental.NuwaTag);
+        Assert.Equal("⚡ 决策启发式", heuristic.NuwaTag);
+        Assert.Equal("🛡️ 诚实边界", boundary.NuwaTag);
+        Assert.Equal("⚠️ 反模式·雷区", antiPattern.NuwaTag);
+        Assert.Equal("🎯 价值锚点", anchor.NuwaTag);
+    }
+
+    [Fact]
+    public void NormalizeDimension_NormalizesNuwaCognitiveDimensions()
+    {
+        Assert.Equal("沟通风格", PersonaDistiller.NormalizeDimension("表达DNA"));
+        Assert.Equal("沟通风格", PersonaDistiller.NormalizeDimension("沟通风格(表达DNA)"));
+        Assert.Equal("性格能量", PersonaDistiller.NormalizeDimension("心智模型"));
+        Assert.Equal("决策模式", PersonaDistiller.NormalizeDimension("决策启发式"));
+        Assert.Equal("情绪阈值", PersonaDistiller.NormalizeDimension("诚实边界"));
+        Assert.Equal("隐形雷区", PersonaDistiller.NormalizeDimension("反模式"));
+        Assert.Equal("价值锚点", PersonaDistiller.NormalizeDimension("价值底线"));
+    }
+
+    [Fact]
+    public void BuildDirectDistillRequest_IncludesNuwaMethodologyGuidelines()
+    {
+        var req = PersonaDistiller.BuildDirectDistillRequest(new AiSettings(), "乔布斯", new[]
+        {
+            new HistoryMessage(MessageRole.Incoming, "Stay hungry, stay foolish.")
+        });
+
+        Assert.Contains("女娲", req.SystemPrompt);
+        Assert.Contains("心智模型", req.SystemPrompt);
+        Assert.Contains("决策启发式", req.SystemPrompt);
+        Assert.Contains("表达DNA", req.SystemPrompt);
+        Assert.Contains("三重验证", req.SystemPrompt);
+        Assert.Contains("乔布斯", req.UserPrompt);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {
