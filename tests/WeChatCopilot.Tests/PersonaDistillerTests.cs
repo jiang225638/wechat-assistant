@@ -169,6 +169,63 @@ public class PersonaDistillerTests
         Assert.Equal(2, jsonTraits[0].Evidence.Count);
     }
 
+    [Fact]
+    public void ParseTraits_WithExplicitScore_ParsesScore()
+    {
+        string text = "沟通风格 | 简洁明了 | 评分: 88 | 置信度: 0.9 | 证据: 收到";
+        var traits = PersonaDistiller.ParseTraits(text);
+
+        Assert.Single(traits);
+        Assert.Equal(88, traits[0].Score);
+        Assert.Equal(0.9, traits[0].Confidence);
+        Assert.Equal("沟通风格", traits[0].Dimension);
+    }
+
+    [Fact]
+    public void PersonaTrait_Score_DerivesDynamicallyFromConfidence_WhenUnset()
+    {
+        var traitLow = new PersonaTrait("沟通风格", "内敛", 0.4, new[] { "嗯" });
+        var traitHigh = new PersonaTrait("沟通风格", "外向", 0.92, new[] { "哈哈" });
+        var traitExplicit = new PersonaTrait("沟通风格", "热情", 0.5, new[] { "好呀" }, Score: 85);
+
+        Assert.Equal(40, traitLow.Score);
+        Assert.Equal(92, traitHigh.Score);
+        Assert.Equal(85, traitExplicit.Score);
+    }
+
+    [Fact]
+    public void DeduplicateByDimension_MergesSameDimensionAndAggregatesEvidence()
+    {
+        var t1 = new PersonaTrait("沟通风格", "简短利落", 0.7, new[] { "好的" }, Score: 70);
+        var t2 = new PersonaTrait("沟通风格", "喜欢用感叹号与短句", 0.9, new[] { "好嘞！" }, Score: 88);
+
+        var deduplicated = PersonaDistiller.DeduplicateByDimension(new[] { t1, t2 });
+
+        Assert.Single(deduplicated);
+        Assert.Equal("沟通风格", deduplicated[0].Dimension);
+        Assert.Equal("喜欢用感叹号与短句", deduplicated[0].Attribute);
+        Assert.Equal(0.9, deduplicated[0].Confidence);
+        Assert.Equal(88, deduplicated[0].Score);
+        Assert.Equal(2, deduplicated[0].Evidence.Count);
+    }
+
+    [Fact]
+    public void FilterEvidence_RemovesUserOutgoingQuotes()
+    {
+        var history = new[]
+        {
+            new HistoryMessage(MessageRole.Outgoing, "下午3点一起喝杯咖啡呀"),
+            new HistoryMessage(MessageRole.Incoming, "好的没问题，准时到")
+        };
+
+        var rawEvidence = new[] { "下午3点一起喝杯咖啡呀", "好的没问题，准时到" };
+        var filtered = PersonaDistiller.FilterEvidence(rawEvidence, history);
+
+        // 己方发言应被自动剔除，只保留对方亲口发言
+        Assert.Single(filtered);
+        Assert.Equal("好的没问题，准时到", filtered[0]);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {

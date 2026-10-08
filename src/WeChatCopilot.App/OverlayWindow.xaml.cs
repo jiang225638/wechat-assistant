@@ -765,7 +765,7 @@ public partial class OverlayWindow : Window
             using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
 
             Persona? existing = _personaStore.Load(name);
-            var distillResult = await PersonaDistiller.DistillDetailedAsync(provider, settings, name, _history, existing);
+            var distillResult = await PersonaDistiller.DistillDetailedAsync(provider, settings, name, _history, existing, _mySelfNickname);
 
             if (!distillResult.Success || distillResult.Persona.Traits.Count == 0)
             {
@@ -879,9 +879,12 @@ public partial class OverlayWindow : Window
 
         PersonaHeaderName.Text = $"👤 {p.ContactName} 的人格特质画像";
         PersonaHeaderMeta.Text = $"更新时间: {p.UpdatedAt:yyyy-MM-dd HH:mm}  |  基于历史: {p.SourceMessageCount} 条消息";
-        PersonaCards.ItemsSource = p.Traits;
 
-        DrawRadarChart(p.Traits);
+        // 彻底归一化去重并过滤己方原话
+        var cleanTraits = PersonaDistiller.DeduplicateByDimension(p.Traits, _history);
+        PersonaCards.ItemsSource = cleanTraits;
+
+        DrawRadarChart(cleanTraits);
     }
 
     private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits)
@@ -892,7 +895,7 @@ public partial class OverlayWindow : Window
         double cy = RadarCanvas.Height / 2.0;
         double maxR = 64.0;
 
-        // 整理六维数据：优先匹配专业六维，缺失时自适应填充
+        // 严格固定专业六维雷达轴，彻底杜绝重复维度与多轴错乱
         var standardDims = new[]
         {
             ("沟通风格", 75.0),
@@ -904,32 +907,20 @@ public partial class OverlayWindow : Window
         };
 
         var data = new List<(string Label, double Score)>();
-        if (traits != null && traits.Count >= 3)
+        foreach (var (dim, defScore) in standardDims)
         {
-            foreach (var t in traits)
-            {
-                double score = t.Score > 0 ? t.Score : Math.Clamp(t.Confidence * 100, 20, 95);
-                data.Add((t.Dimension, score));
-            }
-        }
-        else if (traits != null && traits.Count > 0)
-        {
-            foreach (var (dim, defScore) in standardDims)
-            {
-                var matched = traits.FirstOrDefault(t => t.Dimension.Contains(dim) || dim.Contains(t.Dimension));
-                double score = matched != null ? (matched.Score > 0 ? matched.Score : Math.Clamp(matched.Confidence * 100, 20, 95)) : defScore;
-                data.Add((dim, score));
-            }
-        }
-        else
-        {
-            foreach (var (dim, defScore) in standardDims)
-            {
-                data.Add((dim, defScore));
-            }
+            var matched = traits?.FirstOrDefault(t =>
+                PersonaDistiller.NormalizeDimension(t.Dimension) == dim ||
+                t.Dimension.Contains(dim) || dim.Contains(t.Dimension));
+
+            double score = matched != null
+                ? (matched.Score > 0 ? matched.Score : Math.Clamp(matched.Confidence * 100, 35, 95))
+                : defScore;
+
+            data.Add((dim, score));
         }
 
-        int count = data.Count;
+        int count = data.Count; // 始终固定为 6
         double angleStep = 2 * Math.PI / count;
         double startAngle = -Math.PI / 2.0;
 

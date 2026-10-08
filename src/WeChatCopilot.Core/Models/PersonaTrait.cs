@@ -14,8 +14,16 @@ public sealed record PersonaTrait(
     string Attribute,
     double Confidence,
     IReadOnlyList<string> Evidence,
-    double Score = 75.0)
+    double Score = 0.0)
 {
+    private readonly double _score = Score;
+
+    /// <summary>该维度量化评分（0~100）。若未显式指定则依据置信度动态推导。</summary>
+    public double Score
+    {
+        get => _score > 0 ? _score : Math.Clamp(Math.Round(Confidence * 100), 35, 95);
+        init => _score = value;
+    }
     /// <summary>卡片右侧置信度文本。</summary>
     public string ConfidenceText => Confidence.ToString("0.00");
 
