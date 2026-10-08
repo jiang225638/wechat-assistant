@@ -463,7 +463,7 @@
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <CheckBox x:Name="IncludePersonaCheck" Content="融入人格画像" IsChecked="True"
                                               Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                    <TextBlock Text="候选:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="2,0,4,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="候选:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"  Width="58" Margin="2,0,4,0" VerticalAlignment="Center" />
                                     <ComboBox x:Name="CountBox" Width="68" Height="32" SelectedIndex="0" FontSize="11.5"
                                               VerticalContentAlignment="Center" VerticalAlignment="Center">
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
