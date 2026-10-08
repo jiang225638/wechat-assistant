@@ -2,33 +2,57 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="AI 设置"
-        Width="440" Height="370"
+        Width="480"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#FF1E1E2E">
-    <StackPanel Margin="16">
-        <TextBlock Text="接口基址（OpenAI 兼容，含 /v1）" Foreground="#FFDDDDDD" FontSize="12" />
-        <TextBox x:Name="EndpointBox" Margin="0,4,0,0" FontSize="12" />
+        Background="#FF181824">
+    <Border Padding="18,16,18,18">
+        <StackPanel>
+            <TextBlock Text="接口基址（OpenAI 兼容，含 /v1）" Foreground="#FFE0E0E0" FontSize="12" />
+            <TextBox x:Name="EndpointBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
 
-        <TextBlock Text="模型名" Foreground="#FFDDDDDD" FontSize="12" Margin="0,10,0,0" />
-        <TextBox x:Name="ModelBox" Margin="0,4,0,0" FontSize="12" />
+            <TextBlock Text="模型名" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <TextBox x:Name="ModelBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
 
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-            <StackPanel>
-                <TextBlock Text="温度 (0-1)" Foreground="#FFDDDDDD" FontSize="12" />
-                <TextBox x:Name="TempBox" Width="80" Margin="0,4,0,0" FontSize="12" />
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock Text="温度 (0-1)" Foreground="#FFE0E0E0" FontSize="12" />
+                    <TextBox x:Name="TempBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+                </StackPanel>
             </StackPanel>
+
+            <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <PasswordBox x:Name="KeyBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+
+            <TextBlock Text="TraceMemo Local API 基址（冷链路画像，如 http://127.0.0.1:8080）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <TextBox x:Name="TraceMemoBox" Margin="0,4,0,0" FontSize="12" Height="30" VerticalContentAlignment="Center" />
+
+            <!-- 测试结果卡片 -->
+            <Border x:Name="TestResultBorder" Visibility="Collapsed" Margin="0,14,0,0"
+                    Background="#222234" BorderBrush="#3A3A52" BorderThickness="1" CornerRadius="6" Padding="12,10">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="TestStatusIcon" Text="✅" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TestStatusTitle" Text="测试成功" FontSize="12" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TestLatencyText" Text="(耗时 320ms)" FontSize="11" Foreground="#9CA3AF" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBox x:Name="TestDetailBox" Margin="0,8,0,0" FontSize="11" Foreground="#E5E7EB" Background="#181824"
+                             BorderBrush="#33FFFFFF" BorderThickness="1" Padding="8,6"
+                             IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120"
+                             VerticalScrollBarVisibility="Auto" />
+                </StackPanel>
+            </Border>
+
+            <!-- 操作按钮行 -->
+            <Grid Margin="0,16,0,0">
+                <Button x:Name="TestButton" Content="⚡ 测试 AI 响应" Width="120" Height="32"
+                        HorizontalAlignment="Left" Click="Test_Click" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="保存" Width="80" Height="32" IsDefault="True" Click="Save_Click" />
+                    <Button Content="取消" Width="80" Height="32" Margin="10,0,0,0" IsCancel="True" Click="Cancel_Click" />
+                </StackPanel>
+            </Grid>
         </StackPanel>
-
-        <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="#FFDDDDDD" FontSize="12" Margin="0,10,0,0" />
-        <PasswordBox x:Name="KeyBox" Margin="0,4,0,0" FontSize="12" />
-
-        <TextBlock Text="TraceMemo Local API 基址（冷链路画像，如 http://127.0.0.1:8080）" Foreground="#FFDDDDDD" FontSize="12" Margin="0,10,0,0" />
-        <TextBox x:Name="TraceMemoBox" Margin="0,4,0,0" FontSize="12" />
-
-        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-            <Button Content="保存" Width="90" IsDefault="True" Click="Save_Click" />
-            <Button Content="取消" Width="90" Margin="10,0,0,0" IsCancel="True" Click="Cancel_Click" />
-        </StackPanel>
-    </StackPanel>
+    </Border>
 </Window>
