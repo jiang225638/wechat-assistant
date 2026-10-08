@@ -411,39 +411,69 @@
                     <!-- 顶部操作栏 -->
                     <Border Grid.Row="0" Background="{StaticResource CardSubtleBgBrush}"
                             CornerRadius="8" BorderBrush="{StaticResource BorderSubtleBrush}" BorderThickness="1"
-                            Padding="10,8" Margin="0,0,0,8">
+                            Padding="10,9" Margin="0,0,0,8">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                            <!-- 左侧：当前分析对象与画像徽章 -->
-                            <StackPanel VerticalAlignment="Center">
+                            <!-- 第 1 行：对象信息与关系定位 -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 左侧：当前分析对象与画像徽章 -->
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="分析对象:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,0,4,0" />
-                                    <TextBlock x:Name="AiTargetContactText" Text="当前对话好友" FontWeight="Bold" Foreground="#60A5FA" FontSize="11" />
+                                    <TextBlock Text="分析对象:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <TextBlock x:Name="AiTargetContactText" Text="当前对话好友" FontWeight="Bold" Foreground="#60A5FA" FontSize="11.5" VerticalAlignment="Center" />
                                     <Border x:Name="AiPersonaBadge" Margin="8,0,0,0" Background="#2210B981" BorderBrush="#4410B981" BorderThickness="1"
-                                            CornerRadius="4" Padding="5,1" Visibility="Collapsed">
+                                            CornerRadius="4" Padding="5,1" VerticalAlignment="Center" Visibility="Collapsed">
                                         <TextBlock x:Name="AiPersonaBadgeText" Text="已融入画像" Foreground="#10B981" FontSize="10" />
                                     </Border>
                                 </StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" VerticalAlignment="Center">
+                                <!-- 右侧：关系定位选择器 -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="关系:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                    <ComboBox x:Name="RelationshipBox" Width="108" Height="26" SelectedIndex="0" FontSize="11" VerticalAlignment="Center"
+                                              ToolTip="设定与对方的关系定位，AI 将严格遵循该关系的社交边界与沟通目标生成回复">
+                                        <ComboBoxItem Content="🤖 智能推断" Tag="智能推断" IsSelected="True" />
+                                        <ComboBoxItem Content="❤️ 追求 / 心仪" Tag="追求/心仪" />
+                                        <ComboBoxItem Content="💼 职场 / 同事" Tag="职场/同事" />
+                                        <ComboBoxItem Content="🍻 亲密 / 好友" Tag="亲密好友" />
+                                        <ComboBoxItem Content="🤝 商务 / 客户" Tag="商务/客户" />
+                                        <ComboBoxItem Content="🌐 普通 / 网友" Tag="普通网友" />
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 第 2 行：参数与生成按钮（严格同一行水平对齐） -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 左侧：融入画像与候选数 -->
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <CheckBox x:Name="IncludePersonaCheck" Content="融入人格画像" IsChecked="True"
-                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" />
-                                    <TextBlock Text="候选数:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="12,0,4,0" VerticalAlignment="Center" />
-                                    <ComboBox x:Name="CountBox" Width="60" SelectedIndex="0" FontSize="11">
+                                              Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="候选:" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="4,0,3,0" VerticalAlignment="Center" />
+                                    <ComboBox x:Name="CountBox" Width="56" Height="26" SelectedIndex="0" FontSize="11" VerticalAlignment="Center">
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
                                         <ComboBoxItem Content="5 条" />
                                     </ComboBox>
                                 </StackPanel>
-                            </StackPanel>
 
-                            <!-- 右侧：生成按钮 -->
-                            <Button x:Name="GenerateButton" Grid.Column="1" Content="🚀 智能分析与建议"
-                                    Style="{StaticResource PrimaryAccentButton}" VerticalAlignment="Center" Padding="12,8"
-                                    Click="GenerateButton_Click" />
+                                <!-- 右侧：智能分析与建议按钮（同在第2行，与左侧控件绝对居中对齐） -->
+                                <Button x:Name="GenerateButton" Grid.Column="1" Content="🚀 智能分析与建议"
+                                        Style="{StaticResource PrimaryAccentButton}" Height="30" Padding="12,0"
+                                        VerticalAlignment="Center" HorizontalAlignment="Right"
+                                        Click="GenerateButton_Click" />
+                            </Grid>
                         </Grid>
                     </Border>
 

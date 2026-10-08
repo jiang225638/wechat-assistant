@@ -115,16 +115,47 @@ public static class PromptBuilder
         "[直接] 回复内容 | 理由：为什么这么说\n" +
         "[专业] 回复内容 | 理由：为什么这么说\n";
 
+    /// <summary>获取不同社交关系定位下的专属沟通准则指导。</summary>
+    public static string GetRelationshipGuideline(string? rel)
+    {
+        if (string.IsNullOrWhiteSpace(rel) || rel.Contains("智能推断"))
+        {
+            return "智能研判：请结合聊天上下文语气与对方画像，自动研判双方当下的社交距离（是暧昧、职场、好友还是初识），输出契合该场景尺度的建议。";
+        }
+        if (rel.Contains("追求") || rel.Contains("心仪") || rel.Contains("恋爱") || rel.Contains("暧昧"))
+        {
+            return "追求/恋爱心仪对象：重在情绪价值、趣味拉扯与情感共鸣。避免直男说教、查户口或终结式回答，制造轻松舒适的互动氛围与下一次交流契机。";
+        }
+        if (rel.Contains("职场") || rel.Contains("同事") || rel.Contains("领导") || rel.Contains("工作"))
+        {
+            return "职场同事/领导：注重清晰的责任边界、确定性、闭环汇报与时间节点。语气专业克制、不卑不亢，切忌使用过于轻浮的表述。";
+        }
+        if (rel.Contains("好友") || rel.Contains("闺蜜") || rel.Contains("死党") || rel.Contains("亲密"))
+        {
+            return "亲密好友/死党：重在松弛感、接地气与真实陪伴。表达自然真诚，可适度幽默互怼或同频共情，切忌官方客套或生分说教。";
+        }
+        if (rel.Contains("商务") || rel.Contains("客户") || rel.Contains("合作"))
+        {
+            return "商务合作/客户：注重利益共赢、专业信任感与礼貌距离。严谨周全，以解决实际问题与推动合作为导向。";
+        }
+        if (rel.Contains("网友") || rel.Contains("陌生人") || rel.Contains("普通"))
+        {
+            return "普通网友/泛泛之交：保持适度礼貌、安全边界与分寸感，既不冷漠敷衍，也不过分热情窥探隐私。";
+        }
+        return $"特定关系（{rel}）：请根据此关系场景严格拿捏沟通分寸与表达策略。";
+    }
+
     /// <summary>
     /// 构建全能 AI 建议请求（合并潜台词剖析与多候选回复建议）：
-    /// 深度融合对方人格画像，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
+    /// 深度融合对方人格画像与双方关系定位，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
     /// </summary>
     public static AiRequest BuildUnifiedAdvice(
         AiSettings settings,
         IReadOnlyList<ChatMessage> messages,
         int count = 3,
         Persona? persona = null,
-        string? contactName = null)
+        string? contactName = null,
+        string? relationship = null)
     {
         int n = Math.Clamp(count, 1, ReplyTones.Length);
         var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
@@ -133,6 +164,12 @@ public static class PromptBuilder
         var sb = new StringBuilder();
         string targetName = !string.IsNullOrWhiteSpace(contactName) ? contactName : (persona?.ContactName ?? "对方");
         sb.AppendLine($"当前对话对象：{targetName}");
+
+        string relGuideline = GetRelationshipGuideline(relationship);
+        string relTitle = !string.IsNullOrWhiteSpace(relationship) ? relationship : "智能推断";
+        sb.AppendLine($"双方关系定位：【{relTitle}】");
+        sb.AppendLine($"【👥 关系社交准则】：{relGuideline}");
+        sb.AppendLine("（重要约束：回复方案必须严格遵循该关系的交往边界、分寸感与沟通目标，切忌用词不合时宜！）");
         sb.AppendLine();
         sb.AppendLine("聊天上下文（[对方]=对方消息，[我]=用户自己消息）：");
         sb.AppendLine(BuildTranscript(messages));

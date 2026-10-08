@@ -157,5 +157,21 @@ public class PromptBuilderTests
         Assert.Contains("行吧，尽快给我答复。", req.UserPrompt);
         Assert.Contains("4 条", req.UserPrompt);
     }
+
+    [Theory]
+    [InlineData("追求/心仪", "情绪价值")]
+    [InlineData("职场/同事", "责任边界")]
+    [InlineData("亲密好友", "松弛感")]
+    [InlineData("智能推断", "智能研判")]
+    public void BuildUnifiedAdvice_WithDifferentRelationships_InjectsGuidelines(string rel, string expectedKeyword)
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "在干嘛呢") };
+
+        var req = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 3, relationship: rel);
+
+        Assert.Contains(rel, req.UserPrompt);
+        Assert.Contains(expectedKeyword, req.UserPrompt);
+    }
 }
 

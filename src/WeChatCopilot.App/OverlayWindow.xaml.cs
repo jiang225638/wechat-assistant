@@ -472,12 +472,19 @@ public partial class OverlayWindow : Window
             var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
             string targetStatement = latestIncoming?.Text ?? string.Empty;
 
+            string relationship = string.Empty;
+            if (RelationshipBox.SelectedItem is ComboBoxItem relItem)
+            {
+                relationship = relItem.Tag as string ?? relItem.Content?.ToString() ?? string.Empty;
+            }
+
             AiRequest req = PromptBuilder.BuildUnifiedAdvice(
                 settings,
                 _conversation.Messages,
                 count,
                 personaContext,
-                target);
+                target,
+                relationship);
 
             AiReply reply = await provider.CompleteAsync(req);
             AiStatusBanner.Visibility = Visibility.Collapsed;
