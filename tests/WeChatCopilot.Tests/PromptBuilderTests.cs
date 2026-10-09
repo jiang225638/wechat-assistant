@@ -173,5 +173,66 @@ public class PromptBuilderTests
         Assert.Contains(rel, req.UserPrompt);
         Assert.Contains(expectedKeyword, req.UserPrompt);
     }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WithTdSkill_InjectsTacticsAndTones()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "你平时周末都干嘛呀") };
+
+        var req = PromptBuilder.BuildUnifiedAdvice(
+            settings, msgs, count: 3, skill: DistillSkillPresets.TdSkill, contactName: "心仪女生");
+
+        // 系统提示词需包含兔导情景流的核心作战心法
+        Assert.Contains("兔导情景流", req.SystemPrompt);
+        Assert.Contains("一个中心两个基本点", req.SystemPrompt);
+        Assert.Contains("高位框架", req.SystemPrompt);
+        Assert.Contains("推拉对冲需求感", req.SystemPrompt);
+        Assert.Contains("公狗模式", req.SystemPrompt);
+        Assert.Contains("高位推拉", req.SystemPrompt);
+
+        // 用户提示词需包含当前作战技能标识
+        Assert.Contains("当前指导作战技能：【🐰 兔导情景流 (tdskill)】", req.UserPrompt);
+        Assert.Contains("当前对话对象：心仪女生", req.UserPrompt);
+    }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WithWorkplaceAndLogicalSkills_InjectsRespectiveTactics()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "项目下周能上线吗？") };
+
+        var reqWorkplace = PromptBuilder.BuildUnifiedAdvice(
+            settings, msgs, count: 3, skill: DistillSkillPresets.Workplace, contactName: "张经理");
+        Assert.Contains("BLUF 原则", reqWorkplace.SystemPrompt);
+        Assert.Contains("闭环汇报", reqWorkplace.SystemPrompt);
+        Assert.Contains("职场与商业认知", reqWorkplace.UserPrompt);
+
+        var reqLogical = PromptBuilder.BuildUnifiedAdvice(
+            settings, msgs, count: 3, skill: DistillSkillPresets.Logical, contactName: "数据分析师");
+        Assert.Contains("金字塔原理", reqLogical.SystemPrompt);
+        Assert.Contains("MECE 原则", reqLogical.SystemPrompt);
+        Assert.Contains("麦肯锡逻辑视角", reqLogical.UserPrompt);
+    }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WithCustomSkill_InjectsCustomPrompt()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "这个方案怎么看？") };
+        var custom = new DistillSkill(
+            Id: "negotiation",
+            Name: "商务谈判破局流",
+            Description: "沃顿商学院谈判策略，争夺锚定点与BATNA",
+            Icon: "⚔️",
+            SystemPrompt: "以BATNA底线思维拆解对方筹码，牢牢把握锚定效应与让步阶梯。",
+            IsBuiltIn: false);
+
+        var req = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 3, skill: custom);
+
+        Assert.Contains("商务谈判破局流", req.SystemPrompt);
+        Assert.Contains("BATNA底线思维", req.SystemPrompt);
+        Assert.Contains("商务谈判破局流", req.UserPrompt);
+    }
 }
 

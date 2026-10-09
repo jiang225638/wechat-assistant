@@ -1,0 +1,157 @@
+{
+  "name": "tdskill",
+  "owner": {
+    "name": "兔导（兔子舞）",
+    "bio": "985经济学本硕，实战理论结合的情感导师。独创'情景流'操作方式，180+篇深度推文，800+小时1v1咨询。公众号：兔子舞的奇思妙想y"
+  },
+  "metadata": {
+    "description": "tdskill 情感导师 AI Skill 工具箱 — 由兔导（兔子舞）原创，公众号「兔子舞的奇思妙想y」。从原创推文中提炼知识原子，沉淀为7个情感诊断Skill和1个主入口路由器。全部文案和语料库均来源于兔导个人原创内容。",
+    "version": "2.0.0"
+  },
+  "plugins": [
+    {
+      "name": "tdskill",
+      "description": "tdskill 情感导师工具箱主入口。根据你的问题自动路由到最合适的情感诊断 Skill。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "relationship",
+        "router",
+        "diagnosis",
+        "toolkit",
+        "chinese"
+      ],
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "tds-attraction",
+      "description": "tdskill 认知提升诊断。帮你诊断在吸引力层面的认知卡点，找到从内到外提升的切入点。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "attraction",
+        "mindset",
+        "self-improvement",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-attraction"
+      ]
+    },
+    {
+      "name": "tds-display",
+      "description": "tdskill 展示面与人设打造诊断。诊断你的展示面是否传递了正确的信号，帮你构建真实可信的人设。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "display",
+        "persona",
+        "image",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-display"
+      ]
+    },
+    {
+      "name": "tds-approach",
+      "description": "tdskill 搭讪诊断。诊断你搭讪时的开场、时机和心态问题，帮你自然地开始一次交流。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "approach",
+        "opener",
+        "social",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-approach"
+      ]
+    },
+    {
+      "name": "tds-chat",
+      "description": "tdskill 聊天诊断。诊断你聊天中的节奏、话题和情绪问题，帮你建立真正有连接的对话。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "chat",
+        "conversation",
+        "connection",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-chat"
+      ]
+    },
+    {
+      "name": "tds-date",
+      "description": "tdskill 约会诊断。诊断你约会中的体验设计和互动问题，帮你把约会变成有效的情感传递。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "date",
+        "experience",
+        "interaction",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-date"
+      ]
+    },
+    {
+      "name": "tds-relationship",
+      "description": "tdskill 关系管理诊断。诊断你在关系维持中的动态平衡问题，帮你建立可持续发展的长期关系。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "relationship-diagnostics",
+      "keywords": [
+        "relationship",
+        "maintenance",
+        "long-term",
+        "diagnosis",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-relationship"
+      ]
+    },
+    {
+      "name": "tds-learn",
+      "description": "tdskill 学习方法诊断。诊断你在情感学习中的方法问题，帮你把知识真正转化为行为改变。",
+      "source": "./",
+      "strict": false,
+      "version": "2.0.0",
+      "category": "learning",
+      "keywords": [
+        "learning",
+        "method",
+        "practice",
+        "behavior-change",
+        "chinese"
+      ],
+      "skills": [
+        "./references/tds-learn"
+      ]
+    }
+  ]
+}

@@ -102,49 +102,66 @@ public static class PersonaDistiller
         string contactName,
         IReadOnlyList<HistoryMessage> history,
         Persona? existing = null) =>
-        BuildDirectDistillRequest(settings, contactName, history, existing, null);
+        BuildDirectDistillRequest(settings, contactName, history, existing, null, null, true);
 
-    /// <summary>直接单次全局蒸馏请求（带己方昵称标注）。</summary>
+    /// <summary>直接单次全局蒸馏请求（带己方昵称标注与技能选择）。</summary>
     public static AiRequest BuildDirectDistillRequest(
         AiSettings settings,
         string contactName,
         IReadOnlyList<HistoryMessage> history,
         Persona? existing,
-        string? selfName)
+        string? selfName,
+        DistillSkill? skill = null,
+        bool freshDistill = true)
     {
+        skill ??= DistillSkillPresets.Nuwa;
         var sb = new StringBuilder();
         sb.AppendLine("目标联系人（对方）：" + contactName);
         if (!string.IsNullOrWhiteSpace(selfName))
         {
             sb.AppendLine("用户本人（己方）：" + selfName);
         }
+        sb.AppendLine($"当前蒸馏技能视角：【{skill.Name}】（{skill.Description}）");
         sb.AppendLine("聊天记录：");
         sb.AppendLine(Transcript(history, contactName, selfName));
 
         if (existing is not null && existing.Traits.Count > 0)
         {
-            sb.AppendLine("已有画像（参考并增量合并）：");
-            foreach (PersonaTrait t in existing.Traits)
+            if (freshDistill)
             {
-                sb.AppendLine(t.FormatLine());
+                sb.AppendLine("已有画像基线（仅作先验特质参考，本轮证据必须100%摘录最新聊天记录）：");
+                foreach (PersonaTrait t in existing.Traits)
+                {
+                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 置信度: {t.ConfidenceText}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("已有画像（参考并增量合并）：");
+                foreach (PersonaTrait t in existing.Traits)
+                {
+                    sb.AppendLine(t.FormatLine());
+                }
             }
         }
 
-        sb.AppendLine($"请输出针对「{contactName}」的结构化人格特质行。每行格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
-        return new AiRequest(DirectDistillSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行。每行格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
     /// <summary>map 请求：从一块历史提取观察特质。</summary>
     public static AiRequest BuildMapRequest(AiSettings settings, IReadOnlyList<HistoryMessage> chunk) =>
-        BuildMapRequest(settings, chunk, string.Empty, null);
+        BuildMapRequest(settings, chunk, string.Empty, null, null);
 
-    /// <summary>map 请求：从一块历史提取观察特质（带联系人与己方标识）。</summary>
+    /// <summary>map 请求：从一块历史提取观察特质（带联系人、己方标识与技能选择）。</summary>
     public static AiRequest BuildMapRequest(
         AiSettings settings,
         IReadOnlyList<HistoryMessage> chunk,
         string contactName,
-        string? selfName = null)
+        string? selfName = null,
+        DistillSkill? skill = null)
     {
+        skill ??= DistillSkillPresets.Nuwa;
         var sb = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(contactName))
         {
@@ -154,10 +171,11 @@ public static class PersonaDistiller
         {
             sb.AppendLine("用户本人（己方）：" + selfName);
         }
+        sb.AppendLine($"当前蒸馏技能视角：【{skill.Name}】");
         sb.AppendLine("聊天记录：");
         sb.AppendLine(Transcript(chunk, contactName, selfName));
-        sb.AppendLine("请提取对方特质观察项。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话");
-        return new AiRequest(MapSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        sb.AppendLine($"请提取对方特质观察项（基于【{skill.Name}】视角）。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话");
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
     /// <summary>reduce 请求：合并观察项（+可选已有画像）为最终 persona。</summary>
@@ -166,22 +184,26 @@ public static class PersonaDistiller
         string contactName,
         IReadOnlyList<PersonaTrait> observations,
         Persona? existing = null) =>
-        BuildReduceRequest(settings, contactName, observations, existing, null);
+        BuildReduceRequest(settings, contactName, observations, existing, null, null, true);
 
-    /// <summary>reduce 请求：合并观察项为最终 persona（带己方标识）。</summary>
+    /// <summary>reduce 请求：合并观察项为最终 persona（带己方标识与技能选择）。</summary>
     public static AiRequest BuildReduceRequest(
         AiSettings settings,
         string contactName,
         IReadOnlyList<PersonaTrait> observations,
         Persona? existing,
-        string? selfName)
+        string? selfName,
+        DistillSkill? skill = null,
+        bool freshDistill = true)
     {
+        skill ??= DistillSkillPresets.Nuwa;
         var sb = new StringBuilder();
         sb.AppendLine("联系人：" + contactName);
         if (!string.IsNullOrWhiteSpace(selfName))
         {
             sb.AppendLine("用户本人：" + selfName);
         }
+        sb.AppendLine($"当前蒸馏技能：【{skill.Name}】");
         sb.AppendLine("观察特质：");
         foreach (PersonaTrait t in observations)
         {
@@ -190,15 +212,26 @@ public static class PersonaDistiller
 
         if (existing is not null && existing.Traits.Count > 0)
         {
-            sb.AppendLine("已有画像（增量合并，保留仍成立结论）：");
-            foreach (PersonaTrait t in existing.Traits)
+            if (freshDistill)
             {
-                sb.AppendLine(t.FormatLine());
+                sb.AppendLine("已有画像基线（仅作先验特质参考，本轮证据必须100%摘录最新聊天记录）：");
+                foreach (PersonaTrait t in existing.Traits)
+                {
+                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 置信度: {t.ConfidenceText}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("已有画像（增量合并，保留仍成立结论）：");
+                foreach (PersonaTrait t in existing.Traits)
+                {
+                    sb.AppendLine(t.FormatLine());
+                }
             }
         }
 
-        sb.AppendLine($"请输出合并后的画像。每个维度仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
-        return new AiRequest(ReduceSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        sb.AppendLine($"请依据【{skill.Name}】认知体系输出合并后的画像。每个维度仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
     /// <summary>
@@ -264,8 +297,8 @@ public static class PersonaDistiller
                 continue;
             }
 
-            // 规范化维度名
-            dimension = MatchKnownDimension(dimension);
+            // 规范化维度名（清理序号与修饰符，保留技能特色维度名）
+            dimension = CleanDimensionName(dimension);
 
             double confidence = 0.5;
             double score = 0;
@@ -401,11 +434,47 @@ public static class PersonaDistiller
             valid.Add(quote);
         }
 
-        return valid;
+        return DeduplicateSubstrings(valid).Take(4).ToList();
     }
 
     /// <summary>
-    /// 按维度去重与合并：合并同维度特质，聚合真实证据，消除重复维度。
+    /// 子串包含去重：若短原话是长原话的纯子串（且语义重叠），剔除短碎句，保留语意最完整的原话。
+    /// </summary>
+    public static List<string> DeduplicateSubstrings(IEnumerable<string> quotes)
+    {
+        var result = new List<string>();
+        var sorted = quotes
+            .Where(q => !string.IsNullOrWhiteSpace(q))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(q => q.Length)
+            .ToList();
+
+        foreach (var q in sorted)
+        {
+            bool isSub = result.Any(existing => existing.Contains(q, StringComparison.OrdinalIgnoreCase));
+            if (!isSub)
+            {
+                result.Add(q);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 清理维度名称（去除多余序号、标点与包裹符号，保留技能专属维度名）。
+    /// </summary>
+    public static string CleanDimensionName(string dim)
+    {
+        if (string.IsNullOrWhiteSpace(dim)) return "综合特质";
+        dim = dim.Trim();
+        dim = Regex.Replace(dim, @"^(\d+[\.、\)]|[-*•])\s*", "");
+        dim = dim.Trim('[', ']', '【', '】', '(', ')', '"', '\'');
+        return dim.Length > 0 ? dim : "综合特质";
+    }
+
+    /// <summary>
+    /// 按维度去重与合并：合并同维度特质，聚合真实证据，保留各技能专属维度名称与梯度打分。
     /// </summary>
     public static IReadOnlyList<PersonaTrait> DeduplicateByDimension(
         IReadOnlyList<PersonaTrait> traits,
@@ -417,11 +486,11 @@ public static class PersonaDistiller
         }
 
         var result = new List<PersonaTrait>();
-        var groups = traits.GroupBy(t => NormalizeDimension(t.Dimension));
+        var groups = traits.GroupBy(t => CleanDimensionName(t.Dimension), StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in groups)
         {
-            string normDim = group.Key;
+            string cleanDim = group.Key;
             var best = group.OrderByDescending(t => t.Confidence).First();
 
             var allEvidence = group.SelectMany(t => t.Evidence);
@@ -430,12 +499,7 @@ public static class PersonaDistiller
             // 若条目本身评分 > 0 则沿用，否则根据置信度动态推导（避免千篇一律 75 分）
             double score = best.Score > 0 ? best.Score : Math.Clamp(Math.Round(best.Confidence * 100), 35, 95);
 
-            // 保留原本匹配度最高的维度名
-            string dimToUse = group.Any(t => StandardDimensions.Contains(t.Dimension))
-                ? normDim
-                : best.Dimension;
-
-            result.Add(new PersonaTrait(dimToUse, best.Attribute, best.Confidence, filteredEvidence, score));
+            result.Add(new PersonaTrait(cleanDim, best.Attribute, best.Confidence, filteredEvidence, score));
         }
 
         return result;
@@ -590,9 +654,20 @@ public static class PersonaDistiller
         IReadOnlyList<HistoryMessage> history,
         Persona? existing = null,
         CancellationToken cancellationToken = default) =>
-        DistillDetailedAsync(provider, settings, contactName, history, existing, null, cancellationToken);
+        DistillDetailedAsync(provider, settings, contactName, history, existing, null, null, true, cancellationToken);
 
     /// <summary>带己方名称的详细蒸馏方法。</summary>
+    public static Task<DistillResult> DistillDetailedAsync(
+        IAiProvider provider,
+        AiSettings settings,
+        string contactName,
+        IReadOnlyList<HistoryMessage> history,
+        Persona? existing,
+        string? selfName,
+        CancellationToken cancellationToken = default) =>
+        DistillDetailedAsync(provider, settings, contactName, history, existing, selfName, null, true, cancellationToken);
+
+    /// <summary>完整参数详细蒸馏方法：支持技能选择与全新/增量蒸馏模式。</summary>
     public static async Task<DistillResult> DistillDetailedAsync(
         IAiProvider provider,
         AiSettings settings,
@@ -600,10 +675,13 @@ public static class PersonaDistiller
         IReadOnlyList<HistoryMessage> history,
         Persona? existing,
         string? selfName,
+        DistillSkill? skill = null,
+        bool freshDistill = true,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(settings);
+        skill ??= DistillSkillPresets.Nuwa;
 
         if (history is null || history.Count == 0)
         {
@@ -620,7 +698,7 @@ public static class PersonaDistiller
 
         foreach (IReadOnlyList<HistoryMessage> chunk in chunks)
         {
-            AiReply map = await provider.CompleteAsync(BuildMapRequest(settings, chunk, contactName, selfName), cancellationToken);
+            AiReply map = await provider.CompleteAsync(BuildMapRequest(settings, chunk, contactName, selfName, skill), cancellationToken);
             if (map.Success)
             {
                 lastMapReply = map.Text;
@@ -652,7 +730,7 @@ public static class PersonaDistiller
         var cleanObservations = DeduplicateByDimension(observations, history);
 
         AiReply reduce = await provider.CompleteAsync(
-            BuildReduceRequest(settings, contactName, cleanObservations, existing, selfName), cancellationToken);
+            BuildReduceRequest(settings, contactName, cleanObservations, existing, selfName, skill, freshDistill), cancellationToken);
 
         IReadOnlyList<PersonaTrait> merged = reduce.Success ? ParseTraits(reduce.Text, history) : Array.Empty<PersonaTrait>();
         if (merged.Count == 0)
@@ -665,7 +743,7 @@ public static class PersonaDistiller
 
         if (finalTraits.Count > 0)
         {
-            return new DistillResult(true, new Persona(contactName, finalTraits, DateTime.Now, history.Count), null);
+            return new DistillResult(true, new Persona(contactName, finalTraits, DateTime.Now, history.Count, skill?.Id), null);
         }
 
         string reducePreview = reduce.Success
@@ -687,7 +765,23 @@ public static class PersonaDistiller
         Persona? existing = null,
         CancellationToken cancellationToken = default)
     {
-        var res = await DistillDetailedAsync(provider, settings, contactName, history, existing, null, cancellationToken);
+        var res = await DistillDetailedAsync(provider, settings, contactName, history, existing, null, null, true, cancellationToken);
+        return res.Persona;
+    }
+
+    /// <summary>
+    /// 支持指定 Skill 的蒸馏入口。
+    /// </summary>
+    public static async Task<Persona> DistillAsync(
+        IAiProvider provider,
+        AiSettings settings,
+        string contactName,
+        IReadOnlyList<HistoryMessage> history,
+        Persona? existing,
+        DistillSkill? skill,
+        CancellationToken cancellationToken = default)
+    {
+        var res = await DistillDetailedAsync(provider, settings, contactName, history, existing, null, skill, true, cancellationToken);
         return res.Persona;
     }
 

@@ -67,7 +67,7 @@ public class PersonaDistillerTests
     {
         var req = PersonaDistiller.BuildMapRequest(new AiSettings(), new[] { H(MessageRole.Incoming, "在吗") });
 
-        foreach (string dim in PersonaDistiller.Dimensions)
+        foreach (string dim in DistillSkillPresets.Nuwa.Dimensions)
         {
             Assert.Contains(dim, req.SystemPrompt);
         }
@@ -85,8 +85,8 @@ public class PersonaDistillerTests
         var req = PersonaDistiller.BuildReduceRequest(new AiSettings(), "张三", obs, existing);
 
         Assert.Contains("语言风格 | 短句 | 置信度: 0.70 | 证据: 嗯", req.UserPrompt);
-        Assert.Contains("稳定属性 | 夜班 | 置信度: 0.90 | 证据: 又熬夜", req.UserPrompt);
-        Assert.Contains("已有画像", req.UserPrompt);
+        Assert.Contains("稳定属性 | 夜班 | 置信度: 0.90", req.UserPrompt);
+        Assert.Contains("已有画像基线", req.UserPrompt);
     }
 
     [Fact]
@@ -270,6 +270,83 @@ public class PersonaDistillerTests
         Assert.Contains("表达DNA", req.SystemPrompt);
         Assert.Contains("三重验证", req.SystemPrompt);
         Assert.Contains("乔布斯", req.UserPrompt);
+    }
+
+    [Fact]
+    public void DeduplicateSubstrings_RemovesShorterSubstringsAndPreservesDistinct()
+    {
+        var rawQuotes = new[]
+        {
+            "到时间问我姐我妹她们",
+            "到时间问我姐我妹她们看看她们去不去",
+            "另外一个完全不相关的长句子",
+            "另外一个完全不相关"
+        };
+
+        var deduped = PersonaDistiller.DeduplicateSubstrings(rawQuotes);
+
+        Assert.Equal(2, deduped.Count);
+        Assert.Contains("到时间问我姐我妹她们看看她们去不去", deduped);
+        Assert.Contains("另外一个完全不相关的长句子", deduped);
+        Assert.DoesNotContain("到时间问我姐我妹她们", deduped);
+        Assert.DoesNotContain("另外一个完全不相关", deduped);
+    }
+
+    [Fact]
+    public void FilterEvidence_FiltersSubstringsAndCapsAt4()
+    {
+        var history = new[]
+        {
+            new HistoryMessage(MessageRole.Incoming, "到时间问我姐我妹她们看看她们去不去"),
+            new HistoryMessage(MessageRole.Incoming, "第二句有效证据话语"),
+            new HistoryMessage(MessageRole.Incoming, "第三句有效证据话语"),
+            new HistoryMessage(MessageRole.Incoming, "第四句有效证据话语"),
+            new HistoryMessage(MessageRole.Incoming, "第五句有效证据话语")
+        };
+
+        var raw = new[]
+        {
+            "到时间问我姐我妹她们", // 短子串
+            "到时间问我姐我妹她们看看她们去不去", // 长原句
+            "第二句有效证据话语",
+            "第三句有效证据话语",
+            "第四句有效证据话语",
+            "第五句有效证据话语"
+        };
+
+        var filtered = PersonaDistiller.FilterEvidence(raw, history);
+
+        // 验证短句已被去重，且数量被限制在最多 4 条最具代表性的证据
+        Assert.True(filtered.Count <= 4);
+        Assert.Contains("到时间问我姐我妹她们看看她们去不去", filtered);
+        Assert.DoesNotContain("到时间问我姐我妹她们", filtered);
+    }
+
+    [Fact]
+    public void BuildDirectDistillRequest_SupportsCustomSkill_AndFreshDistill()
+    {
+        var customSkill = new DistillSkill("workplace", "职场商业", "关注权责分工", "💼", "你是麦肯锡职场专家系统提示词", false);
+        var existing = new Persona("老李", new[]
+        {
+            new PersonaTrait("沟通风格", "讲求闭环", 0.9, new[] { "老旧的原话证据不要出现" })
+        }, DateTime.Now, 10);
+
+        var history = new[] { new HistoryMessage(MessageRole.Incoming, "今天下班前同步进展") };
+
+        // 1. Fresh distill = true: 验证不包含旧原话证据，且系统提示词使用 customSkill
+        var reqFresh = PersonaDistiller.BuildDirectDistillRequest(
+            new AiSettings(), "老李", history, existing, "我本人", customSkill, freshDistill: true);
+
+        Assert.Equal("你是麦肯锡职场专家系统提示词", reqFresh.SystemPrompt);
+        Assert.Contains("【职场商业】", reqFresh.UserPrompt);
+        Assert.Contains("沟通风格 | 讲求闭环", reqFresh.UserPrompt);
+        Assert.DoesNotContain("老旧的原话证据不要出现", reqFresh.UserPrompt);
+
+        // 2. Fresh distill = false: 验证旧原话被完整保留作为格式行
+        var reqIncremental = PersonaDistiller.BuildDirectDistillRequest(
+            new AiSettings(), "老李", history, existing, "我本人", customSkill, freshDistill: false);
+
+        Assert.Contains("老旧的原话证据不要出现", reqIncremental.UserPrompt);
     }
 
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>

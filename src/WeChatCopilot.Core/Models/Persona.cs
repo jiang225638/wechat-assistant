@@ -7,8 +7,11 @@ namespace WeChatCopilot.Core.Models;
 /// <param name="Traits">特质集合（按维度组织，含证据与置信度）。</param>
 /// <param name="UpdatedAt">最近一次蒸馏时间。</param>
 /// <param name="SourceMessageCount">本次蒸馏所用历史消息数。</param>
+/// <param name="SkillId">本次蒸馏所采用的技能 ID（如 nuwa, tdskill, workplace 等）。</param>
 public sealed record Persona(
     string ContactName,
     IReadOnlyList<PersonaTrait> Traits,
     DateTime UpdatedAt,
-    int SourceMessageCount);
+    int SourceMessageCount,
+    string? SkillId = null);
+

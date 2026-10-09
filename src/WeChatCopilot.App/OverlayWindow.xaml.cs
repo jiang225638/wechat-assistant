@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -39,7 +41,7 @@ public partial class OverlayWindow : Window
     private const uint VK_E = 0x45;
     private const uint VK_O = 0x4F;
     private const uint VK_D = 0x44;
-    private const int OcrUpscaleFactor = 2;
+    private int _ocrUpscaleFactor = 3;
 
     private readonly IWeChatWindowLocator _locator = new WeChatWindowLocator();
     private readonly IWindowTracker _tracker = new PollingWindowTracker();
@@ -48,7 +50,11 @@ public partial class OverlayWindow : Window
     private readonly ConversationBuffer _conversation = new();
     private readonly List<HistoryMessage> _history = new();
     private readonly PersonaStore _personaStore = new();
+    private readonly SkillStore _skillStore = new();
+    private readonly SettingsStore _settingsStore = new();
     private readonly ChatRegionOptions _cropOptions = new();
+
+    private CancellationTokenSource? _settingTestCts;
 
     private readonly DispatcherTimer _relocateTimer;
     private readonly DispatcherTimer _autoReadTimer;
@@ -62,9 +68,12 @@ public partial class OverlayWindow : Window
     private bool _reading;
     private bool _autoSyncContact = true;
     private bool _isSyncingPersonaSelection;
+    private bool _isSyncingSkillSelection;
     private string _currentChatContact = string.Empty;
+    private string _historyContactName = string.Empty;
     private string? _mySelfNickname;
     private Persona? _currentLoadedPersona;
+    private DistillSkill _currentSkill = DistillSkillPresets.Nuwa;
 
     public OverlayWindow()
     {
@@ -97,6 +106,7 @@ public partial class OverlayWindow : Window
         InitTray();
 
         RefreshSavedPersonasCombo();
+        InitSkillCombo();
         TryLocate();
         _relocateTimer.Start();
     }
@@ -107,6 +117,8 @@ public partial class OverlayWindow : Window
         _relocateTimer.Stop();
         _autoReadTimer.Stop();
         _hotkeys?.Dispose();
+        _settingTestCts?.Cancel();
+        _settingTestCts?.Dispose();
 
         if (_tray is not null)
         {
@@ -204,18 +216,21 @@ public partial class OverlayWindow : Window
 
     private void AiSettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        var win = new SettingsWindow { Owner = this };
-        if (win.ShowDialog() == true)
-        {
-            SetPersonaStatus("已更新 AI 与 TraceMemo 设置。", isBusy: false);
-        }
+        MainTabControl.SelectedIndex = 3;
+        SettingSubTabAi.IsChecked = true;
+        SwitchSettingSubTab(0);
+    }
+
+    private void NavigateToSettings_Click(object sender, RoutedEventArgs e)
+    {
+        MainTabControl.SelectedIndex = 3;
     }
 
     // ===================== TAB 标签切换 =====================
 
     private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ViewChat is null || ViewAi is null || ViewPersona is null || ViewHelp is null)
+        if (ViewChat is null || ViewAi is null || ViewPersona is null || ViewSettings is null)
         {
             return;
         }
@@ -224,7 +239,7 @@ public partial class OverlayWindow : Window
         ViewChat.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
         ViewAi.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
         ViewPersona.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-        ViewHelp.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+        ViewSettings.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
 
         if (index == 1)
         {
@@ -238,6 +253,10 @@ public partial class OverlayWindow : Window
             {
                 CheckAndLoadPersona(target);
             }
+        }
+        else if (index == 3)
+        {
+            LoadSettingsView();
         }
     }
 
@@ -348,7 +367,7 @@ public partial class OverlayWindow : Window
                     return;
                 }
 
-                image = image.ScaleNearest(OcrUpscaleFactor);
+                image = image.ScaleNearest(_ocrUpscaleFactor);
                 var ocr = await _ocrEngine.RecognizeAsync(image);
                 var frame = _segmenter.Segment(ocr, image.Width);
                 int added = _conversation.Ingest(frame);
@@ -422,7 +441,7 @@ public partial class OverlayWindow : Window
                 return;
             }
 
-            image = image.ScaleNearest(OcrUpscaleFactor);
+            image = image.ScaleNearest(_ocrUpscaleFactor);
             var result = await _ocrEngine.RecognizeAsync(image);
 
             var sb = new StringBuilder();
@@ -486,9 +505,11 @@ public partial class OverlayWindow : Window
         }
 
         int count = CountBox.SelectedIndex == 1 ? 5 : 3;
+        DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Nuwa;
+
         GenerateButton.IsEnabled = false;
         AiStatusBanner.Visibility = Visibility.Visible;
-        AiStatusText.Text = $"AI 正在结合对方画像深度剖析意图并生成 {count} 条针对性回复建议...";
+        AiStatusText.Text = $"AI 正在应用【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像，深度剖析意图并生成 {count} 条针对性回复建议...";
 
         try
         {
@@ -523,7 +544,8 @@ public partial class OverlayWindow : Window
                 count,
                 personaContext,
                 target,
-                relationship);
+                relationship,
+                activeSkill);
 
             AiReply reply = await provider.CompleteAsync(req);
             AiStatusBanner.Visibility = Visibility.Collapsed;
@@ -535,7 +557,7 @@ public partial class OverlayWindow : Window
             }
 
             var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
-            ShowUnifiedAdvice(advice, target);
+            ShowUnifiedAdvice(advice, target, activeSkill);
         }
         catch (Exception ex)
         {
@@ -548,10 +570,17 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void ShowUnifiedAdvice(UnifiedAiAdvice advice, string? contactName)
+    private void ShowUnifiedAdvice(UnifiedAiAdvice advice, string? contactName, DistillSkill? activeSkill = null)
     {
         AiEmptyPlaceholder.Visibility = Visibility.Collapsed;
         AiResultPanel.Visibility = Visibility.Visible;
+
+        var skill = activeSkill ?? _currentSkill;
+        if (skill != null)
+        {
+            AiAppliedSkillText.Text = $"{skill.Icon} {skill.Name}";
+            SubtextStrategyTitle.Text = $"⚡ {skill.Name} 实战破局策略与避坑指南";
+        }
 
         string targetAuthor = !string.IsNullOrWhiteSpace(contactName) ? $"{contactName} 原话" : "对方最新发言";
         SubtextTargetAuthor.Text = targetAuthor;
@@ -616,6 +645,13 @@ public partial class OverlayWindow : Window
         if (_autoSyncContact && name != _currentChatContact)
         {
             _autoSyncContact = false;
+        }
+
+        // 切换联系人时，彻底清空上一人的历史缓存，杜绝数据污染与残留
+        if (!string.Equals(_historyContactName, name, StringComparison.OrdinalIgnoreCase))
+        {
+            _history.Clear();
+            _historyContactName = string.Empty;
         }
 
         if (!string.IsNullOrEmpty(name))
@@ -685,7 +721,7 @@ public partial class OverlayWindow : Window
             var headerImg = ScreenCapture.CaptureRegion(headerBounds);
             if (headerImg is not null)
             {
-                headerImg = headerImg.ScaleNearest(OcrUpscaleFactor);
+                headerImg = headerImg.ScaleNearest(_ocrUpscaleFactor);
                 var ocr = await _ocrEngine.RecognizeAsync(headerImg);
                 foreach (var line in ocr.Lines)
                 {
@@ -746,6 +782,8 @@ public partial class OverlayWindow : Window
             {
                 _currentChatContact = detectedName;
                 ContactBox.Text = detectedName;
+                _history.Clear();
+                _historyContactName = string.Empty;
                 CheckAndLoadPersona(detectedName);
                 UpdateAiTargetInfo();
                 SetPersonaStatus($"✅ 已同步当前微信聊天对象：「{detectedName}」", isBusy: false);
@@ -778,6 +816,8 @@ public partial class OverlayWindow : Window
             try
             {
                 ContactBox.Text = name;
+                _history.Clear();
+                _historyContactName = string.Empty;
             }
             finally
             {
@@ -785,6 +825,85 @@ public partial class OverlayWindow : Window
             }
 
             CheckAndLoadPersona(name);
+            UpdateAiTargetInfo();
+        }
+    }
+
+    private void InitSkillCombo()
+    {
+        var allSkills = _skillStore.GetAllSkills();
+        string activeId = _skillStore.GetActiveSkillId();
+        _currentSkill = allSkills.FirstOrDefault(s => string.Equals(s.Id, activeId, StringComparison.OrdinalIgnoreCase))
+            ?? allSkills.FirstOrDefault()
+            ?? DistillSkillPresets.Nuwa;
+
+        UpdateSkillBadge();
+        RefreshSettingsSkillList();
+    }
+
+    private void UpdateSkillBadge()
+    {
+        if (_currentSkill == null) return;
+
+        if (RadarSkillBadgeText != null)
+        {
+            RadarSkillBadgeText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+        }
+        if (AiAppliedSkillText != null)
+        {
+            AiAppliedSkillText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+        }
+        if (AiTopSkillText != null)
+        {
+            AiTopSkillText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+        }
+        if (SubtextStrategyTitle != null)
+        {
+            SubtextStrategyTitle.Text = $"⚡ {_currentSkill.Name} 实战破局策略与避坑指南";
+        }
+        if (_currentLoadedPersona == null && RadarCanvas != null && RadarCanvas.Children.Count > 0)
+        {
+            DrawRadarChart(null);
+        }
+    }
+
+    private void ImportSkillFileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Filter = "智能体技能文件 (*.md)|*.md|所有文件 (*.*)|*.*",
+            Title = "导入本地 SKILL.md 技能文件"
+        };
+
+        if (dlg.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var parsed = SkillStore.ParseSkillMdFile(dlg.FileName);
+            if (parsed is not null)
+            {
+                MainTabControl.SelectedIndex = 3;
+                SwitchSettingSubTab(1);
+
+                SettingCustomSkillCard.Visibility = Visibility.Visible;
+                SettingNewSkillNameBox.Text = parsed.Name;
+                SettingNewSkillIconBox.Text = parsed.Icon;
+                SettingNewSkillDescBox.Text = parsed.Description;
+                SettingNewSkillPromptBox.Text = parsed.SystemPrompt;
+
+                MessageBox.Show($"✅ 成功解析「{parsed.Icon} {parsed.Name}」，已填入技能编辑器，确认无误后点击「保存技能」即可生效。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("未能从选定文件中解析出有效技能信息，请确认包含 SKILL.md 或有效 Markdown 格式。", "导入提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("导入技能文件失败：" + ex.Message, "导入错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -820,10 +939,11 @@ public partial class OverlayWindow : Window
 
             _history.Clear();
             _history.AddRange(res.Messages);
+            _historyContactName = name;
 
             if (res.Messages.Count > 0)
             {
-                SetPersonaStatus($"✅ 已成功从 TraceMemo 拉取「{name}」共 {res.Messages.Count} 条历史消息。可点击【✨ 蒸馏/更新画像】生成多维画像！", isBusy: false);
+                SetPersonaStatus($"✅ 已成功从 TraceMemo 拉取「{name}」共 {res.Messages.Count} 条历史消息。可点击【✨ 一键蒸馏画像】！", isBusy: false);
             }
             else
             {
@@ -849,36 +969,40 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        // 若历史为空，尝试自动拉取一次 TraceMemo
-        if (_history.Count == 0)
+        // 1. 若当前历史为空，或联系人发生变动，自动直连 TraceMemo 读取最新记录
+        if (_history.Count == 0 || !string.Equals(_historyContactName, name, StringComparison.OrdinalIgnoreCase))
         {
             var settings = new SettingsStore().Load();
-            SetPersonaStatus($"未检测到缓存历史，正在自动连接 TraceMemo 拉取「{name}」...", isBusy: true);
+            SetPersonaStatus($"未检测到「{name}」缓存历史，正在连接 TraceMemo 自动拉取...", isBusy: true);
 
-            try
+            if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
             {
-                using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
-                var fetchRes = await client.FetchHistoryAsync(name);
-                if (fetchRes.Success && fetchRes.Messages.Count > 0)
+                try
                 {
-                    _history.Clear();
-                    _history.AddRange(fetchRes.Messages);
+                    using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
+                    var fetchRes = await client.FetchHistoryAsync(name);
+                    if (fetchRes.Success && fetchRes.Messages.Count > 0)
+                    {
+                        _history.Clear();
+                        _history.AddRange(fetchRes.Messages);
+                        _historyContactName = name;
+                    }
                 }
-            }
-            catch
-            {
-                // 忽略，继续判断
+                catch
+                {
+                    // 忽略自动拉取异常
+                }
             }
 
             if (_history.Count == 0)
             {
-                SetPersonaStatus("历史记录为空：请先点击【⚡ 拉取 TraceMemo】或使用【📥 导入CSV】导入聊天记录。", isBusy: false);
+                SetPersonaStatus($"历史记录为空：未能从 TraceMemo 获取到「{name}」的记录。可点击【⚡ 刷新历史】重试或使用【📥 导入CSV】。", isBusy: false);
                 return;
             }
         }
 
         DistillButton.IsEnabled = false;
-        SetPersonaStatus($"🧬 正在调用女娲 (Nuwa) 心智蒸馏技能，分析 {name} 的 {_history.Count} 条历史（提炼心智模型·决策启发式·表达DNA）...", isBusy: true);
+        SetPersonaStatus($"🧬 正在调用【{_currentSkill.Icon} {_currentSkill.Name}】蒸馏视角，分析 {name} 的 {_history.Count} 条历史...", isBusy: true);
 
         try
         {
@@ -887,7 +1011,15 @@ public partial class OverlayWindow : Window
             using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
 
             Persona? existing = _personaStore.Load(name);
-            var distillResult = await PersonaDistiller.DistillDetailedAsync(provider, settings, name, _history, existing, _mySelfNickname);
+            var distillResult = await PersonaDistiller.DistillDetailedAsync(
+                provider,
+                settings,
+                name,
+                _history,
+                existing,
+                _mySelfNickname,
+                _currentSkill,
+                freshDistill: true);
 
             if (!distillResult.Success || distillResult.Persona.Traits.Count == 0)
             {
@@ -900,7 +1032,7 @@ public partial class OverlayWindow : Window
             _personaStore.Save(persona);
             ShowPersona(persona);
             RefreshSavedPersonasCombo();
-            SetPersonaStatus($"✅「{name}」女娲心智画像蒸馏成功并已持久化保存！（提取心智模型、决策启发式、表达DNA等 {persona.Traits.Count} 项认知特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false);
+            SetPersonaStatus($"✅「{name}」画像蒸馏成功并已保存！（应用【{_currentSkill.Icon} {_currentSkill.Name}】，提炼 {persona.Traits.Count} 项特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false);
         }
         catch (Exception ex)
         {
@@ -931,9 +1063,9 @@ public partial class OverlayWindow : Window
             var messages = CsvHistoryImporter.Parse(csv);
             _history.Clear();
             _history.AddRange(messages);
-            SetPersonaStatus($"✅ 成功导入 CSV 历史 {messages.Count} 条，可点击【✨ 蒸馏/更新画像】。", isBusy: false);
+            _historyContactName = ContactBox.Text.Trim();
+            SetPersonaStatus($"✅ 成功导入 CSV 历史 {messages.Count} 条，可点击【✨ 一键蒸馏画像】。", isBusy: false);
         }
-
         catch (Exception ex)
         {
             SetPersonaStatus("导入 CSV 失败：" + ex.Message, isBusy: false);
@@ -1006,7 +1138,19 @@ public partial class OverlayWindow : Window
         var cleanTraits = PersonaDistiller.DeduplicateByDimension(p.Traits, _history);
         PersonaCards.ItemsSource = cleanTraits;
 
+        if (!string.IsNullOrWhiteSpace(p.SkillId))
+        {
+            var matchedSkill = _skillStore.GetSkill(p.SkillId);
+            if (matchedSkill != null && (_currentSkill == null || !string.Equals(_currentSkill.Id, matchedSkill.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                _currentSkill = matchedSkill;
+                _skillStore.SetActiveSkillId(matchedSkill.Id);
+                RefreshSettingsSkillList();
+            }
+        }
+
         DrawRadarChart(cleanTraits);
+        UpdateSkillBadge();
     }
 
     private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits)
@@ -1017,32 +1161,33 @@ public partial class OverlayWindow : Window
         double cy = RadarCanvas.Height / 2.0;
         double maxR = 64.0;
 
-        // 严格固定专业六维雷达轴，彻底杜绝重复维度与多轴错乱
-        var standardDims = new[]
-        {
-            ("沟通风格", 75.0),
-            ("性格能量", 70.0),
-            ("决策模式", 65.0),
-            ("情绪阈值", 80.0),
-            ("价值锚点", 85.0),
-            ("隐形雷区", 60.0)
-        };
-
         var data = new List<(string Label, double Score)>();
-        foreach (var (dim, defScore) in standardDims)
+        if (traits is { Count: > 0 })
         {
-            var matched = traits?.FirstOrDefault(t =>
-                PersonaDistiller.NormalizeDimension(t.Dimension) == dim ||
-                t.Dimension.Contains(dim) || dim.Contains(t.Dimension));
+            foreach (var t in traits)
+            {
+                string label = t.Dimension.Length > 7 ? t.Dimension[..6] + ".." : t.Dimension;
+                data.Add((label, Math.Clamp(t.Score, 10, 100)));
+            }
+        }
+        else
+        {
+            // 无画像数据时，使用当前激活 Skill 的预设维度展示中性底图 (50分基准)
+            var defaultDims = _currentSkill?.Dimensions is { Count: >= 3 }
+                ? _currentSkill.Dimensions
+                : new[] { "沟通风格", "性格能量", "决策模式", "情绪阈值", "价值锚点", "隐形雷区" };
 
-            double score = matched != null
-                ? (matched.Score > 0 ? matched.Score : Math.Clamp(matched.Confidence * 100, 35, 95))
-                : defScore;
-
-            data.Add((dim, score));
+            foreach (var d in defaultDims)
+            {
+                data.Add((d, 50.0));
+            }
         }
 
-        int count = data.Count; // 始终固定为 6
+        int count = data.Count;
+        if (count < 3)
+        {
+            return;
+        }
         double angleStep = 2 * Math.PI / count;
         double startAngle = -Math.PI / 2.0;
 
@@ -1097,45 +1242,49 @@ public partial class OverlayWindow : Window
             Points = dataPoints,
             Stroke = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
             StrokeThickness = 2,
-            Fill = new SolidColorBrush(Color.FromArgb(50, 56, 189, 248))
+            Fill = new SolidColorBrush(Color.FromArgb(traits is { Count: > 0 } ? (byte)55 : (byte)20, 56, 189, 248))
         };
         RadarCanvas.Children.Add(dataPoly);
 
         // 4. 数据点高光圆点
-        foreach (Point p in dataPoints)
+        if (traits is { Count: > 0 })
         {
-            var dot = new Ellipse
+            foreach (Point p in dataPoints)
             {
-                Width = 6,
-                Height = 6,
-                Fill = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
-                Stroke = Brushes.White,
-                StrokeThickness = 1.5
-            };
-            Canvas.SetLeft(dot, p.X - 3);
-            Canvas.SetTop(dot, p.Y - 3);
-            RadarCanvas.Children.Add(dot);
+                var dot = new Ellipse
+                {
+                    Width = 6,
+                    Height = 6,
+                    Fill = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+                    Stroke = Brushes.White,
+                    StrokeThickness = 1.5
+                };
+                Canvas.SetLeft(dot, p.X - 3);
+                Canvas.SetTop(dot, p.Y - 3);
+                RadarCanvas.Children.Add(dot);
+            }
         }
 
         // 5. 外周维度标签与评分 (居中对齐)
-        double labelR = maxR + 15;
+        double labelR = maxR + 18;
         for (int i = 0; i < count; i++)
         {
             double angle = startAngle + i * angleStep;
             double lx = cx + labelR * Math.Cos(angle);
             double ly = cy + labelR * Math.Sin(angle);
 
+            string scoreText = traits is { Count: > 0 } ? $"{(int)data[i].Score}分" : "待分析";
             var tb = new TextBlock
             {
-                Text = $"{data[i].Label}\n{(int)data[i].Score}分",
+                Text = $"{data[i].Label}\n{scoreText}",
                 FontSize = 10,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(167, 243, 208)),
                 TextAlignment = TextAlignment.Center,
-                Width = 60
+                Width = 70
             };
 
-            Canvas.SetLeft(tb, lx - 30);
+            Canvas.SetLeft(tb, lx - 35);
             Canvas.SetTop(tb, ly - 13);
             RadarCanvas.Children.Add(tb);
         }
@@ -1277,4 +1426,479 @@ public partial class OverlayWindow : Window
 
         return title;
     }
+
+    // ===================== VIEW 4: 设置 TAB 业务逻辑 =====================
+
+    private void LoadSettingsView()
+    {
+        var s = _settingsStore.Load();
+        SettingEndpointBox.Text = s.Endpoint;
+        SettingModelBox.Text = s.Model;
+        SettingTempBox.Text = s.Temperature.ToString(CultureInfo.InvariantCulture);
+        SettingKeyBox.Password = DpapiProtector.Unprotect(s.EncryptedApiKey);
+        SettingTraceMemoBox.Text = s.TraceMemoBaseUrl;
+
+        SettingSelfNicknameBox.Text = _mySelfNickname ?? string.Empty;
+
+        // 窗口透明度
+        double currentOpacity = this.Opacity;
+        foreach (ComboBoxItem item in SettingOpacityCombo.Items)
+        {
+            if (item.Tag is string tagStr && double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
+            {
+                if (Math.Abs(val - currentOpacity) < 0.02)
+                {
+                    SettingOpacityCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
+        // OCR 放大倍率
+        foreach (ComboBoxItem item in SettingOcrScaleCombo.Items)
+        {
+            if (item.Tag is string tagStr && double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double val))
+            {
+                if (Math.Abs(val - _ocrUpscaleFactor) < 0.5)
+                {
+                    SettingOcrScaleCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
+        RefreshSettingsSkillList();
+    }
+
+    private void SettingSubTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton radio && radio.Tag is string tagStr && int.TryParse(tagStr, out int idx))
+        {
+            SwitchSettingSubTab(idx);
+        }
+    }
+
+    private void SwitchSettingSubTab(int index)
+    {
+        if (SettingViewAi == null || SettingViewSkill == null || SettingViewPref == null || SettingViewHelp == null)
+        {
+            return;
+        }
+
+        SettingViewAi.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewSkill.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewPref.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewHelp.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (index == 0 && SettingSubTabAi != null) SettingSubTabAi.IsChecked = true;
+        else if (index == 1 && SettingSubTabSkill != null) SettingSubTabSkill.IsChecked = true;
+        else if (index == 2 && SettingSubTabPref != null) SettingSubTabPref.IsChecked = true;
+        else if (index == 3 && SettingSubTabHelp != null) SettingSubTabHelp.IsChecked = true;
+    }
+
+    private void RefreshSettingsSkillList()
+    {
+        if (SettingActiveSkillCombo == null || SettingSkillList == null) return;
+
+        _isSyncingSkillSelection = true;
+        try
+        {
+            var allSkills = _skillStore.GetAllSkills();
+            string activeId = _skillStore.GetActiveSkillId();
+
+            SettingActiveSkillCombo.Items.Clear();
+            ComboBoxItem? selectedCombo = null;
+
+            var items = new List<SettingSkillItem>();
+            foreach (var skill in allSkills)
+            {
+                var cItem = new ComboBoxItem
+                {
+                    Content = $"{skill.Icon} {skill.Name}",
+                    Tag = skill
+                };
+                SettingActiveSkillCombo.Items.Add(cItem);
+                if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedCombo = cItem;
+                }
+
+                items.Add(new SettingSkillItem(
+                    Id: skill.Id,
+                    DisplayTitle: $"{skill.Icon} {skill.Name}",
+                    Description: skill.Description,
+                    TagText: skill.IsBuiltIn ? "官方预设" : "自定义Skill",
+                    DeleteVisibility: skill.IsBuiltIn ? Visibility.Collapsed : Visibility.Visible
+                ));
+            }
+
+            if (selectedCombo != null)
+            {
+                SettingActiveSkillCombo.SelectedItem = selectedCombo;
+                _currentSkill = (DistillSkill)selectedCombo.Tag;
+            }
+            else if (SettingActiveSkillCombo.Items.Count > 0)
+            {
+                SettingActiveSkillCombo.SelectedIndex = 0;
+                _currentSkill = (DistillSkill)((ComboBoxItem)SettingActiveSkillCombo.Items[0]).Tag;
+            }
+
+            SettingSkillList.ItemsSource = items;
+            UpdateSkillBadge();
+        }
+        finally
+        {
+            _isSyncingSkillSelection = false;
+        }
+    }
+
+    private void SettingActiveSkillCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingSkillSelection) return;
+
+        if (SettingActiveSkillCombo.SelectedItem is ComboBoxItem item && item.Tag is DistillSkill skill)
+        {
+            _isSyncingSkillSelection = true;
+            try
+            {
+                _skillStore.SetActiveSkillId(skill.Id);
+                _currentSkill = skill;
+                UpdateSkillBadge();
+            }
+            finally
+            {
+                _isSyncingSkillSelection = false;
+            }
+        }
+    }
+
+    private async void SettingTestAiButton_Click(object sender, RoutedEventArgs e)
+    {
+        string endpoint = SettingEndpointBox.Text.Trim();
+        string model = SettingModelBox.Text.Trim();
+        string key = SettingKeyBox.Password;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            key = DpapiProtector.Unprotect(_settingsStore.Load().EncryptedApiKey);
+        }
+
+        double temp = double.TryParse(SettingTempBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double t)
+            ? t
+            : 0.7;
+
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            ShowSettingTestResult(false, "缺少接口基址", "请先输入接口基址（例如 https://api.openai.com/v1）。", 0);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            ShowSettingTestResult(false, "缺少模型名", "请先输入模型名称（例如 gpt-4o、deepseek-chat 等）。", 0);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ShowSettingTestResult(false, "缺少 API Key", "请先输入 API Key。", 0);
+            return;
+        }
+
+        if (!endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowSettingTestResult(false, "接口地址格式错误", "接口基址必须以 http:// 或 https:// 开头。", 0);
+            return;
+        }
+
+        SettingTestAiButton.IsEnabled = false;
+        SettingTestAiButton.Content = "⏳ 测试中...";
+        ShowSettingTestingStatus(endpoint, model);
+
+        _settingTestCts?.Cancel();
+        _settingTestCts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        var token = _settingTestCts.Token;
+
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            using var provider = new OpenAiCompatibleProvider(endpoint, () => key);
+            var req = new AiRequest(
+                SystemPrompt: "你是一个智能测试助手。请只回复一句话：“连接成功，AI接口与模型正常运作中！”。不要有多余的文字。",
+                UserPrompt: "测试当前 AI 接口是否可用，请回复确认信息。",
+                Model: model,
+                Temperature: temp,
+                MaxTokens: 80);
+
+            AiReply reply = await provider.CompleteAsync(req, token);
+            sw.Stop();
+
+            if (reply.Success)
+            {
+                string text = reply.Text.Trim();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    ShowSettingTestResult(false, "模型返回内容为空",
+                        "接口返回成功状态码，但模型回复内容为空。\n可能原因：该模型不支持当前请求格式，或中转服务未正确透传模型回复。",
+                        sw.ElapsedMilliseconds);
+                }
+                else
+                {
+                    ShowSettingTestResult(true, "测试成功！AI 正常响应",
+                        $"模型回复：\n{text}",
+                        sw.ElapsedMilliseconds);
+                }
+            }
+            else
+            {
+                string diagnosis = SettingsWindowDiagnoseError(reply.Error ?? "未知错误", endpoint, model);
+                ShowSettingTestResult(false, "测试失败：无法获取 AI 响应",
+                    $"{reply.Error}\n\n{diagnosis}",
+                    sw.ElapsedMilliseconds);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            ShowSettingTestResult(false, "请求超时",
+                $"在 25 秒内未收到服务商响应。\n💡 排查建议：\n1. 请检查网络连接或系统代理是否正常。\n2. 检查接口域名是否被防火墙阻拦，或服务商服务器响应缓慢。",
+                sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            string diagnosis = SettingsWindowDiagnoseError(ex.Message, endpoint, model);
+            ShowSettingTestResult(false, "连接发生异常",
+                $"{ex.Message}\n\n{diagnosis}",
+                sw.ElapsedMilliseconds);
+        }
+        finally
+        {
+            SettingTestAiButton.IsEnabled = true;
+            SettingTestAiButton.Content = "⚡ 测试 AI 响应";
+        }
+    }
+
+    private void ShowSettingTestingStatus(string endpoint, string model)
+    {
+        SettingTestResultBorder.Visibility = Visibility.Visible;
+        SettingTestResultBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3B, 0x82, 0xF6));
+        SettingTestStatusIcon.Text = "⏳";
+        SettingTestStatusTitle.Text = "正在请求 AI 接口...";
+        SettingTestStatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(0x3B, 0x82, 0xF6));
+        SettingTestLatencyText.Text = string.Empty;
+        SettingTestDetailBox.Text = $"正在向 [{endpoint}] 发送测试请求，模型：[{model}]，请稍候...";
+    }
+
+    private void ShowSettingTestResult(bool success, string title, string detail, long elapsedMs)
+    {
+        SettingTestResultBorder.Visibility = Visibility.Visible;
+        if (success)
+        {
+            SettingTestResultBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+            SettingTestStatusIcon.Text = "✅";
+            SettingTestStatusTitle.Text = title;
+            SettingTestStatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81));
+            SettingTestLatencyText.Text = elapsedMs > 0 ? $"(耗时 {elapsedMs} ms)" : string.Empty;
+        }
+        else
+        {
+            SettingTestResultBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+            SettingTestStatusIcon.Text = "❌";
+            SettingTestStatusTitle.Text = title;
+            SettingTestStatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+            SettingTestLatencyText.Text = elapsedMs > 0 ? $"(耗时 {elapsedMs} ms)" : string.Empty;
+        }
+
+        SettingTestDetailBox.Text = detail;
+    }
+
+    private static string SettingsWindowDiagnoseError(string error, string endpoint, string model)
+    {
+        var sb = new StringBuilder("💡 诊断与排查建议：\n");
+
+        if (error.Contains("401") || error.Contains("Unauthorized"))
+        {
+            sb.AppendLine("• 身份验证失败 (401)：API Key 错误、已过期或余额受限，请确认 Key 是否复制完整。");
+        }
+        else if (error.Contains("404") || error.Contains("Not Found"))
+        {
+            sb.AppendLine("• 路径或模型未找到 (404)：");
+            if (!endpoint.TrimEnd('/').EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.AppendLine($"  - 当前接口基址为「{endpoint}」，未以 /v1 结尾。OpenAI 兼容接口通常需以 /v1 结尾（例如 {endpoint.TrimEnd('/')}/v1）。");
+            }
+            sb.AppendLine($"  - 服务商可能不支持当前模型名「{model}」，请到服务商官网确认模型名拼写。");
+        }
+        else if (error.Contains("429"))
+        {
+            sb.AppendLine("• 请求超限或欠费 (429)：API 额度已用尽、账户欠费，或触发了服务商的请求频率限制。");
+        }
+        else if (error.Contains("400") || error.Contains("Bad Request"))
+        {
+            sb.AppendLine($"• 请求无效 (400)：模型名「{model}」可能不被支持或请求参数与此模型不兼容。");
+        }
+        else if (error.Contains("refused") || error.Contains("No such host") || error.Contains("积极拒绝") || error.Contains("远程主机强迫关闭"))
+        {
+            sb.AppendLine("• 无法建立网络连接：请检查接口网址是否正确，以及本机网络或代理（VPN）设置。");
+        }
+        else
+        {
+            sb.AppendLine("• 请检查接口地址、模型名以及 API Key 是否与服务商提供的信息一致。");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private void SettingSaveAiButton_Click(object sender, RoutedEventArgs e)
+    {
+        _settingTestCts?.Cancel();
+
+        double temp = double.TryParse(SettingTempBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double t)
+            ? t
+            : 0.7;
+
+        string encrypted = string.IsNullOrEmpty(SettingKeyBox.Password)
+            ? _settingsStore.Load().EncryptedApiKey
+            : DpapiProtector.Protect(SettingKeyBox.Password);
+
+        var saved = new AiSettings
+        {
+            Endpoint = SettingEndpointBox.Text.Trim(),
+            Model = SettingModelBox.Text.Trim(),
+            Temperature = temp,
+            EncryptedApiKey = encrypted,
+            TraceMemoBaseUrl = SettingTraceMemoBox.Text.Trim()
+        };
+
+        _settingsStore.Save(saved);
+
+        ShowSettingTestResult(true, "保存成功", "AI 设置与密钥已加密保存至本地。", 0);
+    }
+
+    private void SettingNewSkillButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingCustomSkillCard.Visibility = Visibility.Visible;
+        SettingNewSkillNameBox.Text = string.Empty;
+        SettingNewSkillIconBox.Text = "🏷️";
+        SettingNewSkillDescBox.Text = string.Empty;
+        SettingNewSkillPromptBox.Text = string.Empty;
+    }
+
+    private void SettingCloseSkillEditor_Click(object sender, RoutedEventArgs e)
+    {
+        SettingCustomSkillCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void SettingSaveSkillButton_Click(object sender, RoutedEventArgs e)
+    {
+        string name = SettingNewSkillNameBox.Text.Trim();
+        string icon = SettingNewSkillIconBox.Text.Trim();
+        string desc = SettingNewSkillDescBox.Text.Trim();
+        string prompt = SettingNewSkillPromptBox.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            MessageBox.Show("请输入技能名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            MessageBox.Show("请输入技能核心提示词 (Prompt)。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(icon))
+        {
+            icon = "🏷️";
+        }
+        if (string.IsNullOrWhiteSpace(desc))
+        {
+            desc = name;
+        }
+
+        string id = "custom_" + Guid.NewGuid().ToString("N")[..8];
+        var newSkill = new DistillSkill(id, name, desc, icon, prompt, false);
+        _skillStore.SaveCustomSkill(newSkill);
+        _skillStore.SetActiveSkillId(id);
+
+        InitSkillCombo();
+        RefreshSettingsSkillList();
+        SettingCustomSkillCard.Visibility = Visibility.Collapsed;
+    }
+
+    private void DeleteCustomSkillFromSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string skillId)
+        {
+            var res = MessageBox.Show("确定要删除该自定义技能吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (res == MessageBoxResult.Yes)
+            {
+                _skillStore.DeleteCustomSkill(skillId);
+                InitSkillCombo();
+                RefreshSettingsSkillList();
+            }
+        }
+    }
+
+    private void SettingOpacityCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SettingOpacityCombo?.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr &&
+            double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity))
+        {
+            this.Opacity = opacity;
+        }
+    }
+
+    private void SettingOcrScaleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SettingOcrScaleCombo?.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr &&
+            double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
+        {
+            _ocrUpscaleFactor = (int)Math.Round(scale);
+        }
+    }
+
+    private void SettingSelfNicknameBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        string text = SettingSelfNicknameBox.Text.Trim();
+        _mySelfNickname = string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    private void OpenDataDirectory_Click(object sender, RoutedEventArgs e)
+    {
+        string dir = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "WeChatCopilot");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("打开文件夹失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void ClearChatHistoryCache_Click(object sender, RoutedEventArgs e)
+    {
+        _conversation.Clear();
+        RefreshChatView();
+        StatusText.Text = "当前对话气泡与识别缓存已清空";
+        MessageBox.Show("当前对话气泡及识别缓存已清空。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
 }
+
+public sealed record SettingSkillItem(
+    string Id,
+    string DisplayTitle,
+    string Description,
+    string TagText,
+    Visibility DeleteVisibility);
+

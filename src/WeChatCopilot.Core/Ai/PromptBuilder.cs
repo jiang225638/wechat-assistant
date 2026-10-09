@@ -100,20 +100,6 @@ public static class PromptBuilder
         return new AiRequest(SubtextSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
-    private const string UnifiedAdviceSystemPrompt =
-        "你是一位精通人际交往心理学、微表情与对话攻防的顶级高情商聊天副驾大师，深度结合了女娲(Nuwa)认知操作系统蒸馏方法论。\n" +
-        "用户会提供一段微信聊天上下文，以及【对方已知的人格画像特质】（深度覆盖心智模型、决策启发式、表达DNA、诚实边界、价值锚点与反模式雷区）。\n" +
-        "你需要穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并调用对方的认知操作系统底层逻辑（心智模型与决策启发式）给出量身定制的多风格回复建议。\n" +
-        "严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n\n" +
-        "=== 意图剖析 ===\n" +
-        "字面意思：对方表面上说了什么\n" +
-        "潜台词洞察：结合其心智模型与表达DNA，分析对方不敢明说、委婉暗示或隐藏在背后的真实弦外之音\n" +
-        "真实心理：结合其决策启发式与价值锚点，剖析对方潜意识里真正想推动什么、防范什么或此时情绪状态\n" +
-        "应对策略：针对其性格特征与反模式雷区，建议我方采取的最佳破局沟通策略与避坑指南\n\n" +
-        "=== 回复建议 ===\n" +
-        "[高情商] 回复内容 | 理由：为什么这么说\n" +
-        "[直接] 回复内容 | 理由：为什么这么说\n" +
-        "[专业] 回复内容 | 理由：为什么这么说\n";
 
     /// <summary>获取不同社交关系定位下的专属沟通准则指导。</summary>
     public static string GetRelationshipGuideline(string? rel)
@@ -155,7 +141,7 @@ public static class PromptBuilder
 
     /// <summary>
     /// 构建全能 AI 建议请求（合并潜台词剖析与多候选回复建议）：
-    /// 深度融合对方人格画像与双方关系定位，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
+    /// 深度融合当前指导作战技能 (Skill)、对方人格画像与双方关系定位，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
     /// </summary>
     public static AiRequest BuildUnifiedAdvice(
         AiSettings settings,
@@ -163,15 +149,45 @@ public static class PromptBuilder
         int count = 3,
         Persona? persona = null,
         string? contactName = null,
-        string? relationship = null)
+        string? relationship = null,
+        DistillSkill? skill = null)
     {
-        int n = Math.Clamp(count, 1, ReplyTones.Length);
+        int n = Math.Clamp(count, 1, 5);
+        skill ??= DistillSkillPresets.Nuwa;
+
         var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
         string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
 
+        string skillName = skill.Name;
+        string skillIcon = skill.Icon;
+        string tactics = skill.GetEffectiveAdviceGuideline();
+        var tones = skill.GetEffectiveSuggestedTones();
+
+        // 1. 动态编排对应 Skill 体系的专属 SystemPrompt
+        var sysSb = new StringBuilder();
+        sysSb.AppendLine($"你是一位精通人际交往心理学、微表情与对话攻防的顶级高情商聊天副驾大师，当前深度激活并应用【{skillIcon} {skillName}】作战体系。");
+        sysSb.AppendLine("用户会提供一段微信聊天上下文、双方关系定位，以及【对方已知的人格画像特质】。");
+        sysSb.AppendLine($"你需要穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出量身定制的多风格回复建议。");
+        sysSb.AppendLine();
+        sysSb.AppendLine($"【⚔️ 本作战流派的核心战略准则】：\n{tactics}");
+        sysSb.AppendLine();
+        sysSb.AppendLine("严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n");
+        sysSb.AppendLine("=== 意图剖析 ===");
+        sysSb.AppendLine("字面意思：对方表面上说了什么");
+        sysSb.AppendLine("潜台词洞察：结合其性格特征与言行模式，分析对方隐藏在背后的真实弦外之音、测试防备或好感信号");
+        sysSb.AppendLine("真实心理：结合其价值锚点与需求状态，剖析对方潜意识里真正想推动什么、防范什么或此时情绪状态");
+        sysSb.AppendLine($"应对策略：基于【{skillName}】心法与对方画像雷区，建议我方采取的最佳破局沟通策略与避坑指南\n");
+        sysSb.AppendLine("=== 回复建议 ===");
+        foreach (var tone in tones.Take(3))
+        {
+            sysSb.AppendLine($"[{tone}] 回复内容 | 理由：为什么这么说");
+        }
+
+        // 2. 编排 UserPrompt
         var sb = new StringBuilder();
         string targetName = !string.IsNullOrWhiteSpace(contactName) ? contactName : (persona?.ContactName ?? "对方");
         sb.AppendLine($"当前对话对象：{targetName}");
+        sb.AppendLine($"当前指导作战技能：【{skillIcon} {skillName}】");
 
         string relGuideline = GetRelationshipGuideline(relationship);
         string relTitle = !string.IsNullOrWhiteSpace(relationship) ? relationship : "智能推断";
@@ -185,19 +201,20 @@ public static class PromptBuilder
         if (persona is { Traits.Count: > 0 })
         {
             sb.AppendLine();
-            sb.AppendLine($"【🎯 对方已知人格特质画像（{persona.ContactName}，女娲认知模型）】：");
+            sb.AppendLine($"【🎯 对方已知人格特质画像（{persona.ContactName}）】：");
             foreach (var t in persona.Traits)
             {
                 sb.AppendLine($"- 【{t.Dimension}】[{t.NuwaTag}]: {t.Attribute} (量化评分: {t.ScoreInt}分, 置信度: {t.ConfidenceText})");
             }
-            sb.AppendLine("（重要约束：意图剖析与候选回复必须高度契合上述画像的心智模型、决策启发式与表达DNA特征，切忌千篇一律的套话！）");
+            sb.AppendLine($"（重要约束：意图剖析与候选回复必须高度契合上述画像特征，并严格贯彻【{skillName}】战术心法，切忌千篇一律的通用套话！）");
         }
 
         sb.AppendLine();
         sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
         sb.AppendLine();
-        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条风格差异鲜明的【回复建议】（建议语气：高情商/直接/专业/缓和/幽默）：");
+        string tonesPreview = string.Join("/", tones.Take(Math.Max(3, n)));
+        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条风格鲜明的【回复建议】（建议风格：{tonesPreview}）：");
 
-        return new AiRequest(UnifiedAdviceSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        return new AiRequest(sysSb.ToString(), sb.ToString(), settings.Model, settings.Temperature);
     }
 }
