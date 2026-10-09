@@ -804,8 +804,8 @@
                         Background="#223B82F6"
                         BorderBrush="#553B82F6"
                         BorderThickness="1"
-                        CornerRadius="6"
                         ClipToBounds="True"
+                        CornerRadius="6"
                         Visibility="Collapsed">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -844,14 +844,14 @@
                                 <ScrollViewer
                                     Grid.Column="1"
                                     MaxHeight="80"
-                                    VerticalScrollBarVisibility="Auto"
-                                    HorizontalScrollBarVisibility="Disabled">
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    VerticalScrollBarVisibility="Auto">
                                     <TextBlock
                                         x:Name="AiStatusText"
                                         VerticalAlignment="Center"
                                         FontSize="11.5"
-                                        LineHeight="16"
                                         Foreground="{StaticResource TextPrimaryBrush}"
+                                        LineHeight="16"
                                         Text="AI 正在结合当前作战策略与对方画像深度剖析意图并生成回复建议..."
                                         TextWrapping="Wrap" />
                                 </ScrollViewer>
@@ -864,13 +864,13 @@
                                     VerticalAlignment="Top"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Click="AiStatusDismiss_Click"
                                     Content="✕"
-                                    FontSize="10"
                                     Cursor="Hand"
+                                    FontSize="10"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
                                     ToolTip="关闭提示"
-                                    Visibility="Collapsed"
-                                    Click="AiStatusDismiss_Click" />
+                                    Visibility="Collapsed" />
                             </Grid>
                         </Grid>
                     </Border>
@@ -1141,13 +1141,13 @@
                 <!--  VIEW 2: 人格画像 TAB 内容  -->
                 <Grid x:Name="ViewPersona" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /> 
+                        <RowDefinition Height="Auto" />
                         <!--  联系人选择栏  -->
-                        <RowDefinition Height="Auto" /> 
+                        <RowDefinition Height="Auto" />
                         <!--  操作按钮栏  -->
-                        <RowDefinition Height="Auto" /> 
+                        <RowDefinition Height="Auto" />
                         <!--  状态与提示横条  -->
-                        <RowDefinition Height="*" />    
+                        <RowDefinition Height="*" />
                         <!--  画像特质展示区  -->
                     </Grid.RowDefinitions>
 
@@ -1212,10 +1212,10 @@
                                     Margin="6,0,0,0"
                                     Padding="8,3"
                                     Click="SyncContactButton_Click"
-                                    Content="🔍 获取当前聊天对象姓名"
+                                    Content="🔍 获取当前聊天对象"
                                     FontSize="11"
                                     Style="{StaticResource FluentButton}"
-                                    ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人姓名" />
+                                    ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -1272,8 +1272,8 @@
                         Background="#1F2433"
                         BorderBrush="{StaticResource BorderSubtleBrush}"
                         BorderThickness="1"
-                        CornerRadius="6"
-                        ClipToBounds="True">
+                        ClipToBounds="True"
+                        CornerRadius="6">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -1300,8 +1300,8 @@
                                 Margin="10,6"
                                 VerticalAlignment="Center"
                                 FontSize="11"
-                                LineHeight="16"
                                 Foreground="{StaticResource TextSecondaryBrush}"
+                                LineHeight="16"
                                 Text="就绪：请先输入或同步好友，点击【✨ 一键蒸馏画像】"
                                 TextWrapping="Wrap" />
                         </Grid>
@@ -1459,23 +1459,26 @@
                                                             <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
 
-                                                        <!-- 左侧：维度与评分徽章 + 专属方法论徽章（自适应换行与文本截断） -->
-                                                        <WrapPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                        <!--  左侧：维度与评分徽章 + 专属方法论徽章（自适应换行与文本截断）  -->
+                                                        <WrapPanel
+                                                            Grid.Column="0"
+                                                            Margin="0,0,8,0"
+                                                            VerticalAlignment="Center">
                                                             <Border
-                                                                Padding="6,2"
                                                                 Margin="0,0,6,2"
+                                                                Padding="6,2"
                                                                 HorizontalAlignment="Left"
                                                                 Background="#2210B981"
                                                                 CornerRadius="4">
                                                                 <StackPanel Orientation="Horizontal">
                                                                     <TextBlock
+                                                                        MaxWidth="140"
                                                                         FontSize="11"
                                                                         FontWeight="Bold"
                                                                         Foreground="#34D399"
-                                                                        MaxWidth="140"
+                                                                        Text="{Binding Dimension}"
                                                                         TextTrimming="CharacterEllipsis"
-                                                                        ToolTip="{Binding Dimension}"
-                                                                        Text="{Binding Dimension}" />
+                                                                        ToolTip="{Binding Dimension}" />
                                                                     <TextBlock
                                                                         FontSize="11"
                                                                         Foreground="#6634D399"
@@ -1489,7 +1492,7 @@
                                                                 </StackPanel>
                                                             </Border>
 
-                                                            <!-- 专属分类方法论标签 (仅在具有专属方法论标签时显示，若无/重复维度名则自动隐藏) -->
+                                                            <!--  专属分类方法论标签 (仅在具有专属方法论标签时显示，若无/重复维度名则自动隐藏)  -->
                                                             <Border
                                                                 Margin="0,0,6,2"
                                                                 Padding="5,1"
@@ -1499,18 +1502,18 @@
                                                                 CornerRadius="4"
                                                                 Visibility="{Binding CategoryTagVisibility}">
                                                                 <TextBlock
+                                                                    MaxWidth="100"
                                                                     VerticalAlignment="Center"
                                                                     FontSize="10"
                                                                     FontWeight="SemiBold"
                                                                     Foreground="#38BDF8"
-                                                                    MaxWidth="100"
+                                                                    Text="{Binding NuwaTag}"
                                                                     TextTrimming="CharacterEllipsis"
-                                                                    ToolTip="{Binding NuwaTag}"
-                                                                    Text="{Binding NuwaTag}" />
+                                                                    ToolTip="{Binding NuwaTag}" />
                                                             </Border>
                                                         </WrapPanel>
 
-                                                        <!-- 右侧：可信度与进度条（独立列锁定，绝不重叠） -->
+                                                        <!--  右侧：可信度与进度条（独立列锁定，绝不重叠）  -->
                                                         <StackPanel
                                                             Grid.Column="1"
                                                             HorizontalAlignment="Right"
@@ -2381,7 +2384,10 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock FontSize="10.5" Foreground="#A78BFA" Text="TraceMemo 项目主页与官方下载地址：" />
+                                                <TextBlock
+                                                    FontSize="10.5"
+                                                    Foreground="#A78BFA"
+                                                    Text="TraceMemo 项目主页与官方下载地址：" />
                                                 <TextBlock
                                                     Margin="0,2,0,0"
                                                     FontSize="11.5"
@@ -2390,7 +2396,10 @@
                                                     Text="https://github.com/Wxw-Gu/TraceMemo"
                                                     TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                Orientation="Horizontal">
                                                 <Button
                                                     Margin="6,0,0,0"
                                                     Padding="8,4"
