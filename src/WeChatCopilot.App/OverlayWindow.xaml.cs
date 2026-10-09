@@ -169,7 +169,14 @@ public partial class OverlayWindow : Window
 
     public void ToggleVisibility()
     {
-        if (IsVisible)
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+            _manualHidden = false;
+            Show();
+            Activate();
+        }
+        else if (IsVisible)
         {
             _manualHidden = true;
             Hide();
@@ -179,6 +186,16 @@ public partial class OverlayWindow : Window
             _manualHidden = false;
             Show();
             Activate();
+        }
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Normal)
+        {
+            _manualHidden = false;
+            TryLocate();
         }
     }
 
@@ -205,6 +222,8 @@ public partial class OverlayWindow : Window
     }
 
     private void RelocateButton_Click(object sender, RoutedEventArgs e) => TryLocate();
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void QuitButton_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
@@ -514,7 +533,8 @@ public partial class OverlayWindow : Window
         {
             var settings = new SettingsStore().Load();
             string key = DpapiProtector.Unprotect(settings.EncryptedApiKey);
-            using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
+            int timeoutSec = Math.Max(settings.TimeoutSeconds, 120);
+            using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key, timeout: TimeSpan.FromSeconds(timeoutSec));
 
             string target = ContactBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(target))
@@ -1032,7 +1052,8 @@ public partial class OverlayWindow : Window
         {
             var settings = new SettingsStore().Load();
             string key = DpapiProtector.Unprotect(settings.EncryptedApiKey);
-            using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key);
+            int timeoutSec = Math.Max(settings.TimeoutSeconds, 300);
+            using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key, timeout: TimeSpan.FromSeconds(timeoutSec));
 
             Persona? existing = _personaStore.Load(name);
             var distillResult = await PersonaDistiller.DistillDetailedAsync(
@@ -1424,6 +1445,11 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        if (WindowState == WindowState.Minimized || _manualHidden)
+        {
+            return;
+        }
+
         if (info.IsMinimized)
         {
             if (IsVisible)
@@ -1477,6 +1503,7 @@ public partial class OverlayWindow : Window
         SettingEndpointBox.Text = s.Endpoint;
         SettingModelBox.Text = s.Model;
         SettingTempBox.Text = s.Temperature.ToString(CultureInfo.InvariantCulture);
+        SettingTimeoutBox.Text = s.TimeoutSeconds.ToString(CultureInfo.InvariantCulture);
         SettingKeyBox.Password = DpapiProtector.Unprotect(s.EncryptedApiKey);
         SettingTraceMemoBox.Text = s.TraceMemoBaseUrl;
 
@@ -1804,6 +1831,10 @@ public partial class OverlayWindow : Window
             ? t
             : 0.7;
 
+        int timeoutSec = int.TryParse(SettingTimeoutBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int tSec) && tSec > 0
+            ? tSec
+            : 180;
+
         string encrypted = string.IsNullOrEmpty(SettingKeyBox.Password)
             ? _settingsStore.Load().EncryptedApiKey
             : DpapiProtector.Protect(SettingKeyBox.Password);
@@ -1813,6 +1844,7 @@ public partial class OverlayWindow : Window
             Endpoint = SettingEndpointBox.Text.Trim(),
             Model = SettingModelBox.Text.Trim(),
             Temperature = temp,
+            TimeoutSeconds = timeoutSec,
             EncryptedApiKey = encrypted,
             TraceMemoBaseUrl = SettingTraceMemoBox.Text.Trim()
         };

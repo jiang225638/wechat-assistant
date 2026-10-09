@@ -31,6 +31,7 @@ public partial class SettingsWindow : Window
         EndpointBox.Text = s.Endpoint;
         ModelBox.Text = s.Model;
         TempBox.Text = s.Temperature.ToString(CultureInfo.InvariantCulture);
+        TimeoutBox.Text = s.TimeoutSeconds.ToString(CultureInfo.InvariantCulture);
 
         // 回填解密后的 Key 便于查看/修改（仅内存与输入框，不落明文盘）
         KeyBox.Password = DpapiProtector.Unprotect(s.EncryptedApiKey);
@@ -224,6 +225,10 @@ public partial class SettingsWindow : Window
             ? t
             : 0.7;
 
+        int timeout = int.TryParse(TimeoutBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int to) && to > 0
+            ? to
+            : 180;
+
         // Key 留空 = 保留原密文（允许只改其他字段而不重输 Key）
         string encrypted = string.IsNullOrEmpty(KeyBox.Password)
             ? _store.Load().EncryptedApiKey
@@ -234,6 +239,7 @@ public partial class SettingsWindow : Window
             Endpoint = EndpointBox.Text.Trim(),
             Model = ModelBox.Text.Trim(),
             Temperature = temp,
+            TimeoutSeconds = timeout,
             EncryptedApiKey = encrypted,
             TraceMemoBaseUrl = TraceMemoBox.Text.Trim()
         };

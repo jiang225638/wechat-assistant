@@ -20,5 +20,8 @@ public sealed record AiSettings
 
     /// <summary>TraceMemo Local HTTP API 基址（M5 冷链路）；默认 http://127.0.0.1:6131。</summary>
     public string TraceMemoBaseUrl { get; init; } = "http://127.0.0.1:6131";
+
+    /// <summary>请求超时时间（秒），默认 180 秒（长文本蒸馏与深度思考模型推荐 180~300 秒）。</summary>
+    public int TimeoutSeconds { get; init; } = 180;
 }
 

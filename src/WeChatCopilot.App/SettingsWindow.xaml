@@ -20,6 +20,10 @@
                     <TextBlock Text="温度 (0-1)" Foreground="#FFE0E0E0" FontSize="12" />
                     <TextBox x:Name="TempBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
                 </StackPanel>
+                <StackPanel Margin="16,0,0,0">
+                    <TextBlock Text="请求超时 (秒)" Foreground="#FFE0E0E0" FontSize="12" />
+                    <TextBox x:Name="TimeoutBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
+                </StackPanel>
             </StackPanel>
 
             <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />

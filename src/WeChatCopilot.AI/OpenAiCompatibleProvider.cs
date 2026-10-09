@@ -21,14 +21,19 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
     /// <param name="baseUrl">接口基址（含 /v1），如 https://api.deepseek.com/v1。</param>
     /// <param name="apiKeyGetter">返回明文 API Key 的委托（通常内部做 DPAPI 解密）。</param>
     /// <param name="handler">可选自定义 handler（测试用）。</param>
-    public OpenAiCompatibleProvider(string baseUrl, Func<string> apiKeyGetter, HttpMessageHandler? handler = null)
+    /// <param name="timeout">可选请求超时时间；未指定时默认 180 秒（3 分钟）。</param>
+    public OpenAiCompatibleProvider(
+        string baseUrl,
+        Func<string> apiKeyGetter,
+        HttpMessageHandler? handler = null,
+        TimeSpan? timeout = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
         ArgumentNullException.ThrowIfNull(apiKeyGetter);
 
         _http = handler is null ? new HttpClient() : new HttpClient(handler);
         _http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-        _http.Timeout = TimeSpan.FromSeconds(60);
+        _http.Timeout = timeout ?? TimeSpan.FromSeconds(180);
         _apiKeyGetter = apiKeyGetter;
     }
 
@@ -79,6 +84,13 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
                 .GetString() ?? string.Empty;
 
             return new AiReply(true, text, null, request.Model);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            int sec = (int)_http.Timeout.TotalSeconds;
+            return new AiReply(false, string.Empty,
+                $"请求超时（超过 {sec} 秒未收到大模型响应）：分析长历史记录或深度推理时间较长。建议在设置中调大超时时间或稍后重试。",
+                request.Model);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

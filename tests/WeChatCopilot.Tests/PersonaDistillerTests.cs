@@ -349,6 +349,16 @@ public class PersonaDistillerTests
         Assert.Contains("老旧的原话证据不要出现", reqIncremental.UserPrompt);
     }
 
+    [Fact]
+    public void AiSettings_TimeoutSeconds_DefaultsTo180()
+    {
+        var settings = new AiSettings();
+        Assert.Equal(180, settings.TimeoutSeconds);
+
+        var custom = new AiSettings { TimeoutSeconds = 300 };
+        Assert.Equal(300, custom.TimeoutSeconds);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {

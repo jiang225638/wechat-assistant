@@ -317,6 +317,15 @@
                             Style="{StaticResource FluentButton}"
                             ToolTip="重新锁定并贴靠微信主窗口" />
                         <Button
+                            x:Name="MinimizeButton"
+                            Margin="0,0,6,0"
+                            Padding="8,4"
+                            Click="MinimizeButton_Click"
+                            Content="—"
+                            FontSize="11"
+                            Style="{StaticResource FluentButton}"
+                            ToolTip="最小化窗口" />
+                        <Button
                             x:Name="QuitButton"
                             Padding="8,4"
                             Click="QuitButton_Click"
@@ -1659,12 +1668,14 @@
                                         FontSize="11.5"
                                         Style="{StaticResource FluentTextBox}" />
 
-                                    <!--  模型名称 与 温度  -->
+                                    <!--  模型名称、温度 与 超时  -->
                                     <Grid Margin="0,8,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="10" />
-                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="70" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="80" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
                                             <TextBlock
@@ -1689,6 +1700,19 @@
                                                 Height="32"
                                                 FontSize="11.5"
                                                 Style="{StaticResource FluentTextBox}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4">
+                                            <TextBlock
+                                                Margin="0,0,0,4"
+                                                FontSize="11"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Text="超时 (秒)：" />
+                                            <TextBox
+                                                x:Name="SettingTimeoutBox"
+                                                Height="32"
+                                                FontSize="11.5"
+                                                Style="{StaticResource FluentTextBox}"
+                                                ToolTip="请求超时秒数（默认 180 秒；处理 300+ 条长历史或深度思考模型建议设为 180~300 秒）" />
                                         </StackPanel>
                                     </Grid>
 
