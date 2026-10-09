@@ -206,9 +206,7 @@
                             Padding="{TemplateBinding Padding}"
                             Background="{TemplateBinding Background}"
                             CornerRadius="6">
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -708,7 +706,7 @@
                                             FontWeight="SemiBold"
                                             Foreground="#38BDF8"
                                             Text="🧬 女娲心智蒸馏"
-                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置->技能中心 切换）" />
+                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置-&gt;技能中心 切换）" />
                                     </Border>
                                 </StackPanel>
 
@@ -775,10 +773,10 @@
                                         x:Name="IncludePersonaCheck"
                                         VerticalAlignment="Center"
                                         Content="融入画像"
-                                        ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）"
                                         FontSize="11.5"
                                         Foreground="{StaticResource TextSecondaryBrush}"
-                                        IsChecked="True" />
+                                        IsChecked="True"
+                                        ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
                                 </StackPanel>
 
                                 <!--  右侧：智能分析与建议按钮（高度 32px，与左侧控件绝对居中对齐）  -->
@@ -791,8 +789,8 @@
                                     VerticalAlignment="Center"
                                     Click="GenerateButton_Click"
                                     Content="🚀 智能分析"
-                                    ToolTip="结合当前策略 Skill 与对方画像，一键生成意图剖析与针对性回复建议"
-                                    Style="{StaticResource PrimaryAccentButton}" />
+                                    Style="{StaticResource PrimaryAccentButton}"
+                                    ToolTip="结合当前策略 Skill 与对方画像，一键生成意图剖析与针对性回复建议" />
                             </Grid>
                         </Grid>
                     </Border>
@@ -874,7 +872,7 @@
                                     <StackPanel>
                                         <!--  标头  -->
                                         <Grid Margin="0,0,0,8">
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                                 <TextBlock
                                                     Margin="0,0,6,0"
                                                     VerticalAlignment="Center"
@@ -1089,13 +1087,17 @@
                 <!--  VIEW 2: 人格画像 TAB 内容  -->
                 <Grid x:Name="ViewPersona" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /> <!-- 联系人选择栏 -->
-                        <RowDefinition Height="Auto" /> <!-- 操作按钮栏 -->
-                        <RowDefinition Height="Auto" /> <!-- 状态与提示横条 -->
-                        <RowDefinition Height="*" />    <!-- 画像特质展示区 -->
+                        <RowDefinition Height="Auto" /> 
+                        <!--  联系人选择栏  -->
+                        <RowDefinition Height="Auto" /> 
+                        <!--  操作按钮栏  -->
+                        <RowDefinition Height="Auto" /> 
+                        <!--  状态与提示横条  -->
+                        <RowDefinition Height="*" />    
+                        <!--  画像特质展示区  -->
                     </Grid.RowDefinitions>
 
-                    <!-- 聊天好友选择与已存档案切换栏 -->
+                    <!--  聊天好友选择与已存档案切换栏  -->
                     <Border
                         Grid.Row="0"
                         Margin="0,0,0,8"
@@ -1105,7 +1107,7 @@
                         BorderThickness="1"
                         CornerRadius="8">
                         <StackPanel>
-                            <!-- 第一行：已存档案快速切换（独占整行，超宽展示，杜绝文字截断） -->
+                            <!--  第一行：已存档案快速切换（独占整行，超宽展示，杜绝文字截断）  -->
                             <Grid Margin="0,0,0,6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
@@ -1121,14 +1123,14 @@
                                     x:Name="SavedPersonasCombo"
                                     Grid.Column="1"
                                     Height="28"
-                                    FontSize="11.5"
                                     Padding="8,0,24,0"
                                     VerticalContentAlignment="Center"
+                                    FontSize="11.5"
                                     SelectionChanged="SavedPersonasCombo_SelectionChanged"
                                     ToolTip="已保存画像的好友档案库，点击一键载入" />
                             </Grid>
 
-                            <!-- 第二行：选择好友输入框 与 获取当前聊天对象姓名按钮 -->
+                            <!--  第二行：选择好友输入框 与 获取当前聊天对象姓名按钮  -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70" />
@@ -1152,9 +1154,9 @@
                                 <Button
                                     x:Name="SyncContactButton"
                                     Grid.Column="2"
+                                    Height="28"
                                     Margin="6,0,0,0"
                                     Padding="8,3"
-                                    Height="28"
                                     Click="SyncContactButton_Click"
                                     Content="🔍 获取当前聊天对象姓名"
                                     FontSize="11"
@@ -1164,7 +1166,7 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- 操作按钮栏 (一键蒸馏 / 刷新历史 / 导入CSV) -->
+                    <!--  操作按钮栏 (一键蒸馏 / 刷新历史 / 导入CSV)  -->
                     <Border
                         Grid.Row="1"
                         Margin="0,0,0,8"
@@ -1208,7 +1210,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- 状态与历史信息横条 -->
+                    <!--  状态与历史信息横条  -->
                     <Border
                         x:Name="PersonaStatusCard"
                         Grid.Row="2"
@@ -1241,7 +1243,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- 画像结果展示区 -->
+                    <!--  画像结果展示区  -->
                     <Grid Grid.Row="3">
                         <!--  空画像提示指引卡片  -->
                         <Border
@@ -1513,34 +1515,38 @@
                         <UniformGrid Rows="1">
                             <RadioButton
                                 x:Name="SettingSubTabAi"
+                                Click="SettingSubTab_Click"
                                 Content="🧠 AI模型"
                                 IsChecked="True"
                                 Style="{StaticResource SettingSubTabRadio}"
-                                Click="SettingSubTab_Click"
                                 Tag="0" />
                             <RadioButton
                                 x:Name="SettingSubTabSkill"
+                                Click="SettingSubTab_Click"
                                 Content="🧬 技能中心"
                                 Style="{StaticResource SettingSubTabRadio}"
-                                Click="SettingSubTab_Click"
                                 Tag="1" />
                             <RadioButton
                                 x:Name="SettingSubTabPref"
+                                Click="SettingSubTab_Click"
                                 Content="🎨 偏好管理"
                                 Style="{StaticResource SettingSubTabRadio}"
-                                Click="SettingSubTab_Click"
                                 Tag="2" />
                             <RadioButton
                                 x:Name="SettingSubTabHelp"
+                                Click="SettingSubTab_Click"
                                 Content="❓ 使用指南"
                                 Style="{StaticResource SettingSubTabRadio}"
-                                Click="SettingSubTab_Click"
                                 Tag="3" />
                         </UniformGrid>
                     </Border>
 
                     <!--  子视图 0: 🧠 AI 模型与服务设置  -->
-                    <ScrollViewer x:Name="SettingViewAi" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Visible">
+                    <ScrollViewer
+                        x:Name="SettingViewAi"
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Visible">
                         <StackPanel Margin="0,0,0,16">
                             <Border
                                 Margin="0,0,0,12"
@@ -1556,7 +1562,7 @@
                                         Foreground="{StaticResource TextPrimaryBrush}"
                                         Text="🧠 AI 模型与服务设置" />
 
-                                    <!-- 接口基址 -->
+                                    <!--  接口基址  -->
                                     <TextBlock
                                         Margin="0,10,0,4"
                                         FontSize="11"
@@ -1568,7 +1574,7 @@
                                         FontSize="11.5"
                                         Style="{StaticResource FluentTextBox}" />
 
-                                    <!-- 模型名称 与 温度 -->
+                                    <!--  模型名称 与 温度  -->
                                     <Grid Margin="0,8,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -1601,7 +1607,7 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <!-- API Key -->
+                                    <!--  API Key  -->
                                     <TextBlock
                                         Margin="0,8,0,4"
                                         FontSize="11"
@@ -1610,14 +1616,14 @@
                                     <PasswordBox
                                         x:Name="SettingKeyBox"
                                         Height="32"
-                                        FontSize="11.5"
+                                        Padding="8,5"
+                                        VerticalContentAlignment="Center"
                                         Background="#221A1A2B"
                                         BorderBrush="{StaticResource BorderLightBrush}"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
-                                        VerticalContentAlignment="Center"
-                                        Padding="8,5" />
+                                        FontSize="11.5"
+                                        Foreground="{StaticResource TextPrimaryBrush}" />
 
-                                    <!-- TraceMemo 基址 -->
+                                    <!--  TraceMemo 基址  -->
                                     <TextBlock
                                         Margin="0,8,0,4"
                                         FontSize="11"
@@ -1629,7 +1635,7 @@
                                         FontSize="11.5"
                                         Style="{StaticResource FluentTextBox}" />
 
-                                    <!-- 测试状态提示卡片 -->
+                                    <!--  测试状态提示卡片  -->
                                     <Border
                                         x:Name="SettingTestResultBorder"
                                         Margin="0,10,0,0"
@@ -1640,28 +1646,45 @@
                                         CornerRadius="6"
                                         Visibility="Collapsed">
                                         <StackPanel>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock x:Name="SettingTestStatusIcon" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center" Text="✅" />
-                                                <TextBlock x:Name="SettingTestStatusTitle" FontSize="11.5" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" Text="测试成功" />
-                                                <TextBlock x:Name="SettingTestLatencyText" FontSize="10.5" Foreground="#9CA3AF" Margin="8,0,0,0" VerticalAlignment="Center" Text="(耗时 320ms)" />
+                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                <TextBlock
+                                                    x:Name="SettingTestStatusIcon"
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Text="✅" />
+                                                <TextBlock
+                                                    x:Name="SettingTestStatusTitle"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11.5"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#10B981"
+                                                    Text="测试成功" />
+                                                <TextBlock
+                                                    x:Name="SettingTestLatencyText"
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="10.5"
+                                                    Foreground="#9CA3AF"
+                                                    Text="(耗时 320ms)" />
                                             </StackPanel>
                                             <TextBox
                                                 x:Name="SettingTestDetailBox"
+                                                MaxHeight="90"
                                                 Margin="0,6,0,0"
-                                                FontSize="11"
-                                                Foreground="#E5E7EB"
+                                                Padding="6"
                                                 Background="#181824"
                                                 BorderBrush="{StaticResource BorderSubtleBrush}"
                                                 BorderThickness="1"
-                                                Padding="6"
+                                                FontSize="11"
+                                                Foreground="#E5E7EB"
                                                 IsReadOnly="True"
                                                 TextWrapping="Wrap"
-                                                MaxHeight="90"
                                                 VerticalScrollBarVisibility="Auto" />
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- 按钮行 -->
+                                    <!--  按钮行  -->
                                     <Grid Margin="0,12,0,0">
                                         <Button
                                             x:Name="SettingTestAiButton"
@@ -1686,7 +1709,11 @@
                     </ScrollViewer>
 
                     <!--  子视图 1: 🧬 技能中心 (Skill Studio)  -->
-                    <ScrollViewer x:Name="SettingViewSkill" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer
+                        x:Name="SettingViewSkill"
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
                         <StackPanel Margin="0,0,0,16">
                             <Border
                                 Margin="0,0,0,12"
@@ -1702,21 +1729,21 @@
                                             FontWeight="Bold"
                                             Foreground="{StaticResource TextPrimaryBrush}"
                                             Text="🧬 技能中心 (Skill Studio)" />
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                                             <Button
                                                 x:Name="SettingImportSkillButton"
                                                 Margin="0,0,6,0"
                                                 Padding="8,3"
-                                                FontSize="11"
                                                 Click="ImportSkillFileButton_Click"
                                                 Content="📁 导入SKILL.md"
+                                                FontSize="11"
                                                 Style="{StaticResource FluentButton}" />
                                             <Button
                                                 x:Name="SettingNewSkillButton"
                                                 Padding="8,3"
-                                                FontSize="11"
                                                 Click="SettingNewSkillButton_Click"
                                                 Content="➕ 新增技能"
+                                                FontSize="11"
                                                 Style="{StaticResource FluentButton}" />
                                         </StackPanel>
                                     </Grid>
@@ -1727,7 +1754,7 @@
                                         Foreground="{StaticResource TextSecondaryBrush}"
                                         Text="管理画像蒸馏与聊天回复策略技能（支持女娲、兔导情景流、麦肯锡、职场商业及导入技能）。" />
 
-                                    <!-- 全局默认技能 -->
+                                    <!--  全局默认技能  -->
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -1741,13 +1768,13 @@
                                         <ComboBox
                                             x:Name="SettingActiveSkillCombo"
                                             Grid.Column="1"
-                                            Height="30"
-                                            FontSize="11.5"
+                                            Height="35"
                                             VerticalContentAlignment="Center"
+                                            FontSize="11.5"
                                             SelectionChanged="SettingActiveSkillCombo_SelectionChanged" />
                                     </Grid>
 
-                                    <!-- 自定义技能快速添加卡片 (默认折叠) -->
+                                    <!--  自定义技能快速添加卡片 (默认折叠)  -->
                                     <Border
                                         x:Name="SettingCustomSkillCard"
                                         Margin="0,0,0,10"
@@ -1759,13 +1786,17 @@
                                         Visibility="Collapsed">
                                         <StackPanel>
                                             <Grid Margin="0,0,0,8">
-                                                <TextBlock FontSize="12" FontWeight="Bold" Foreground="#C4B5FD" Text="➕ 新增自定义认知蒸馏技能" />
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    FontWeight="Bold"
+                                                    Foreground="#C4B5FD"
+                                                    Text="➕ 新增自定义认知蒸馏技能" />
                                                 <Button
+                                                    Padding="6,2"
                                                     HorizontalAlignment="Right"
                                                     Click="SettingCloseSkillEditor_Click"
                                                     Content="✕ 取消"
                                                     FontSize="10.5"
-                                                    Padding="6,2"
                                                     Style="{StaticResource FluentButton}" />
                                             </Grid>
                                             <Grid Margin="0,0,0,6">
@@ -1774,15 +1805,46 @@
                                                     <ColumnDefinition Width="8" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBox x:Name="SettingNewSkillIconBox" Text="🏷️" Height="28" FontSize="12" HorizontalContentAlignment="Center" Style="{StaticResource FluentTextBox}" />
-                                                <TextBox x:Name="SettingNewSkillNameBox" Grid.Column="2" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入技能名称（如：谈判破局流）" />
+                                                <TextBox
+                                                    x:Name="SettingNewSkillIconBox"
+                                                    Height="28"
+                                                    HorizontalContentAlignment="Center"
+                                                    FontSize="12"
+                                                    Style="{StaticResource FluentTextBox}"
+                                                    Text="🏷️" />
+                                                <TextBox
+                                                    x:Name="SettingNewSkillNameBox"
+                                                    Grid.Column="2"
+                                                    Height="28"
+                                                    FontSize="11.5"
+                                                    Style="{StaticResource FluentTextBox}"
+                                                    ToolTip="输入技能名称（如：谈判破局流）" />
                                             </Grid>
-                                            <TextBox x:Name="SettingNewSkillDescBox" Margin="0,0,0,6" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入技能简介" />
-                                            <TextBox x:Name="SettingNewSkillDimensionsBox" Margin="0,0,0,6" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入雷达图专属评估维度（建议 4~6 个，用逗号或空格隔开，如：框架强度, 需求感管理, 慕强机制, 窗口状态）" />
-                                            <TextBox x:Name="SettingNewSkillPromptBox" Height="65" AcceptsReturn="True" TextWrapping="Wrap" FontSize="11" Style="{StaticResource FluentTextBox}" ToolTip="输入技能核心提示词 (SystemPrompt) 与作战心法" />
-                                            <Button
-                                                Margin="0,8,0,0"
+                                            <TextBox
+                                                x:Name="SettingNewSkillDescBox"
                                                 Height="28"
+                                                Margin="0,0,0,6"
+                                                FontSize="11.5"
+                                                Style="{StaticResource FluentTextBox}"
+                                                ToolTip="输入技能简介" />
+                                            <TextBox
+                                                x:Name="SettingNewSkillDimensionsBox"
+                                                Height="28"
+                                                Margin="0,0,0,6"
+                                                FontSize="11.5"
+                                                Style="{StaticResource FluentTextBox}"
+                                                ToolTip="输入雷达图专属评估维度（建议 4~6 个，用逗号或空格隔开，如：框架强度, 需求感管理, 慕强机制, 窗口状态）" />
+                                            <TextBox
+                                                x:Name="SettingNewSkillPromptBox"
+                                                Height="65"
+                                                AcceptsReturn="True"
+                                                FontSize="11"
+                                                Style="{StaticResource FluentTextBox}"
+                                                TextWrapping="Wrap"
+                                                ToolTip="输入技能核心提示词 (SystemPrompt) 与作战心法" />
+                                            <Button
+                                                Height="28"
+                                                Margin="0,8,0,0"
                                                 HorizontalAlignment="Right"
                                                 Click="SettingSaveSkillButton_Click"
                                                 Content="💾 保存技能"
@@ -1790,7 +1852,7 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- 已安装技能列表 -->
+                                    <!--  已安装技能列表  -->
                                     <ItemsControl x:Name="SettingSkillList">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -1808,27 +1870,39 @@
                                                         </Grid.ColumnDefinitions>
                                                         <StackPanel VerticalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding DisplayTitle}" />
+                                                                <TextBlock
+                                                                    FontSize="12"
+                                                                    FontWeight="Bold"
+                                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                                    Text="{Binding DisplayTitle}" />
                                                                 <Border
                                                                     Margin="6,0,0,0"
                                                                     Padding="4,1"
                                                                     Background="#223B82F6"
                                                                     CornerRadius="3">
-                                                                    <TextBlock FontSize="9.5" Foreground="#60A5FA" Text="{Binding TagText}" />
+                                                                    <TextBlock
+                                                                        FontSize="9.5"
+                                                                        Foreground="#60A5FA"
+                                                                        Text="{Binding TagText}" />
                                                                 </Border>
                                                             </StackPanel>
-                                                            <TextBlock Margin="0,3,0,0" FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding Description}" TextWrapping="Wrap" />
+                                                            <TextBlock
+                                                                Margin="0,3,0,0"
+                                                                FontSize="10.5"
+                                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                                Text="{Binding Description}"
+                                                                TextWrapping="Wrap" />
                                                         </StackPanel>
                                                         <Button
                                                             Grid.Column="1"
                                                             Margin="8,0,0,0"
                                                             Padding="8,3"
-                                                            FontSize="10"
-                                                            Tag="{Binding Id}"
                                                             Click="DeleteCustomSkillFromSettings_Click"
                                                             Content="🗑️ 删除"
-                                                            Visibility="{Binding DeleteVisibility}"
-                                                            Style="{StaticResource FluentButton}" />
+                                                            FontSize="10"
+                                                            Style="{StaticResource FluentButton}"
+                                                            Tag="{Binding Id}"
+                                                            Visibility="{Binding DeleteVisibility}" />
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -1840,9 +1914,13 @@
                     </ScrollViewer>
 
                     <!--  子视图 2: 🎨 偏好与系统设置 (含数据存储)  -->
-                    <ScrollViewer x:Name="SettingViewPref" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer
+                        x:Name="SettingViewPref"
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
                         <StackPanel Margin="0,0,0,16">
-                            <!-- 模块 1: 系统偏好设置 (使用标准 Emoji 🎨 防止框形显示，加宽 ComboBox 防止文字截断) -->
+                            <!--  模块 1: 系统偏好设置 (使用标准 Emoji 🎨 防止框形显示，加宽 ComboBox 防止文字截断)  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
@@ -1857,15 +1935,21 @@
                                         Foreground="{StaticResource TextPrimaryBrush}"
                                         Text="🎨 偏好与系统设置" />
 
-                                    <!-- 悬浮窗透明度 -->
+                                    <!--  悬浮窗透明度  -->
                                     <Grid Margin="0,10,0,6">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock FontSize="11.5" Foreground="{StaticResource TextPrimaryBrush}" Text="悬浮窗透明度" />
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Text="调节悬浮窗不透明度，兼顾聊天视线" />
+                                            <TextBlock
+                                                FontSize="11.5"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="悬浮窗透明度" />
+                                            <TextBlock
+                                                FontSize="10.5"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Text="调节悬浮窗不透明度，兼顾聊天视线" />
                                         </StackPanel>
                                         <ComboBox
                                             x:Name="SettingOpacityCombo"
@@ -1873,25 +1957,34 @@
                                             Width="145"
                                             Height="28"
                                             Padding="8,0,24,0"
-                                            FontSize="11"
                                             VerticalContentAlignment="Center"
+                                            FontSize="11"
                                             SelectionChanged="SettingOpacityCombo_SelectionChanged">
-                                            <ComboBoxItem Content="100% 不透明" Tag="1.0" IsSelected="True" />
+                                            <ComboBoxItem
+                                                Content="100% 不透明"
+                                                IsSelected="True"
+                                                Tag="1.0" />
                                             <ComboBoxItem Content="95% 微透" Tag="0.95" />
                                             <ComboBoxItem Content="90% 半透" Tag="0.90" />
                                             <ComboBoxItem Content="85% 极透" Tag="0.85" />
                                         </ComboBox>
                                     </Grid>
 
-                                    <!-- OCR 识别放大倍率 -->
+                                    <!--  OCR 识别放大倍率  -->
                                     <Grid Margin="0,6,0,6">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock FontSize="11.5" Foreground="{StaticResource TextPrimaryBrush}" Text="OCR 采样放大倍率" />
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Text="高分屏与小字体自适应优化" />
+                                            <TextBlock
+                                                FontSize="11.5"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="OCR 采样放大倍率" />
+                                            <TextBlock
+                                                FontSize="10.5"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Text="高分屏与小字体自适应优化" />
                                         </StackPanel>
                                         <ComboBox
                                             x:Name="SettingOcrScaleCombo"
@@ -1899,37 +1992,46 @@
                                             Width="145"
                                             Height="28"
                                             Padding="8,0,24,0"
-                                            FontSize="11"
                                             VerticalContentAlignment="Center"
+                                            FontSize="11"
                                             SelectionChanged="SettingOcrScaleCombo_SelectionChanged">
                                             <ComboBoxItem Content="2.0x 极速" Tag="2.0" />
-                                            <ComboBoxItem Content="3.0x 标准" Tag="3.0" IsSelected="True" />
+                                            <ComboBoxItem
+                                                Content="3.0x 标准"
+                                                IsSelected="True"
+                                                Tag="3.0" />
                                             <ComboBoxItem Content="4.0x 超清" Tag="4.0" />
                                         </ComboBox>
                                     </Grid>
 
-                                    <!-- 己方微信昵称 -->
+                                    <!--  己方微信昵称  -->
                                     <Grid Margin="0,6,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="145" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock FontSize="11.5" Foreground="{StaticResource TextPrimaryBrush}" Text="己方微信昵称/备注" />
-                                            <TextBlock FontSize="10.5" Foreground="{StaticResource TextSecondaryBrush}" Text="手动锁定本人身份，避免画像混淆" />
+                                            <TextBlock
+                                                FontSize="11.5"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="己方微信昵称/备注" />
+                                            <TextBlock
+                                                FontSize="10.5"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Text="手动锁定本人身份，避免画像混淆" />
                                         </StackPanel>
                                         <TextBox
                                             x:Name="SettingSelfNicknameBox"
                                             Grid.Column="1"
                                             Height="28"
                                             FontSize="11"
-                                            Style="{StaticResource FluentTextBox}"
-                                            LostFocus="SettingSelfNicknameBox_LostFocus" />
+                                            LostFocus="SettingSelfNicknameBox_LostFocus"
+                                            Style="{StaticResource FluentTextBox}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!-- 模块 2: 数据与存储管理 -->
+                            <!--  模块 2: 数据与存储管理  -->
                             <Border
                                 Padding="12"
                                 Background="{StaticResource CardBgBrush}"
@@ -1970,7 +2072,11 @@
                     </ScrollViewer>
 
                     <!--  子视图 3: ❓ 使用指南 (快捷键指南与安全原则)  -->
-                    <ScrollViewer x:Name="SettingViewHelp" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <ScrollViewer
+                        x:Name="SettingViewHelp"
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
                         <StackPanel Margin="0,0,0,16">
                             <!--  全局热键清单卡片  -->
                             <Border
