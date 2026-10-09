@@ -892,6 +892,9 @@ public partial class OverlayWindow : Window
                 SettingNewSkillNameBox.Text = parsed.Name;
                 SettingNewSkillIconBox.Text = parsed.Icon;
                 SettingNewSkillDescBox.Text = parsed.Description;
+                SettingNewSkillDimensionsBox.Text = parsed.Dimensions is { Count: > 0 }
+                    ? string.Join(", ", parsed.Dimensions)
+                    : string.Empty;
                 SettingNewSkillPromptBox.Text = parsed.SystemPrompt;
 
                 MessageBox.Show($"✅ 成功解析「{parsed.Icon} {parsed.Name}」，已填入技能编辑器，确认无误后点击「保存技能」即可生效。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1564,6 +1567,10 @@ public partial class OverlayWindow : Window
                 _skillStore.SetActiveSkillId(skill.Id);
                 _currentSkill = skill;
                 UpdateSkillBadge();
+                if (_currentLoadedPersona == null)
+                {
+                    DrawRadarChart(null);
+                }
             }
             finally
             {
@@ -1782,6 +1789,7 @@ public partial class OverlayWindow : Window
         SettingNewSkillNameBox.Text = string.Empty;
         SettingNewSkillIconBox.Text = "🏷️";
         SettingNewSkillDescBox.Text = string.Empty;
+        SettingNewSkillDimensionsBox.Text = string.Empty;
         SettingNewSkillPromptBox.Text = string.Empty;
     }
 
@@ -1796,6 +1804,7 @@ public partial class OverlayWindow : Window
         string icon = SettingNewSkillIconBox.Text.Trim();
         string desc = SettingNewSkillDescBox.Text.Trim();
         string prompt = SettingNewSkillPromptBox.Text.Trim();
+        string dimensionsText = SettingNewSkillDimensionsBox.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -1816,8 +1825,14 @@ public partial class OverlayWindow : Window
             desc = name;
         }
 
+        var dimensions = dimensionsText
+            .Split(new[] { ',', '，', '、', ';', '；', '/', '／', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         string id = "custom_" + Guid.NewGuid().ToString("N")[..8];
-        var newSkill = new DistillSkill(id, name, desc, icon, prompt, false);
+        var newSkill = new DistillSkill(id, name, desc, icon, prompt, dimensions, false);
         _skillStore.SaveCustomSkill(newSkill);
         _skillStore.SetActiveSkillId(id);
 

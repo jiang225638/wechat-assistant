@@ -126,4 +126,51 @@ public sealed class SkillStoreTests : IDisposable
         Assert.NotEmpty(scanned);
         Assert.Contains(scanned, s => s.Id.Contains("td") || s.Id.Contains("chat"));
     }
+
+    [Fact]
+    public void ExtractDimensionsFromSkill_ExtractsFromYamlAndMarkdown()
+    {
+        // 1. YAML 数组格式
+        string yaml1 = "name: test\ndimensions: [框架强度, 需求感管理, 慕强机制, 窗口状态]";
+        var dims1 = SkillStore.ExtractDimensionsFromSkill(yaml1, "");
+        Assert.Equal(4, dims1.Count);
+        Assert.Equal("框架强度", dims1[0]);
+        Assert.Equal("窗口状态", dims1[3]);
+
+        // 2. YAML 多行列表格式
+        string yaml2 = "name: test\ndimensions:\n  - 表达DNA\n  - 心智模型\n  - 决策启发式";
+        var dims2 = SkillStore.ExtractDimensionsFromSkill(yaml2, "");
+        Assert.Equal(3, dims2.Count);
+        Assert.Equal("表达DNA", dims2[0]);
+        Assert.Equal("心智模型", dims2[1]);
+
+        // 3. Markdown 正文中的显式行
+        string body1 = "# 技能介绍\n核心评估维度：商务谈判、利益诉求、防备心理、底线试探\n详细指南...";
+        var dims3 = SkillStore.ExtractDimensionsFromSkill(null, body1);
+        Assert.Equal(4, dims3.Count);
+        Assert.Equal("商务谈判", dims3[0]);
+        Assert.Equal("底线试探", dims3[3]);
+    }
+
+    [Fact]
+    public void SaveCustomSkill_PersistsDimensionsCorrectly()
+    {
+        var custom = new DistillSkill(
+            Id: "custom_sales",
+            Name: "商务谈判",
+            Description: "分析对方痛点与预算",
+            Icon: "🤝",
+            SystemPrompt: "你是谈判心理学专家...",
+            Dimensions: new[] { "商务谈判", "利益诉求", "风险控制", "出价策略" },
+            IsBuiltIn: false
+        );
+
+        _store.SaveCustomSkill(custom);
+
+        var loaded = _store.GetSkill("custom_sales");
+        Assert.NotNull(loaded);
+        Assert.Equal(4, loaded.Dimensions.Count);
+        Assert.Equal("商务谈判", loaded.Dimensions[0]);
+        Assert.Equal("出价策略", loaded.Dimensions[3]);
+    }
 }

@@ -1105,16 +1105,14 @@
                         BorderThickness="1"
                         CornerRadius="8">
                         <StackPanel>
-                            <!-- 第一行：已存档案快速切换 与 自动获取当前微信联系人 -->
+                            <!-- 第一行：已存档案快速切换（独占整行，超宽展示，杜绝文字截断） -->
                             <Grid Margin="0,0,0,6">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock
-                                    Margin="0,0,6,0"
                                     VerticalAlignment="Center"
                                     FontSize="11.5"
                                     Foreground="{StaticResource TextSecondaryBrush}"
@@ -1124,31 +1122,21 @@
                                     Grid.Column="1"
                                     Height="28"
                                     FontSize="11.5"
+                                    Padding="8,0,24,0"
                                     VerticalContentAlignment="Center"
                                     SelectionChanged="SavedPersonasCombo_SelectionChanged"
                                     ToolTip="已保存画像的好友档案库，点击一键载入" />
-                                <Button
-                                    x:Name="SyncContactButton"
-                                    Grid.Column="2"
-                                    Margin="6,0,0,0"
-                                    Padding="8,3"
-                                    Height="28"
-                                    Click="SyncContactButton_Click"
-                                    Content="🔍 获取当前聊天对象姓名"
-                                    FontSize="11"
-                                    Style="{StaticResource FluentButton}"
-                                    ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人姓名" />
                             </Grid>
 
-                            <!-- 第二行：当前选定/手动输入的目标好友 -->
+                            <!-- 第二行：选择好友输入框 与 获取当前聊天对象姓名按钮 -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <TextBlock
-                                    Margin="0,0,6,0"
                                     VerticalAlignment="Center"
                                     FontSize="11.5"
                                     Foreground="{StaticResource TextSecondaryBrush}"
@@ -1160,7 +1148,18 @@
                                     FontSize="11.5"
                                     Style="{StaticResource FluentTextBox}"
                                     TextChanged="ContactBox_TextChanged"
-                                    ToolTip="当前分析的微信好友备注名（可直接手动输入，也可点击上方按钮自动获取）" />
+                                    ToolTip="当前分析的微信好友备注名（可直接手动输入，也可点击右侧按钮自动获取）" />
+                                <Button
+                                    x:Name="SyncContactButton"
+                                    Grid.Column="2"
+                                    Margin="6,0,0,0"
+                                    Padding="8,3"
+                                    Height="28"
+                                    Click="SyncContactButton_Click"
+                                    Content="🔍 获取当前聊天对象姓名"
+                                    FontSize="11"
+                                    Style="{StaticResource FluentButton}"
+                                    ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人姓名" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -1779,6 +1778,7 @@
                                                 <TextBox x:Name="SettingNewSkillNameBox" Grid.Column="2" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入技能名称（如：谈判破局流）" />
                                             </Grid>
                                             <TextBox x:Name="SettingNewSkillDescBox" Margin="0,0,0,6" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入技能简介" />
+                                            <TextBox x:Name="SettingNewSkillDimensionsBox" Margin="0,0,0,6" Height="28" FontSize="11.5" Style="{StaticResource FluentTextBox}" ToolTip="输入雷达图专属评估维度（建议 4~6 个，用逗号或空格隔开，如：框架强度, 需求感管理, 慕强机制, 窗口状态）" />
                                             <TextBox x:Name="SettingNewSkillPromptBox" Height="65" AcceptsReturn="True" TextWrapping="Wrap" FontSize="11" Style="{StaticResource FluentTextBox}" ToolTip="输入技能核心提示词 (SystemPrompt) 与作战心法" />
                                             <Button
                                                 Margin="0,8,0,0"
