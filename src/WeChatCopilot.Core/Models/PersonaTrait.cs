@@ -158,13 +158,26 @@ public sealed record PersonaTrait(
         return "🧩 " + (dimension.Length > 0 ? dimension : "认知切片");
     }
 
+    /// <summary>
+    /// 是否具有专属分类方法论标签（若只是简单重复维度名称本身则不显示第二徽章，节省横向空间）。
+    /// </summary>
+    public bool HasDistinctCategoryTag =>
+        !string.IsNullOrWhiteSpace(CategoryTag) &&
+        !CategoryTag.StartsWith("🧩") &&
+        !CategoryTag.Equals(Dimension, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 用于卡片第二徽章的显示/隐藏（避免重复显示维度名）。
+    /// </summary>
+    public string CategoryTagVisibility => HasDistinctCategoryTag ? "Visible" : "Collapsed";
+
     /// <summary>保持与老版本兼容的标签获取方法。</summary>
     public static string NormalizeNuwaTag(string dimension, string attribute) => NormalizeCategoryTag(dimension, attribute);
 
-    /// <summary>提示词/解析共用行格式：维度 | 特质 | 置信度: x | 证据: 原话;;原话。</summary>
+    /// <summary>提示词/解析共用行格式：维度 | 特质 | 可信度: x | 证据: 原话;;原话。</summary>
     public string FormatLine() =>
         Dimension + " | " + Attribute +
-        " | 置信度: " + ConfidenceText +
+        " | 可信度: " + ConfidenceText +
         " | 证据: " + (Evidence is null ? string.Empty : string.Join(";;", Evidence));
 }
 

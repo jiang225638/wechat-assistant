@@ -84,8 +84,8 @@ public class PersonaDistillerTests
 
         var req = PersonaDistiller.BuildReduceRequest(new AiSettings(), "张三", obs, existing);
 
-        Assert.Contains("语言风格 | 短句 | 置信度: 0.70 | 证据: 嗯", req.UserPrompt);
-        Assert.Contains("稳定属性 | 夜班 | 置信度: 0.90", req.UserPrompt);
+        Assert.Contains("语言风格 | 短句 | 可信度: 0.70 | 证据: 嗯", req.UserPrompt);
+        Assert.Contains("稳定属性 | 夜班 | 可信度: 0.90", req.UserPrompt);
         Assert.Contains("已有画像基线", req.UserPrompt);
     }
 

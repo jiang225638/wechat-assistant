@@ -132,7 +132,7 @@ public static class PersonaDistiller
                 sb.AppendLine("已有画像基线（仅作先验特质参考，本轮证据必须100%摘录最新聊天记录）：");
                 foreach (PersonaTrait t in existing.Traits)
                 {
-                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 置信度: {t.ConfidenceText}");
+                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 可信度: {t.ConfidenceText}");
                 }
             }
             else
@@ -145,7 +145,7 @@ public static class PersonaDistiller
             }
         }
 
-        sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行。每行格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
+        sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行。每行格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
         return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
@@ -174,7 +174,7 @@ public static class PersonaDistiller
         sb.AppendLine($"当前蒸馏技能视角：【{skill.Name}】");
         sb.AppendLine("聊天记录：");
         sb.AppendLine(Transcript(chunk, contactName, selfName));
-        sb.AppendLine($"请提取对方特质观察项（基于【{skill.Name}】视角）。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话");
+        sb.AppendLine($"请提取对方特质观察项（基于【{skill.Name}】视角）。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话");
         return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
@@ -217,7 +217,7 @@ public static class PersonaDistiller
                 sb.AppendLine("已有画像基线（仅作先验特质参考，本轮证据必须100%摘录最新聊天记录）：");
                 foreach (PersonaTrait t in existing.Traits)
                 {
-                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 置信度: {t.ConfidenceText}");
+                    sb.AppendLine($"{t.Dimension} | {t.Attribute} | 可信度: {t.ConfidenceText}");
                 }
             }
             else
@@ -324,8 +324,8 @@ public static class PersonaDistiller
                     continue;
                 }
 
-                // 置信度解析 (如 "置信度: 0.85", "85%", "置信度: 9")
-                var mConf = Regex.Match(s, @"(?:置信度|confidence)[:：]?\s*(\d+(?:\.\d+)?%?)", RegexOptions.IgnoreCase);
+                // 可信度解析 (如 "可信度: 0.85", "置信度: 0.85", "85%", "可信度: 9")
+                var mConf = Regex.Match(s, @"(?:可信度|置信度|confidence)[:：]?\s*(\d+(?:\.\d+)?%?)", RegexOptions.IgnoreCase);
                 if (mConf.Success)
                 {
                     string cStr = mConf.Groups[1].Value;
@@ -564,7 +564,7 @@ public static class PersonaDistiller
                     {
                         string dim = GetPropString(item, "dimension", "维度", "dim");
                         string attr = GetPropString(item, "attribute", "特质", "特质描述", "desc");
-                        double conf = GetPropDouble(item, 0.75, "confidence", "置信度", "conf");
+                        double conf = GetPropDouble(item, 0.75, "confidence", "可信度", "置信度", "conf");
                         double score = GetPropDouble(item, Math.Round(conf * 100), "score", "评分", "得分", "scoreInt");
                         var evList = new List<string>();
 

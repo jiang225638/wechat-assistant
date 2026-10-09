@@ -508,8 +508,7 @@ public partial class OverlayWindow : Window
         DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Nuwa;
 
         GenerateButton.IsEnabled = false;
-        AiStatusBanner.Visibility = Visibility.Visible;
-        AiStatusText.Text = $"AI 正在应用【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像，深度剖析意图并生成 {count} 条针对性回复建议...";
+        SetAiStatus($"AI 正在应用【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像，深度剖析意图并生成 {count} 条针对性回复建议...", isError: false);
 
         try
         {
@@ -609,7 +608,29 @@ public partial class OverlayWindow : Window
     {
         AiStatusBanner.Visibility = Visibility.Visible;
         AiStatusText.Text = text;
-        AiStatusText.Foreground = isError ? new SolidColorBrush(Color.FromRgb(248, 113, 113)) : (SolidColorBrush)FindResource("TextPrimaryBrush");
+        if (isError)
+        {
+            AiStatusProgress.Visibility = Visibility.Collapsed;
+            AiStatusIcon.Text = "⚠️";
+            AiStatusBanner.Background = new SolidColorBrush(Color.FromArgb(36, 239, 68, 68));
+            AiStatusBanner.BorderBrush = new SolidColorBrush(Color.FromArgb(90, 239, 68, 68));
+            AiStatusText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+            AiStatusDismissBtn.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            AiStatusProgress.Visibility = Visibility.Visible;
+            AiStatusIcon.Text = "⚡";
+            AiStatusBanner.Background = new SolidColorBrush(Color.FromArgb(34, 59, 130, 246));
+            AiStatusBanner.BorderBrush = new SolidColorBrush(Color.FromArgb(85, 59, 130, 246));
+            AiStatusText.Foreground = (SolidColorBrush)FindResource("TextPrimaryBrush");
+            AiStatusDismissBtn.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void AiStatusDismiss_Click(object sender, RoutedEventArgs e)
+    {
+        AiStatusBanner.Visibility = Visibility.Collapsed;
     }
 
     private async void CopySuggestion_Click(object sender, RoutedEventArgs e)
@@ -1297,6 +1318,24 @@ public partial class OverlayWindow : Window
     {
         PersonaStatusText.Text = text;
         PersonaProgress.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+        if (text.StartsWith("❌") || text.Contains("失败") || text.Contains("异常"))
+        {
+            PersonaStatusText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+            PersonaStatusCard.Background = new SolidColorBrush(Color.FromArgb(36, 239, 68, 68));
+            PersonaStatusCard.BorderBrush = new SolidColorBrush(Color.FromArgb(85, 239, 68, 68));
+        }
+        else if (text.StartsWith("✅") || text.Contains("成功"))
+        {
+            PersonaStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+            PersonaStatusCard.Background = new SolidColorBrush(Color.FromArgb(30, 16, 185, 129));
+            PersonaStatusCard.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 16, 185, 129));
+        }
+        else
+        {
+            PersonaStatusText.Foreground = (SolidColorBrush)FindResource("TextSecondaryBrush");
+            PersonaStatusCard.Background = new SolidColorBrush(Color.FromRgb(0x1F, 0x24, 0x33));
+            PersonaStatusCard.BorderBrush = (SolidColorBrush)FindResource("BorderSubtleBrush");
+        }
     }
 
     private void RefreshSavedPersonasCombo()
@@ -1907,6 +1946,35 @@ public partial class OverlayWindow : Window
         RefreshChatView();
         StatusText.Text = "当前对话气泡与识别缓存已清空";
         MessageBox.Show("当前对话气泡及识别缓存已清空。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OpenTraceMemoUrl_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://github.com/Wxw-Gu/TraceMemo",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("打开浏览器失败: " + ex.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void CopyTraceMemoUrl_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Clipboard.SetText("https://github.com/Wxw-Gu/TraceMemo");
+            MessageBox.Show("TraceMemo 项目地址已复制到剪贴板：\nhttps://github.com/Wxw-Gu/TraceMemo", "已复制", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("复制失败: " + ex.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 }
 

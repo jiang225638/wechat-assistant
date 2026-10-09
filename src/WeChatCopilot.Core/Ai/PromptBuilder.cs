@@ -89,7 +89,7 @@ public static class PromptBuilder
             sb.AppendLine($"对方已知画像参考：{persona.ContactName}");
             foreach (var t in persona.Traits)
             {
-                sb.AppendLine($"- {t.Dimension}: {t.Attribute} (置信度: {t.ConfidenceText})");
+                sb.AppendLine($"- {t.Dimension}: {t.Attribute} (可信度: {t.ConfidenceText})");
             }
         }
 
@@ -204,7 +204,7 @@ public static class PromptBuilder
             sb.AppendLine($"【🎯 对方已知人格特质画像（{persona.ContactName}）】：");
             foreach (var t in persona.Traits)
             {
-                sb.AppendLine($"- 【{t.Dimension}】[{t.NuwaTag}]: {t.Attribute} (量化评分: {t.ScoreInt}分, 置信度: {t.ConfidenceText})");
+                sb.AppendLine($"- 【{t.Dimension}】[{t.NuwaTag}]: {t.Attribute} (量化评分: {t.ScoreInt}分, 可信度: {t.ConfidenceText})");
             }
             sb.AppendLine($"（重要约束：意图剖析与候选回复必须高度契合上述画像特征，并严格贯彻【{skillName}】战术心法，切忌千篇一律的通用套话！）");
         }

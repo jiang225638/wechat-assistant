@@ -30,6 +30,7 @@
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFF3F4F6" />
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FFA0A0B8" />
         <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+        <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#3B82F6" />
         <SolidColorBrush x:Key="AccentHoverBrush" Color="#2563EB" />
         <SolidColorBrush x:Key="GreenBrush" Color="#10B981" />
         <SolidColorBrush x:Key="PurpleBrush" Color="#8B5CF6" />
@@ -795,30 +796,83 @@
                         </Grid>
                     </Border>
 
-                    <!--  生成中状态条  -->
+                    <!--  建议 TAB：生成状态与提示卡片（自适应防溢出，支持长文本自动换行）  -->
                     <Border
                         x:Name="AiStatusBanner"
                         Grid.Row="1"
                         Margin="0,0,0,8"
-                        Padding="8,6"
                         Background="#223B82F6"
                         BorderBrush="#553B82F6"
                         BorderThickness="1"
                         CornerRadius="6"
+                        ClipToBounds="True"
                         Visibility="Collapsed">
-                        <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!--  顶部极窄线条循环滚动进度条 (高度 2px，仅在分析加载中显示)  -->
                             <ProgressBar
-                                Width="16"
-                                Height="16"
-                                Margin="0,0,8,0"
-                                IsIndeterminate="True" />
-                            <TextBlock
-                                x:Name="AiStatusText"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Foreground="{StaticResource TextPrimaryBrush}"
-                                Text="AI 正在结合当前作战策略与对方画像深度剖析意图并生成回复建议..." />
-                        </StackPanel>
+                                x:Name="AiStatusProgress"
+                                Grid.Row="0"
+                                Height="2"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Top"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{StaticResource AccentBrush}"
+                                IsIndeterminate="True"
+                                Visibility="Visible" />
+
+                            <!--  提示与错误内容区 (自动换行，左右内边距防御，绝不溢出)  -->
+                            <Grid Grid.Row="1" Margin="10,7">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock
+                                    x:Name="AiStatusIcon"
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Top"
+                                    FontSize="12"
+                                    Text="⚡" />
+
+                                <ScrollViewer
+                                    Grid.Column="1"
+                                    MaxHeight="80"
+                                    VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollBarVisibility="Disabled">
+                                    <TextBlock
+                                        x:Name="AiStatusText"
+                                        VerticalAlignment="Center"
+                                        FontSize="11.5"
+                                        LineHeight="16"
+                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Text="AI 正在结合当前作战策略与对方画像深度剖析意图并生成回复建议..."
+                                        TextWrapping="Wrap" />
+                                </ScrollViewer>
+
+                                <Button
+                                    x:Name="AiStatusDismissBtn"
+                                    Grid.Column="2"
+                                    Margin="6,0,0,0"
+                                    Padding="4,1"
+                                    VerticalAlignment="Top"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Content="✕"
+                                    FontSize="10"
+                                    Cursor="Hand"
+                                    ToolTip="关闭提示"
+                                    Visibility="Collapsed"
+                                    Click="AiStatusDismiss_Click" />
+                            </Grid>
+                        </Grid>
                     </Border>
 
                     <!--  一体化展示区  -->
@@ -1210,36 +1264,46 @@
                         </Grid>
                     </Border>
 
-                    <!--  状态与历史信息横条  -->
+                    <!--  状态与历史信息横条（顶部极窄进度条循环滚动，下方文本自适应展开）  -->
                     <Border
                         x:Name="PersonaStatusCard"
                         Grid.Row="2"
                         Margin="0,0,0,8"
-                        Padding="10,6"
                         Background="#1F2433"
                         BorderBrush="{StaticResource BorderSubtleBrush}"
                         BorderThickness="1"
-                        CornerRadius="6">
+                        CornerRadius="6"
+                        ClipToBounds="True">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!--  顶部极窄线条循环滚动进度条 (高度 2px，仅在分析加载中循环滚动，置于卡片顶端边缘)  -->
+                            <ProgressBar
+                                x:Name="PersonaProgress"
+                                Grid.Row="0"
+                                Height="2"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Top"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{StaticResource AccentBrush}"
+                                IsIndeterminate="True"
+                                Visibility="Collapsed" />
+
+                            <!--  状态文本：独享整行横向空间，支持多行自动换行  -->
                             <TextBlock
                                 x:Name="PersonaStatusText"
+                                Grid.Row="1"
+                                Margin="10,6"
                                 VerticalAlignment="Center"
                                 FontSize="11"
+                                LineHeight="16"
                                 Foreground="{StaticResource TextSecondaryBrush}"
                                 Text="就绪：请先输入或同步好友，点击【✨ 一键蒸馏画像】"
                                 TextWrapping="Wrap" />
-                            <ProgressBar
-                                x:Name="PersonaProgress"
-                                Grid.Column="1"
-                                Width="50"
-                                Height="4"
-                                VerticalAlignment="Center"
-                                IsIndeterminate="True"
-                                Visibility="Collapsed" />
                         </Grid>
                     </Border>
 
@@ -1388,11 +1452,18 @@
                                                 BorderThickness="1"
                                                 CornerRadius="10">
                                                 <StackPanel>
-                                                    <!--  头部：维度名称 + 女娲认知层级Tag + 评分 + 置信度进度条  -->
+                                                    <!--  头部：维度名称 + 专属分类Tag + 评分 + 可信度进度条 (双列布局，杜绝重叠与文字溢出)  -->
                                                     <Grid>
-                                                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- 左侧：维度与评分徽章 + 专属方法论徽章（自适应换行与文本截断） -->
+                                                        <WrapPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,8,0">
                                                             <Border
                                                                 Padding="6,2"
+                                                                Margin="0,0,6,2"
                                                                 HorizontalAlignment="Left"
                                                                 Background="#2210B981"
                                                                 CornerRadius="4">
@@ -1401,6 +1472,9 @@
                                                                         FontSize="11"
                                                                         FontWeight="Bold"
                                                                         Foreground="#34D399"
+                                                                        MaxWidth="140"
+                                                                        TextTrimming="CharacterEllipsis"
+                                                                        ToolTip="{Binding Dimension}"
                                                                         Text="{Binding Dimension}" />
                                                                     <TextBlock
                                                                         FontSize="11"
@@ -1414,30 +1488,38 @@
                                                                         Text="{Binding ScoreText}" />
                                                                 </StackPanel>
                                                             </Border>
-                                                            <!--  女娲认知分层标签  -->
+
+                                                            <!-- 专属分类方法论标签 (仅在具有专属方法论标签时显示，若无/重复维度名则自动隐藏) -->
                                                             <Border
-                                                                Margin="6,0,0,0"
+                                                                Margin="0,0,6,2"
                                                                 Padding="5,1"
                                                                 Background="#1E293B"
                                                                 BorderBrush="#4038BDF8"
                                                                 BorderThickness="1"
-                                                                CornerRadius="4">
+                                                                CornerRadius="4"
+                                                                Visibility="{Binding CategoryTagVisibility}">
                                                                 <TextBlock
                                                                     VerticalAlignment="Center"
                                                                     FontSize="10"
                                                                     FontWeight="SemiBold"
                                                                     Foreground="#38BDF8"
+                                                                    MaxWidth="100"
+                                                                    TextTrimming="CharacterEllipsis"
+                                                                    ToolTip="{Binding NuwaTag}"
                                                                     Text="{Binding NuwaTag}" />
                                                             </Border>
-                                                        </StackPanel>
+                                                        </WrapPanel>
+
+                                                        <!-- 右侧：可信度与进度条（独立列锁定，绝不重叠） -->
                                                         <StackPanel
+                                                            Grid.Column="1"
                                                             HorizontalAlignment="Right"
                                                             VerticalAlignment="Center"
                                                             Orientation="Horizontal">
                                                             <TextBlock
                                                                 FontSize="10"
                                                                 Foreground="{StaticResource TextSecondaryBrush}"
-                                                                Text="置信度: " />
+                                                                Text="可信度: " />
                                                             <TextBlock
                                                                 Margin="0,0,6,0"
                                                                 FontSize="11"
@@ -1445,7 +1527,7 @@
                                                                 Foreground="#34D399"
                                                                 Text="{Binding ConfidencePercentText}" />
                                                             <ProgressBar
-                                                                Width="50"
+                                                                Width="46"
                                                                 Height="5"
                                                                 VerticalAlignment="Center"
                                                                 Background="#33FFFFFF"
@@ -2261,6 +2343,73 @@
                                             Foreground="{StaticResource TextPrimaryBrush}"
                                             Text="进行全窗口 OCR 识别（排错使用）" />
                                     </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!--  TraceMemo 聊天记录服务与下载安装指南  -->
+                            <Border
+                                Margin="0,0,0,10"
+                                Padding="14"
+                                Background="{StaticResource CardBgBrush}"
+                                BorderBrush="{StaticResource BorderLightBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,8"
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Text="💬 聊天记录获取与 TraceMemo 服务说明" />
+                                    <TextBlock
+                                        FontSize="11.5"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        LineHeight="19"
+                                        Text="本助手的深层人格画像蒸馏与上下文分析，依赖本地运行的 TraceMemo 服务获取微信长历史聊天记录。&#x0a;• 安全透明：TraceMemo 完全运行在您个人电脑本地，聊天数据不经过任何第三方云端。&#x0a;• 准备工作：请先前往 GitHub 下载并启动 TraceMemo，启动后微信副驾即可自动或一键拉取长聊天记录。"
+                                        TextWrapping="Wrap" />
+
+                                    <Border
+                                        Margin="0,10,0,0"
+                                        Padding="10,8"
+                                        Background="#1C1B2E"
+                                        BorderBrush="#448B5CF6"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock FontSize="10.5" Foreground="#A78BFA" Text="TraceMemo 项目主页与官方下载地址：" />
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    FontSize="11.5"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#38BDF8"
+                                                    Text="https://github.com/Wxw-Gu/TraceMemo"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button
+                                                    Margin="6,0,0,0"
+                                                    Padding="8,4"
+                                                    Click="CopyTraceMemoUrl_Click"
+                                                    Content="📋 复制"
+                                                    FontSize="10.5"
+                                                    Style="{StaticResource FluentButton}"
+                                                    ToolTip="复制项目地址到剪贴板" />
+                                                <Button
+                                                    Margin="6,0,0,0"
+                                                    Padding="10,4"
+                                                    Click="OpenTraceMemoUrl_Click"
+                                                    Content="🔗 浏览器打开"
+                                                    FontSize="10.5"
+                                                    Style="{StaticResource PrimaryAccentButton}"
+                                                    ToolTip="在系统默认浏览器中打开 TraceMemo 项目页面" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </Border>
 

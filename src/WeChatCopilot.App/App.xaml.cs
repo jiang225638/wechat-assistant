@@ -24,12 +24,39 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        LogError("UI异常", e.Exception);
-        MessageBox.Show(
-            $"界面运行发生异常：\n{e.Exception.Message}\n\n详细信息已记录至日志。",
+        string logPath = LogError("UI异常", e.Exception);
+        string rootCause = e.Exception.GetBaseException()?.Message ?? e.Exception.Message;
+
+        string msg = $"界面运行发生异常：\n{e.Exception.Message}";
+        if (!string.IsNullOrEmpty(rootCause) && rootCause != e.Exception.Message)
+        {
+            msg += $"\n\n根本原因：\n{rootCause}";
+        }
+
+        msg += $"\n\n异常详情已记录至日志文件：\n{logPath}\n\n是否打开日志所在文件夹查看完整堆栈？";
+
+        var result = MessageBox.Show(
+            msg,
             "微信 Copilot 运行提示",
-            MessageBoxButton.OK,
+            MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = Path.GetDirectoryName(logPath) ?? logPath,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // 忽略打开目录失败
+            }
+        }
+
         e.Handled = true;
     }
 
@@ -41,18 +68,20 @@ public partial class App : Application
         }
     }
 
-    private static void LogError(string category, Exception ex)
+    private static string LogError(string category, Exception ex)
     {
+        string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WeChatCopilot");
+        string logFile = Path.Combine(dir, "crash.log");
         try
         {
-            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WeChatCopilot");
             Directory.CreateDirectory(dir);
-            string logFile = Path.Combine(dir, "crash.log");
             File.AppendAllText(logFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{category}] {ex}\n\n");
         }
         catch
         {
             // 忽略日志写入错误
         }
+
+        return logFile;
     }
 }
