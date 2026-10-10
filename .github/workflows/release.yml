@@ -11,7 +11,7 @@ on:
       version:
         description: '发布版本号 (如 1.0.0)'
         required: false
-        default: '1.0.0'
+        default: '1.0.1'
 
 # 赋予创建 Release 和上传资源的写权限
 permissions:
