@@ -141,7 +141,7 @@ public static class PromptBuilder
 
     /// <summary>
     /// 构建全能 AI 建议请求（合并潜台词剖析与多候选回复建议）：
-    /// 深度融合当前指导作战技能 (Skill)、对方人格画像与双方关系定位，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 多风格候选回复”。
+    /// 深度融合当前指导作战技能 (Skill)、对方人格画像、用户期望的回复方式与终极战略目的，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 动态多风格候选回复”。
     /// </summary>
     public static AiRequest BuildUnifiedAdvice(
         AiSettings settings,
@@ -150,7 +150,9 @@ public static class PromptBuilder
         Persona? persona = null,
         string? contactName = null,
         string? relationship = null,
-        DistillSkill? skill = null)
+        DistillSkill? skill = null,
+        string? userIntent = null,
+        string? ultimateGoal = null)
     {
         int n = Math.Clamp(count, 1, 5);
         skill ??= DistillSkillPresets.Nuwa;
@@ -162,26 +164,42 @@ public static class PromptBuilder
         string skillIcon = skill.Icon;
         string tactics = skill.GetEffectiveAdviceGuideline();
         var tones = skill.GetEffectiveSuggestedTones();
+        string? effectiveGoal = !string.IsNullOrWhiteSpace(ultimateGoal) ? ultimateGoal.Trim() : persona?.UltimateGoal?.Trim();
 
         // 1. 动态编排对应 Skill 体系的专属 SystemPrompt
         var sysSb = new StringBuilder();
         sysSb.AppendLine($"你是一位精通人际交往心理学、微表情与对话攻防的顶级高情商聊天副驾大师，当前深度激活并应用【{skillIcon} {skillName}】作战体系。");
-        sysSb.AppendLine("用户会提供一段微信聊天上下文、双方关系定位，以及【对方已知的人格画像特质】。");
+        sysSb.AppendLine("用户会提供一段微信聊天上下文，以及【对方已知的人格画像特质】。");
         sysSb.AppendLine($"你需要穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出量身定制的多风格回复建议。");
         sysSb.AppendLine();
         sysSb.AppendLine($"【⚔️ 本作战流派的核心战略准则】：\n{tactics}");
+
+        if (!string.IsNullOrWhiteSpace(effectiveGoal))
+        {
+            sysSb.AppendLine();
+            sysSb.AppendLine($"【👑 终极战略导向】：用户为该对话对象设定了终极战略目的【{effectiveGoal}】！你的所有意图剖析与回复生成必须作为战略军师，招招见血地引导对话向该目标稳步靠拢与顺势推进，严禁无意义闲聊！");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userIntent))
+        {
+            sysSb.AppendLine();
+            sysSb.AppendLine($"【🎯 用户期望的回复方式 / 当前具体意图】：用户明确要求【{userIntent.Trim()}】。请在严格贯彻该意图方式的同时，巧妙兼顾战略推进！");
+        }
+
         sysSb.AppendLine();
         sysSb.AppendLine("严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n");
         sysSb.AppendLine("=== 意图剖析 ===");
         sysSb.AppendLine("字面意思：对方表面上说了什么");
-        sysSb.AppendLine("潜台词洞察：结合其性格特征与言行模式，分析对方隐藏在背后的真实弦外之音、测试防备或好感信号");
-        sysSb.AppendLine("真实心理：结合其价值锚点与需求状态，剖析对方潜意识里真正想推动什么、防范什么或此时情绪状态");
-        sysSb.AppendLine($"应对策略：基于【{skillName}】心法与对方画像雷区，建议我方采取的最佳破局沟通策略与避坑指南\n");
+        sysSb.AppendLine("潜台词洞察：结合其性格特征与心智模型，深度剖析对方隐藏在背后的真实弦外之音、测试防备、好感信号或心理防线");
+        sysSb.AppendLine("真实心理：结合其价值锚点与需求状态，剖析对方潜意识里真正想推动什么、防范什么，以及对我方战略意图的态度倾向");
+        sysSb.AppendLine($"应对策略：基于【{skillName}】心法、对方画像雷区与我方战略目标，建议我方采取的最佳破局沟通策略与避坑指南\n");
         sysSb.AppendLine("=== 回复建议 ===");
-        foreach (var tone in tones.Take(3))
+        sysSb.AppendLine("[具体战术风格] 回复内容 | 理由：针对对方画像特质与战略目的的战术动作依据");
+        if (tones.Count > 0)
         {
-            sysSb.AppendLine($"[{tone}] 回复内容 | 理由：为什么这么说");
+            sysSb.AppendLine($"（【{skillName}】流派推荐破局风格参考：{string.Join("、", tones)}）");
         }
+        sysSb.AppendLine("（【重要】：方括号中的战术风格标签严禁千篇一律使用固定的'高情商/直接/专业/缓和'等刻板标签！必须根据对方画像特质、心理诉求以及用户的战略目的，动态生成极具针对性的战术风格标签，如：[情绪托底与台阶]、[破冰推拉反制]、[顺势价值锚定]、[安全感赋能]、[高位幽默切题]、[借势邀约引导]等！）");
 
         // 2. 编排 UserPrompt
         var sb = new StringBuilder();
@@ -189,11 +207,26 @@ public static class PromptBuilder
         sb.AppendLine($"当前对话对象：{targetName}");
         sb.AppendLine($"当前指导作战技能：【{skillIcon} {skillName}】");
 
-        string relGuideline = GetRelationshipGuideline(relationship);
-        string relTitle = !string.IsNullOrWhiteSpace(relationship) ? relationship : "智能推断";
-        sb.AppendLine($"双方关系定位：【{relTitle}】");
-        sb.AppendLine($"【👥 关系社交准则】：{relGuideline}");
-        sb.AppendLine("（重要约束：回复方案必须严格遵循该关系的交往边界、分寸感与沟通目标，切忌用词不合时宜！）");
+        if (!string.IsNullOrWhiteSpace(effectiveGoal))
+        {
+            sb.AppendLine($"【🚩 本次聊天的终极战略目的】：{effectiveGoal}");
+            sb.AppendLine("（⚠️ 最高战略指令：所有候选回复方案与战术剖析，都必须以推进实现上述终极战略目的为最高导向与推进锚点！严禁没有结果的无效闲聊或偏离航向！）");
+        }
+
+        if (!string.IsNullOrWhiteSpace(userIntent))
+        {
+            sb.AppendLine($"【🎯 用户期望的回复方式 / 当前具体意图】：{userIntent.Trim()}");
+            sb.AppendLine("（⚠️ 核心意图要求：请严格顺应用户期望的这一回复方式/战术风格展开回复构思，并巧妙结合终极战略目的推进！）");
+        }
+
+        if (!string.IsNullOrWhiteSpace(relationship))
+        {
+            string relGuideline = GetRelationshipGuideline(relationship);
+            string relTitle = relationship;
+            sb.AppendLine($"双方关系定位：【{relTitle}】");
+            sb.AppendLine($"【👥 关系社交准则】：{relGuideline}");
+        }
+
         sb.AppendLine();
         sb.AppendLine("聊天上下文（[对方]=对方消息，[我]=用户自己消息）：");
         sb.AppendLine(BuildTranscript(messages));
@@ -212,8 +245,7 @@ public static class PromptBuilder
         sb.AppendLine();
         sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
         sb.AppendLine();
-        string tonesPreview = string.Join("/", tones.Take(Math.Max(3, n)));
-        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条风格鲜明的【回复建议】（建议风格：{tonesPreview}）：");
+        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条贴合对方画像与战略目的、动态命名战术风格的【回复建议】：");
 
         return new AiRequest(sysSb.ToString(), sb.ToString(), settings.Model, settings.Temperature);
     }

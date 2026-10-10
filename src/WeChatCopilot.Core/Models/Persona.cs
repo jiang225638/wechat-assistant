@@ -8,10 +8,12 @@ namespace WeChatCopilot.Core.Models;
 /// <param name="UpdatedAt">最近一次蒸馏时间。</param>
 /// <param name="SourceMessageCount">本次蒸馏所用历史消息数。</param>
 /// <param name="SkillId">本次蒸馏所采用的技能 ID（如 nuwa, tdskill, workplace 等）。</param>
+/// <param name="UltimateGoal">与该联系人聊天的最终战略目的（如恋爱邀约、商务签约等）。</param>
 public sealed record Persona(
     string ContactName,
     IReadOnlyList<PersonaTrait> Traits,
     DateTime UpdatedAt,
     int SourceMessageCount,
-    string? SkillId = null);
+    string? SkillId = null,
+    string? UltimateGoal = null);
 

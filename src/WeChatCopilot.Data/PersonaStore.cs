@@ -59,6 +59,30 @@ public sealed class PersonaStore
             .Cast<string>()
             .ToList();
 
+    /// <summary>获取所有已保存的画像对象集合，按更新时间倒序排列。</summary>
+    public IReadOnlyList<Persona> GetAllPersonas() =>
+        List()
+            .Select(Load)
+            .Where(p => p is not null)
+            .Select(p => p!)
+            .OrderByDescending(p => p.UpdatedAt)
+            .ToList();
+
+    /// <summary>更新某联系人的最终聊天目的（若画像存在则保存新的 UltimateGoal）。</summary>
+    public bool UpdateUltimateGoal(string contactName, string? ultimateGoal)
+    {
+        var existing = Load(contactName);
+        if (existing == null)
+        {
+            return false;
+        }
+
+        string? cleanGoal = string.IsNullOrWhiteSpace(ultimateGoal) ? null : ultimateGoal.Trim();
+        var updated = existing with { UltimateGoal = cleanGoal };
+        Save(updated);
+        return true;
+    }
+
     private string PathFor(string contactName) =>
         Path.Combine(_directory, Sanitize(contactName) + ".json");
 

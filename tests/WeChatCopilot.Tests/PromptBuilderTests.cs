@@ -234,5 +234,34 @@ public class PromptBuilderTests
         Assert.Contains("BATNA底线思维", req.SystemPrompt);
         Assert.Contains("商务谈判破局流", req.UserPrompt);
     }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WithUserIntentAndUltimateGoal_InjectsStrategicGuidance()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "周末有空出来喝杯咖啡吗？") };
+        var persona = new Persona(
+            "心仪女孩",
+            new[] { new PersonaTrait("情绪模式", "高敏感爱被肯定", 0.88, new[] { "哈哈" }) },
+            DateTime.Now,
+            30,
+            UltimateGoal: "确立恋爱关系并邀约线下约会");
+
+        var req = PromptBuilder.BuildUnifiedAdvice(
+            settings,
+            msgs,
+            count: 3,
+            persona: persona,
+            contactName: "心仪女孩",
+            userIntent: "高位推拉调侃，委婉推脱周六改约周日傍晚");
+
+        Assert.Contains("确立恋爱关系并邀约线下约会", req.UserPrompt);
+        Assert.Contains("终极战略", req.UserPrompt);
+        Assert.Contains("终极战略", req.SystemPrompt);
+        Assert.Contains("高位推拉调侃，委婉推脱周六改约周日傍晚", req.UserPrompt);
+        Assert.Contains("用户期望的回复方式", req.UserPrompt);
+        Assert.Contains("严禁", req.SystemPrompt);
+        Assert.Contains("动态生成", req.SystemPrompt);
+    }
 }
 

@@ -1,0 +1,792 @@
+<Window
+    x:Class="WeChatCopilot.App.PersonaAnalyticsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="联系人多维心智画像全景深度分析看板"
+    Width="1060"
+    Height="740"
+    MinWidth="880"
+    MinHeight="600"
+    Background="#0F121C"
+    WindowStyle="None"
+    AllowsTransparency="False"
+    ResizeMode="CanResizeWithGrip"
+    WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!--  基础调色板  -->
+        <SolidColorBrush x:Key="WindowBg" Color="#0F121C" />
+        <SolidColorBrush x:Key="CardBg" Color="#161B26" />
+        <SolidColorBrush x:Key="CardSubtleBg" Color="#1C2232" />
+        <SolidColorBrush x:Key="BorderColor" Color="#283248" />
+        <SolidColorBrush x:Key="AccentCyan" Color="#38BDF8" />
+        <SolidColorBrush x:Key="AccentGreen" Color="#10B981" />
+        <SolidColorBrush x:Key="AccentAmber" Color="#F59E0B" />
+        <SolidColorBrush x:Key="AccentPurple" Color="#A855F7" />
+        <SolidColorBrush x:Key="AccentRose" Color="#F43F5E" />
+        <SolidColorBrush x:Key="TextPrimary" Color="#F8FAFC" />
+        <SolidColorBrush x:Key="TextSecondary" Color="#94A3B8" />
+
+        <!--  通用按钮样式  -->
+        <Style x:Key="TopActionButton" TargetType="Button">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Foreground" Value="#E2E8F0" />
+            <Setter Property="Background" Value="#222938" />
+            <Setter Property="BorderBrush" Value="#38435C" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="btnBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#2E374D" />
+                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="#60A5FA" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#1E2535" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  主要高光按钮样式  -->
+        <Style
+            x:Key="PrimaryAccentButton"
+            BasedOn="{StaticResource TopActionButton}"
+            TargetType="Button">
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="BorderBrush" Value="#3B82F6" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!--  选项卡样式  -->
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border
+                            x:Name="tabBorder"
+                            Margin="0,0,6,0"
+                            Padding="{TemplateBinding Padding}"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="0,0,0,2"
+                            CornerRadius="4,4,0,0">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                ContentSource="Header" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="tabBorder" Property="Background" Value="#1E2536" />
+                                <Setter TargetName="tabBorder" Property="BorderBrush" Value="#38BDF8" />
+                                <Setter Property="Foreground" Value="#38BDF8" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsSelected" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="tabBorder" Property="Background" Value="#161B26" />
+                                <Setter Property="Foreground" Value="#E2E8F0" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <!--  顶部信息栏  -->
+            <RowDefinition Height="Auto" />
+            <!--  主内容 Tab 切换区  -->
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  ==================== ROW 0: 顶部信息栏与操作工具条 ====================  -->
+        <Border
+            Grid.Row="0"
+            Margin="0,0,0,14"
+            Padding="16,12"
+            Background="{StaticResource CardBg}"
+            BorderBrush="{StaticResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="10"
+            MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!--  左侧：联系人主体信息与画像元数据胶囊  -->
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            Text="👤"
+                            FontSize="20"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            x:Name="HeaderContactName"
+                            Text="联系人全景画像看板"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Foreground="{StaticResource TextPrimary}"
+                            VerticalAlignment="Center" />
+                        <Border
+                            x:Name="HeaderSkillBadge"
+                            Margin="10,0,0,0"
+                            Padding="8,2"
+                            Background="#2238BDF8"
+                            BorderBrush="#4438BDF8"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="HeaderSkillText"
+                                Text="🧬 女娲心智蒸馏"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                Foreground="{StaticResource AccentCyan}" />
+                        </Border>
+                    </StackPanel>
+
+                    <!--  元数据指标标签组  -->
+                    <StackPanel
+                        Margin="0,6,0,0"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            x:Name="MetaSourceCount"
+                            Text="💬 基于 186 条历史真实消息"
+                            FontSize="11"
+                            Foreground="{StaticResource TextSecondary}"
+                            Margin="0,0,14,0" />
+                        <TextBlock
+                            x:Name="MetaUpdatedTime"
+                            Text="⏱ 更新时间: 2026-10-10 14:54"
+                            FontSize="11"
+                            Foreground="{StaticResource TextSecondary}"
+                            Margin="0,0,14,0" />
+                        <TextBlock
+                            x:Name="MetaDimensionCount"
+                            Text="📊 共提取 6 个独立量化特质维度"
+                            FontSize="11"
+                            Foreground="#10B981"
+                            FontWeight="SemiBold" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!--  右侧：功能操作按钮  -->
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center">
+                    <Button
+                        x:Name="CopyReportButton"
+                        Click="CopyReportButton_Click"
+                        Content="📋 复制完整分析报告"
+                        Style="{StaticResource TopActionButton}"
+                        Margin="0,0,8,0"
+                        ToolTip="一键复制格式化的 Markdown 深度心智特质与实战破局分析报告到剪贴板" />
+                    <Button
+                        x:Name="ExportReportButton"
+                        Click="ExportReportButton_Click"
+                        Content="💾 导出报告文本"
+                        Style="{StaticResource TopActionButton}"
+                        Margin="0,0,8,0"
+                        ToolTip="将画像分析报告导出保存为本地文件" />
+                    <Button
+                        x:Name="MaximizeButton"
+                        Click="MaximizeButton_Click"
+                        Content="🗖 最大化"
+                        Style="{StaticResource TopActionButton}"
+                        Margin="0,0,8,0"
+                        ToolTip="最大化或还原窗口" />
+                    <Button
+                        x:Name="CloseButton"
+                        Click="CloseButton_Click"
+                        Content="关闭"
+                        Width="65"
+                        Style="{StaticResource TopActionButton}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  ==================== ROW 1: 核心分析 Tab 区域 ====================  -->
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+
+            <!--  TAB 1: 多维可视化图表看板 (雷达图 + 柱状图 + 折线图)  -->
+            <TabItem Header="📊 多维可视化图表看板 (雷达图 / 柱状图 / 折线图)">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!--  上部：左侧大雷达图 + 右侧柱状图与折线图  -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <!--  左栏：全景雷达图  -->
+                            <ColumnDefinition Width="1.05*" />
+                            <!--  右栏：柱状对比图与梯度折线图  -->
+                            <ColumnDefinition Width="1.2*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  左侧卡片：高分辨率全景多维雷达图谱  -->
+                        <Border
+                            Grid.Column="0"
+                            Margin="0,0,10,0"
+                            Padding="14"
+                            Background="{StaticResource CardBg}"
+                            BorderBrush="{StaticResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!--  标题栏  -->
+                                <StackPanel Grid.Row="0">
+                                    <TextBlock
+                                        Text="🎯 全景多维认知雷达图谱"
+                                        FontSize="14"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimary}" />
+                                    <TextBlock
+                                        Text="高精度全维度呈现，中心辐射各特质量化分，无任何截断或省略"
+                                        FontSize="11"
+                                        Foreground="{StaticResource TextSecondary}"
+                                        Margin="0,2,0,0" />
+                                </StackPanel>
+
+                                <!--  大尺寸雷达图画布  -->
+                                <Canvas
+                                    x:Name="LargeRadarCanvas"
+                                    Grid.Row="1"
+                                    Width="430"
+                                    Height="330"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+
+                                <!--  底部图例说明  -->
+                                <StackPanel
+                                    Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,6,0,0">
+                                    <Border
+                                        Width="10"
+                                        Height="10"
+                                        Background="#38BDF8"
+                                        CornerRadius="2"
+                                        Margin="0,0,4,0" />
+                                    <TextBlock
+                                        Text="量化得分 (10~100)"
+                                        FontSize="10.5"
+                                        Foreground="{StaticResource TextSecondary}"
+                                        Margin="0,0,14,0" />
+                                    <Border
+                                        Width="10"
+                                        Height="2"
+                                        Background="#4D94A3B8"
+                                        Margin="0,0,4,0"
+                                        VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="中性基准线 (50分)"
+                                        FontSize="10.5"
+                                        Foreground="{StaticResource TextSecondary}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!--  右侧卡片区：各维度量化柱状图 + 特质波动折线图  -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <!--  柱状图卡片  -->
+                                <RowDefinition Height="1.1*" />
+                                <!--  折线图卡片  -->
+                                <RowDefinition Height="0.9*" />
+                            </Grid.RowDefinitions>
+
+                            <!--  右上方：各维度量化对比柱状图 (Horizontal Bar Chart)  -->
+                            <Border
+                                Grid.Row="0"
+                                Margin="0,0,0,8"
+                                Padding="14,12"
+                                Background="{StaticResource CardBg}"
+                                BorderBrush="{StaticResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0">
+                                        <TextBlock
+                                            Text="📊 各维度量化得分对比柱状图"
+                                            FontSize="13.5"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource TextPrimary}" />
+                                        <TextBlock
+                                            Text="直观对比各特质得分梯度，快速识别其高位优势区与防御敏感区"
+                                            FontSize="10.5"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Margin="0,2,0,8" />
+                                    </StackPanel>
+
+                                    <!--  柱状图列表容器  -->
+                                    <ScrollViewer
+                                        Grid.Row="1"
+                                        VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel x:Name="BarChartContainer" />
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+
+                            <!--  右下方：特质梯度与波动分布折线图 (Line Chart)  -->
+                            <Border
+                                Grid.Row="1"
+                                Padding="14,12"
+                                Background="{StaticResource CardBg}"
+                                BorderBrush="{StaticResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0">
+                                        <TextBlock
+                                            Text="📈 特质波动与梯度走势折线图"
+                                            FontSize="13.5"
+                                            FontWeight="Bold"
+                                            Foreground="{StaticResource TextPrimary}" />
+                                        <TextBlock
+                                            Text="维度间心理张力起伏曲线，虚线为全体维度加权均分"
+                                            FontSize="10.5"
+                                            Foreground="{StaticResource TextSecondary}"
+                                            Margin="0,2,0,4" />
+                                    </StackPanel>
+
+                                    <Canvas
+                                        x:Name="LineChartCanvas"
+                                        Grid.Row="1"
+                                        Width="480"
+                                        Height="115"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <!--  下部：核心统计摘要指标卡片行  -->
+                    <Grid Grid.Row="1" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  卡片 1：最高得分维度  -->
+                        <Border
+                            Grid.Column="0"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{StaticResource CardBg}"
+                            BorderBrush="#3310B981"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="🏆 显著核心特质 (最高)" FontSize="10.5" Foreground="{StaticResource AccentGreen}" />
+                                <TextBlock x:Name="StatTopDimText" Text="框架与自主性" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatTopScoreText" Text="86分 (高位表现)" FontSize="11" Foreground="{StaticResource AccentGreen}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 2：最低敏感维度  -->
+                        <Border
+                            Grid.Column="1"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{StaticResource CardBg}"
+                            BorderBrush="#33F43F5E"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="🛡️ 最低/潜在雷区维度" FontSize="10.5" Foreground="{StaticResource AccentRose}" />
+                                <TextBlock x:Name="StatLowDimText" Text="低位框架信号" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatLowScoreText" Text="18分 (心理防备)" FontSize="11" Foreground="{StaticResource AccentRose}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 3：心理张力落差  -->
+                        <Border
+                            Grid.Column="2"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{StaticResource CardBg}"
+                            BorderBrush="#33F59E0B"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="⚡ 特质极值落差张力" FontSize="10.5" Foreground="{StaticResource AccentAmber}" />
+                                <TextBlock x:Name="StatSpreadText" Text="68分 (高度鲜明)" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock Text="性格反差鲜明，策略针对性强" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 4：均分与可信度  -->
+                        <Border
+                            Grid.Column="3"
+                            Padding="12,10"
+                            Background="{StaticResource CardBg}"
+                            BorderBrush="#3338BDF8"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock Text="🎯 平均得分与数据可信度" FontSize="10.5" Foreground="{StaticResource AccentCyan}" />
+                                <TextBlock x:Name="StatAvgScoreText" Text="71.0分" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatAvgConfidenceText" Text="可信度: 0.88 (高样本量支撑)" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!--  TAB 2: 全维度特质与原始证据清单  -->
+            <TabItem Header="🔍 全维度特质与原始证据清单">
+                <Border
+                    Margin="0,10,0,0"
+                    Padding="16"
+                    Background="{StaticResource CardBg}"
+                    BorderBrush="{StaticResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                            <TextBlock
+                                Text="📑 观察层与推断层全量锚定清单"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Foreground="{StaticResource TextPrimary}" />
+                            <TextBlock
+                                Text="每一项推断均严密锚定对方亲口原话证据，拒绝凭空捏造；可信度与量化分经算法归一化校准"
+                                FontSize="11"
+                                Foreground="{StaticResource TextSecondary}"
+                                Margin="0,2,0,0" />
+                        </StackPanel>
+
+                        <ScrollViewer
+                            Grid.Row="1"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="TraitsDetailItemsControl">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="0,0,0,10"
+                                            Padding="14,12"
+                                            Background="#181F2E"
+                                            BorderBrush="#25FFFFFF"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <!--  卡片头部：维度名称 + 得分徽章 + 置信度 + 专业标签  -->
+                                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            Text="{Binding Dimension}"
+                                                            FontSize="14"
+                                                            FontWeight="Bold"
+                                                            Foreground="#60A5FA"
+                                                            VerticalAlignment="Center" />
+                                                        <Border
+                                                            Margin="8,0,0,0"
+                                                            Padding="6,2"
+                                                            Background="#2010B981"
+                                                            BorderBrush="#4410B981"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock
+                                                                Text="{Binding ScoreText}"
+                                                                FontSize="11"
+                                                                FontWeight="Bold"
+                                                                Foreground="#10B981" />
+                                                        </Border>
+                                                        <Border
+                                                            Margin="6,0,0,0"
+                                                            Padding="6,2"
+                                                            Background="#2038BDF8"
+                                                            BorderBrush="#4438BDF8"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock
+                                                                Text="{Binding ConfidencePercentText, StringFormat='可信度: {0}'}"
+                                                                FontSize="10.5"
+                                                                Foreground="#38BDF8" />
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!--  右侧：特质风格标签徽章  -->
+                                                    <Border
+                                                        Grid.Column="1"
+                                                        Padding="8,2"
+                                                        Background="{Binding SkillTagBrush}"
+                                                        CornerRadius="4"
+                                                        VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            Text="{Binding SkillTag}"
+                                                            FontSize="10.5"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="#FFFFFF" />
+                                                    </Border>
+                                                </Grid>
+
+                                                <!--  推断层：详细特质描述剖析  -->
+                                                <Border
+                                                    Grid.Row="1"
+                                                    Margin="0,0,0,8"
+                                                    Padding="10,8"
+                                                    Background="#131824"
+                                                    BorderBrush="#1E293B"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6">
+                                                    <StackPanel>
+                                                        <TextBlock
+                                                            Text="🧠 心智特质推断："
+                                                            FontSize="11"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="#94A3B8"
+                                                            Margin="0,0,0,4" />
+                                                        <TextBlock
+                                                            Text="{Binding Attribute}"
+                                                            FontSize="12"
+                                                            Foreground="#F1F5F9"
+                                                            TextWrapping="Wrap"
+                                                            LineHeight="18" />
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!--  观察层：对方口述的原始证据原话引用  -->
+                                                <Border
+                                                    Grid.Row="2"
+                                                    Padding="10,8"
+                                                    Background="#1E1A29"
+                                                    BorderBrush="#3B2D54"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6"
+                                                    Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                            <TextBlock
+                                                                Text="💬 亲口原话证据（观察层）："
+                                                                FontSize="11"
+                                                                FontWeight="SemiBold"
+                                                                Foreground="#C084FC" />
+                                                            <TextBlock
+                                                                Text="{Binding EvidenceSummary}"
+                                                                FontSize="10.5"
+                                                                Foreground="#94A3B8" />
+                                                        </StackPanel>
+                                                        <TextBlock
+                                                            Text="{Binding EvidenceText}"
+                                                            FontSize="11.5"
+                                                            Foreground="#E9D5FF"
+                                                            FontStyle="Italic"
+                                                            TextWrapping="Wrap"
+                                                            LineHeight="17" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!--  TAB 3: 实战沟通破局策略与避坑指南  -->
+            <TabItem Header="⚡ 实战沟通破局策略与避坑指南">
+                <Border
+                    Margin="0,10,0,0"
+                    Padding="18,16"
+                    Background="{StaticResource CardBg}"
+                    BorderBrush="{StaticResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="10">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="StrategyContentPanel">
+                            <TextBlock
+                                Text="⚡ 实战沟通破局战术与避坑指南报告"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Foreground="{StaticResource TextPrimary}"
+                                Margin="0,0,0,4" />
+                            <TextBlock
+                                x:Name="StrategySubTitle"
+                                Text="结合当前认知体系与多维特质分布，生成的定制化沟通实战破局处方"
+                                FontSize="11"
+                                Foreground="{StaticResource TextSecondary}"
+                                Margin="0,0,0,16" />
+
+                            <!--  模块 1：核心心智模式画像总评  -->
+                            <Border
+                                Margin="0,0,0,12"
+                                Padding="14"
+                                Background="#1A2030"
+                                BorderBrush="#2A3854"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Text="🎯 核心心智操作系统概貌剖析"
+                                        FontSize="13.5"
+                                        FontWeight="Bold"
+                                        Foreground="#38BDF8"
+                                        Margin="0,0,0,6" />
+                                    <TextBlock
+                                        x:Name="StrategyMindsetOverviewText"
+                                        Text="加载中..."
+                                        FontSize="12"
+                                        Foreground="#E2E8F0"
+                                        TextWrapping="Wrap"
+                                        LineHeight="20" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  模块 2：高效沟通顺势借力点  -->
+                            <Border
+                                Margin="0,0,0,12"
+                                Padding="14"
+                                Background="#142625"
+                                BorderBrush="#1C453B"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Text="✨ 高频共鸣点与顺势借力沟通策略"
+                                        FontSize="13.5"
+                                        FontWeight="Bold"
+                                        Foreground="#34D399"
+                                        Margin="0,0,0,6" />
+                                    <TextBlock
+                                        x:Name="StrategyLeveragePointsText"
+                                        Text="加载中..."
+                                        FontSize="12"
+                                        Foreground="#E2E8F0"
+                                        TextWrapping="Wrap"
+                                        LineHeight="20" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  模块 3：绝对防御反模式与沟通禁忌雷区  -->
+                            <Border
+                                Margin="0,0,0,12"
+                                Padding="14"
+                                Background="#2A1822"
+                                BorderBrush="#4A2032"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Text="🚫 绝对沟通禁忌与防御反模式规避雷区"
+                                        FontSize="13.5"
+                                        FontWeight="Bold"
+                                        Foreground="#FB7185"
+                                        Margin="0,0,0,6" />
+                                    <TextBlock
+                                        x:Name="StrategyTaboosText"
+                                        Text="加载中..."
+                                        FontSize="12"
+                                        Foreground="#E2E8F0"
+                                        TextWrapping="Wrap"
+                                        LineHeight="20" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  模块 4：针对性破局处方与话术风格建议  -->
+                            <Border
+                                Padding="14"
+                                Background="#231A33"
+                                BorderBrush="#452C6E"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock
+                                        Text="💡 破局实战行动处方与沟通调性指南"
+                                        FontSize="13.5"
+                                        FontWeight="Bold"
+                                        Foreground="#C084FC"
+                                        Margin="0,0,0,6" />
+                                    <TextBlock
+                                        x:Name="StrategyPrescriptionText"
+                                        Text="加载中..."
+                                        FontSize="12"
+                                        Foreground="#E2E8F0"
+                                        TextWrapping="Wrap"
+                                        LineHeight="20" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

@@ -511,12 +511,27 @@ public partial class OverlayWindow : Window
             {
                 AiPersonaBadge.Visibility = Visibility.Collapsed;
             }
+
+            if (!string.IsNullOrWhiteSpace(persona?.UltimateGoal))
+            {
+                AiGoalBadge.Visibility = Visibility.Visible;
+                AiGoalBadgeText.Text = $"🚩 目的: {persona.UltimateGoal}";
+                AiGoalBadge.ToolTip = $"已为「{target}」配置终极战略目的：{persona.UltimateGoal}\n所有生成的回复都将以此战略目的为最高导向！可在【设置 -> 画像目的】中修改。";
+                AiNoGoalPromptText.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                AiGoalBadge.Visibility = Visibility.Collapsed;
+                AiNoGoalPromptText.Visibility = Visibility.Visible;
+            }
         }
         else
         {
             AiTargetContactText.Text = "当前对话好友";
             AiTargetContactText.ToolTip = "未指定特定联系人，将依据当前读取到的对话上下文进行智能分析";
             AiPersonaBadge.Visibility = Visibility.Collapsed;
+            AiGoalBadge.Visibility = Visibility.Collapsed;
+            AiNoGoalPromptText.Visibility = Visibility.Visible;
         }
     }
 
@@ -532,7 +547,24 @@ public partial class OverlayWindow : Window
         DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Nuwa;
 
         GenerateButton.IsEnabled = false;
-        SetAiStatus($"AI 正在应用【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像，深度剖析意图并生成 {count} 条针对性回复建议...", isError: false);
+
+        string target = ContactBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            target = _currentChatContact;
+        }
+
+        Persona? personaContext = null;
+        if (IncludePersonaCheck.IsChecked == true && !string.IsNullOrEmpty(target))
+        {
+            personaContext = _personaStore.Load(target);
+        }
+
+        string userIntent = AiIntentBox.Text.Trim();
+        string? ultimateGoal = personaContext?.UltimateGoal;
+
+        string goalHint = !string.IsNullOrWhiteSpace(ultimateGoal) ? $"，战略导向【{ultimateGoal}】" : string.Empty;
+        SetAiStatus($"AI 正在结合【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像{goalHint}，深度剖析意图并生成 {count} 条针对性回复建议...", isError: false);
 
         try
         {
@@ -541,26 +573,8 @@ public partial class OverlayWindow : Window
             int timeoutSec = Math.Max(settings.TimeoutSeconds, 120);
             using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key, timeout: TimeSpan.FromSeconds(timeoutSec));
 
-            string target = ContactBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(target))
-            {
-                target = _currentChatContact;
-            }
-
-            Persona? personaContext = null;
-            if (IncludePersonaCheck.IsChecked == true && !string.IsNullOrEmpty(target))
-            {
-                personaContext = _personaStore.Load(target);
-            }
-
             var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
             string targetStatement = latestIncoming?.Text ?? string.Empty;
-
-            string relationship = RelationshipBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(relationship) && RelationshipBox.SelectedItem is ComboBoxItem relItem)
-            {
-                relationship = relItem.Tag as string ?? relItem.Content?.ToString() ?? string.Empty;
-            }
 
             AiRequest req = PromptBuilder.BuildUnifiedAdvice(
                 settings,
@@ -568,8 +582,10 @@ public partial class OverlayWindow : Window
                 count,
                 personaContext,
                 target,
-                relationship,
-                activeSkill);
+                relationship: null,
+                activeSkill,
+                userIntent: userIntent,
+                ultimateGoal: ultimateGoal);
 
             AiReply reply = await provider.CompleteAsync(req);
             AiStatusBanner.Visibility = Visibility.Collapsed;
@@ -894,15 +910,17 @@ public partial class OverlayWindow : Window
         if (RadarSkillBadgeText != null)
         {
             RadarSkillBadgeText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+            RadarSkillBadgeText.ToolTip = CreateSkillToolTip(_currentSkill);
         }
         if (AiAppliedSkillText != null)
         {
             AiAppliedSkillText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+            AiAppliedSkillText.ToolTip = CreateSkillToolTip(_currentSkill);
         }
         if (AiTopSkillText != null)
         {
             AiTopSkillText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
-            AiTopSkillText.ToolTip = $"当前全局生效策略：{_currentSkill.Name}\n{_currentSkill.Description}\n（可在 设置->技能中心 自由切换或导入）";
+            AiTopSkillText.ToolTip = CreateSkillToolTip(_currentSkill);
         }
         if (SubtextStrategyTitle != null)
         {
@@ -912,6 +930,153 @@ public partial class OverlayWindow : Window
         {
             DrawRadarChart(null);
         }
+    }
+
+    /// <summary>
+    /// 为认知/蒸馏技能生成现代卡片式高质感 ToolTip，包含名称、官方/扩展徽章、详细说明、核心评估维度与破局风格。
+    /// </summary>
+    private static ToolTip CreateSkillToolTip(DistillSkill skill)
+    {
+        var border = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(24, 27, 38)), // 深色高级卡片底色 #181B26
+            BorderBrush = new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), // 青色高光边框 #38BDF8
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12, 10, 12, 10),
+            MaxWidth = 360
+        };
+
+        var sp = new StackPanel();
+
+        // 1. 顶部标题栏：图标 + 名称 + 预设分类胶囊徽章
+        var headerDock = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+
+        var tagBorder = new Border
+        {
+            Background = skill.IsBuiltIn
+                ? new SolidColorBrush(Color.FromArgb(40, 59, 130, 246))
+                : new SolidColorBrush(Color.FromArgb(40, 168, 85, 247)),
+            BorderBrush = skill.IsBuiltIn
+                ? new SolidColorBrush(Color.FromArgb(90, 59, 130, 246))
+                : new SolidColorBrush(Color.FromArgb(90, 168, 85, 247)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 2, 6, 2),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        DockPanel.SetDock(tagBorder, Dock.Right);
+
+        tagBorder.Child = new TextBlock
+        {
+            Text = skill.IsBuiltIn ? "官方预设" : "工作区技能",
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = skill.IsBuiltIn
+                ? new SolidColorBrush(Color.FromRgb(96, 165, 250))
+                : new SolidColorBrush(Color.FromRgb(192, 132, 252))
+        };
+        headerDock.Children.Add(tagBorder);
+
+        var titleBlock = new TextBlock
+        {
+            Text = $"{skill.Icon} {skill.Name}",
+            FontWeight = FontWeights.Bold,
+            FontSize = 12.5,
+            Foreground = Brushes.White,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        headerDock.Children.Add(titleBlock);
+        sp.Children.Add(headerDock);
+
+        // 分割线
+        var divider = new Rectangle
+        {
+            Height = 1,
+            Fill = new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)),
+            Margin = new Thickness(0, 2, 0, 8)
+        };
+        sp.Children.Add(divider);
+
+        // 2. 技能详细定位与介绍说明
+        string desc = !string.IsNullOrWhiteSpace(skill.Description) && skill.Description != skill.Name
+            ? skill.Description.Trim()
+            : "基于该技能设定的专属提示词与方法论，深度提炼目标联系人的聊天行为与心智模式。";
+
+        var descBlock = new TextBlock
+        {
+            Text = desc,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            TextWrapping = TextWrapping.Wrap,
+            LineHeight = 16.5,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        sp.Children.Add(descBlock);
+
+        // 3. 核心评估维度
+        if (skill.Dimensions is { Count: > 0 })
+        {
+            var dimBlock = new TextBlock
+            {
+                Text = $"• 核心评估维度：{string.Join(" · ", skill.Dimensions)}",
+                FontSize = 10.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(167, 243, 208)),
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 15,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            sp.Children.Add(dimBlock);
+        }
+
+        // 4. 实战破局风格 / 破局心法
+        if (skill.SuggestedTones is { Count: > 0 })
+        {
+            var toneBlock = new TextBlock
+            {
+                Text = $"• 破局实战风格：{string.Join(" / ", skill.SuggestedTones)}",
+                FontSize = 10.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            sp.Children.Add(toneBlock);
+        }
+        else if (!string.IsNullOrWhiteSpace(skill.AdviceGuideline))
+        {
+            string firstLine = skill.AdviceGuideline.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+            var guideBlock = new TextBlock
+            {
+                Text = $"• 破局策略：{firstLine}",
+                FontSize = 10.5,
+                Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138)),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            sp.Children.Add(guideBlock);
+        }
+
+        // 5. 底部操作提示
+        var hintBlock = new TextBlock
+        {
+            Text = "💡 选择此技能后，一键蒸馏画像与实战建议将自动代入此方法论视角",
+            FontSize = 9.5,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+        sp.Children.Add(hintBlock);
+
+        border.Child = sp;
+
+        return new ToolTip
+        {
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(0),
+            HasDropShadow = true,
+            Content = border
+        };
     }
 
     private void ImportSkillFileButton_Click(object sender, RoutedEventArgs e)
@@ -1185,6 +1350,17 @@ public partial class OverlayWindow : Window
         PersonaHeaderName.Text = $"👤 {p.ContactName} 的人格特质画像";
         PersonaHeaderMeta.Text = $"更新时间: {p.UpdatedAt:yyyy-MM-dd HH:mm}  |  基于历史: {p.SourceMessageCount} 条消息";
 
+        if (!string.IsNullOrWhiteSpace(p.UltimateGoal))
+        {
+            PersonaHeaderGoalBadge.Visibility = Visibility.Visible;
+            PersonaHeaderGoalText.Text = $"🚩 最终战略目的: {p.UltimateGoal}";
+            PersonaHeaderGoalBadge.ToolTip = $"已为该好友设定最终战略目的：{p.UltimateGoal}\n（可在【设置 -> 画像目的】中修改）";
+        }
+        else
+        {
+            PersonaHeaderGoalBadge.Visibility = Visibility.Collapsed;
+        }
+
         // 彻底归一化去重并过滤己方原话
         var cleanTraits = PersonaDistiller.DeduplicateByDimension(p.Traits, _history);
         PersonaCards.ItemsSource = cleanTraits;
@@ -1209,8 +1385,37 @@ public partial class OverlayWindow : Window
         if (RadarSkillBadgeText != null)
         {
             RadarSkillBadgeText.Text = $"{displaySkill.Icon} {displaySkill.Name}";
-            RadarSkillBadgeText.ToolTip = $"该画像生成时选用的技能视角：{displaySkill.Name}（当前活动蒸馏技能：{_currentSkill.Name}）";
+            RadarSkillBadgeText.ToolTip = CreateSkillToolTip(displaySkill);
         }
+    }
+
+    private void OpenPersonaAnalyticsButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenPersonaAnalyticsDashboard();
+    }
+
+    private void RadarCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        OpenPersonaAnalyticsDashboard();
+    }
+
+    private void OpenPersonaAnalyticsDashboard()
+    {
+        if (_currentLoadedPersona == null || _currentLoadedPersona.Traits.Count == 0)
+        {
+            MessageBox.Show("当前尚未加载或生成联系人画像数据。\n请先选择联系人并点击【✨ 一键蒸馏画像】。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var skill = !string.IsNullOrWhiteSpace(_currentLoadedPersona.SkillId)
+            ? _skillStore.GetSkill(_currentLoadedPersona.SkillId)
+            : _currentSkill;
+
+        var win = new PersonaAnalyticsWindow(_currentLoadedPersona, skill, _history)
+        {
+            Owner = this
+        };
+        win.Show();
     }
 
     private void RadarToggleDimButton_Click(object sender, RoutedEventArgs e)
@@ -1239,16 +1444,14 @@ public partial class OverlayWindow : Window
         if (traits is { Count: > 0 })
         {
             IReadOnlyList<PersonaTrait> displayTraits;
-            if (_showAllRadarDimensions || traits.Count <= MaxRadarDimensions)
+            if (_showAllRadarDimensions || traits.Count <= 8)
             {
                 displayTraits = traits;
             }
             else
             {
-                // 智能挑选最具代表性的核心 6 维，杜绝圆周标记点过多拥挤重叠
+                // 若超过 8 维且未开全量，在小窗内优先挑选代表性的前 8 维；点击【🔍 放大看板】可查看全景
                 var selected = new List<PersonaTrait>();
-
-                // 1. 优先匹配当前技能（或画像对应技能）定义的核心维度
                 if (skill.Dimensions is { Count: > 0 } skillDims)
                 {
                     foreach (string d in skillDims)
@@ -1260,40 +1463,44 @@ public partial class OverlayWindow : Window
                         if (match != null && !selected.Contains(match))
                         {
                             selected.Add(match);
-                            if (selected.Count >= MaxRadarDimensions) break;
+                            if (selected.Count >= 8) break;
                         }
                     }
                 }
 
-                // 2. 若不足 6 维，按特质显著度（可信度高 + 偏离中性分 50 + 证据数量多）补充
-                if (selected.Count < MaxRadarDimensions)
+                if (selected.Count < 8)
                 {
                     var remaining = traits
                         .Except(selected)
                         .OrderByDescending(t => (t.Confidence * 100) + Math.Abs(t.Score - 50) + (t.Evidence.Count * 10))
-                        .Take(MaxRadarDimensions - selected.Count);
+                        .Take(8 - selected.Count);
                     selected.AddRange(remaining);
                 }
 
-                displayTraits = selected.Count >= 3 ? selected : traits.Take(MaxRadarDimensions).ToList();
+                displayTraits = selected.Count >= 3 ? selected : traits.Take(8).ToList();
             }
 
             foreach (var t in displayTraits)
             {
-                string label = t.Dimension.Length > 7 ? t.Dimension[..6] + ".." : t.Dimension;
+                string label = t.Dimension;
+                if (label.Length > 6)
+                {
+                    int mid = (label.Length + 1) / 2;
+                    label = label[..mid] + "\n" + label[mid..];
+                }
                 data.Add((label, Math.Clamp(t.Score, 10, 100)));
             }
 
             // 更新切换按钮与维度数量说明
             if (RadarToggleDimButton != null)
             {
-                if (traits.Count > MaxRadarDimensions)
+                if (traits.Count > 8)
                 {
                     RadarToggleDimButton.Visibility = Visibility.Visible;
-                    RadarToggleDimButton.Content = _showAllRadarDimensions ? "🎯 核心6维" : $"🌐 全部({traits.Count})";
+                    RadarToggleDimButton.Content = _showAllRadarDimensions ? "🎯 精选视角" : $"🌐 全部({traits.Count})";
                     RadarToggleDimButton.ToolTip = _showAllRadarDimensions
-                        ? "当前显示全量特质，点击切换为清爽直观的【核心6维】"
-                        : $"当前精选显示【核心6维】，点击展开全部 {traits.Count} 项维度标记点";
+                        ? "当前显示全量特质，点击切换为精简视角；也可点击【🔍 放大看板】查看大图"
+                        : $"当前精简显示前 8 维，点击展开全部 {traits.Count} 项；也可点击【🔍 放大看板】";
                 }
                 else
                 {
@@ -1303,8 +1510,8 @@ public partial class OverlayWindow : Window
 
             if (RadarDimensionCountText != null)
             {
-                RadarDimensionCountText.Text = traits.Count > MaxRadarDimensions
-                    ? (_showAllRadarDimensions ? $"({traits.Count}维全量)" : $"(核心6维 / 共{traits.Count}项)")
+                RadarDimensionCountText.Text = traits.Count > 8 && !_showAllRadarDimensions
+                    ? $"(8维精选 / 共{traits.Count}维)"
                     : $"({traits.Count}维)";
             }
         }
@@ -1315,12 +1522,18 @@ public partial class OverlayWindow : Window
 
             // 无画像数据时，使用当前激活 Skill 的预设维度展示中性底图 (50分基准)
             var defaultDims = skill.Dimensions is { Count: >= 3 }
-                ? skill.Dimensions.Take(MaxRadarDimensions)
+                ? skill.Dimensions
                 : new[] { "沟通风格", "性格能量", "决策模式", "情绪阈值", "价值锚点", "隐形雷区" };
 
             foreach (var d in defaultDims)
             {
-                data.Add((d, 50.0));
+                string label = d;
+                if (label.Length > 6)
+                {
+                    int mid = (label.Length + 1) / 2;
+                    label = label[..mid] + "\n" + label[mid..];
+                }
+                data.Add((label, 50.0));
             }
         }
 
@@ -1645,20 +1858,96 @@ public partial class OverlayWindow : Window
 
     private void SwitchSettingSubTab(int index)
     {
-        if (SettingViewAi == null || SettingViewSkill == null || SettingViewPref == null || SettingViewHelp == null)
+        if (SettingViewAi == null || SettingViewSkill == null || SettingViewGoals == null || SettingViewPref == null || SettingViewHelp == null)
         {
             return;
         }
 
         SettingViewAi.Visibility = index == 0 ? Visibility.Visible : Visibility.Collapsed;
         SettingViewSkill.Visibility = index == 1 ? Visibility.Visible : Visibility.Collapsed;
-        SettingViewPref.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
-        SettingViewHelp.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewGoals.Visibility = index == 2 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewPref.Visibility = index == 3 ? Visibility.Visible : Visibility.Collapsed;
+        SettingViewHelp.Visibility = index == 4 ? Visibility.Visible : Visibility.Collapsed;
 
         if (index == 0 && SettingSubTabAi != null) SettingSubTabAi.IsChecked = true;
         else if (index == 1 && SettingSubTabSkill != null) SettingSubTabSkill.IsChecked = true;
-        else if (index == 2 && SettingSubTabPref != null) SettingSubTabPref.IsChecked = true;
-        else if (index == 3 && SettingSubTabHelp != null) SettingSubTabHelp.IsChecked = true;
+        else if (index == 2 && SettingSubTabGoals != null)
+        {
+            SettingSubTabGoals.IsChecked = true;
+            RefreshSettingsPersonaGoalsList();
+        }
+        else if (index == 3 && SettingSubTabPref != null) SettingSubTabPref.IsChecked = true;
+        else if (index == 4 && SettingSubTabHelp != null) SettingSubTabHelp.IsChecked = true;
+    }
+
+    private void RefreshSettingsPersonaGoalsList()
+    {
+        if (SavedPersonasGoalsList == null || NoSavedPersonasPlaceholder == null) return;
+
+        var allPersonas = _personaStore.GetAllPersonas();
+        if (allPersonas.Count == 0)
+        {
+            NoSavedPersonasPlaceholder.Visibility = Visibility.Visible;
+            SavedPersonasGoalsList.ItemsSource = null;
+            return;
+        }
+
+        NoSavedPersonasPlaceholder.Visibility = Visibility.Collapsed;
+        var viewModels = allPersonas.Select(p => new PersonaGoalItemViewModel
+        {
+            ContactName = p.ContactName,
+            TraitCountText = $"{p.Traits.Count}项心智特质",
+            UpdatedTimeText = $"⏱ {p.UpdatedAt:yyyy-MM-dd HH:mm}",
+            UltimateGoal = p.UltimateGoal ?? string.Empty
+        }).ToList();
+
+        SavedPersonasGoalsList.ItemsSource = viewModels;
+    }
+
+    private void SavePersonaGoal_Click(object sender, RoutedEventArgs e)
+    {
+        string contactName = string.Empty;
+        string goal = string.Empty;
+
+        if (sender is Button btn)
+        {
+            if (btn.Tag is PersonaGoalItemViewModel vm)
+            {
+                contactName = vm.ContactName;
+                goal = vm.UltimateGoal;
+            }
+            else if (btn.DataContext is PersonaGoalItemViewModel dvm)
+            {
+                contactName = dvm.ContactName;
+                goal = dvm.UltimateGoal;
+            }
+
+            if (string.IsNullOrWhiteSpace(goal) && btn.Parent is Grid grid)
+            {
+                var tb = grid.Children.OfType<TextBox>().FirstOrDefault();
+                if (tb != null) goal = tb.Text;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(contactName)) return;
+
+        bool updated = _personaStore.UpdateUltimateGoal(contactName, goal);
+        if (updated)
+        {
+            MessageBox.Show($"已成功保存「{contactName}」的最终战略目的：\n{(string.IsNullOrWhiteSpace(goal) ? "（已清空目的）" : goal)}\n\n在「建议」中生成回复时，AI 将全程以此目的为最高导向！", "目的已保存", MessageBoxButton.OK, MessageBoxImage.Information);
+            UpdateAiTargetInfo();
+
+            if (_currentLoadedPersona != null && _currentLoadedPersona.ContactName == contactName)
+            {
+                _currentLoadedPersona = _personaStore.Load(contactName);
+                if (_currentLoadedPersona != null) ShowPersona(_currentLoadedPersona);
+            }
+        }
+    }
+
+    private void RefreshSavedGoalsButton_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshSettingsPersonaGoalsList();
     }
 
     private void RefreshSettingsSkillList()
@@ -1685,8 +1974,12 @@ public partial class OverlayWindow : Window
                     var cItem = new ComboBoxItem
                     {
                         Content = $"{skill.Icon} {skill.Name}",
-                        Tag = skill
+                        Tag = skill,
+                        ToolTip = CreateSkillToolTip(skill)
                     };
+                    ToolTipService.SetInitialShowDelay(cItem, 100);
+                    ToolTipService.SetBetweenShowDelay(cItem, 50);
+                    ToolTipService.SetShowDuration(cItem, 20000);
                     SettingActiveSkillCombo.Items.Add(cItem);
                     if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
                     {
@@ -1699,8 +1992,12 @@ public partial class OverlayWindow : Window
                     var pItem = new ComboBoxItem
                     {
                         Content = $"{skill.Icon} {skill.Name}",
-                        Tag = skill
+                        Tag = skill,
+                        ToolTip = CreateSkillToolTip(skill)
                     };
+                    ToolTipService.SetInitialShowDelay(pItem, 100);
+                    ToolTipService.SetBetweenShowDelay(pItem, 50);
+                    ToolTipService.SetShowDuration(pItem, 20000);
                     PersonaActiveSkillCombo.Items.Add(pItem);
                     if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
                     {
@@ -1721,20 +2018,24 @@ public partial class OverlayWindow : Window
             {
                 SettingActiveSkillCombo.SelectedItem = selectedSettingCombo;
                 _currentSkill = (DistillSkill)selectedSettingCombo.Tag;
+                SettingActiveSkillCombo.ToolTip = CreateSkillToolTip(_currentSkill);
             }
             else if (SettingActiveSkillCombo is { Items.Count: > 0 })
             {
                 SettingActiveSkillCombo.SelectedIndex = 0;
                 _currentSkill = (DistillSkill)((ComboBoxItem)SettingActiveSkillCombo.Items[0]).Tag;
+                SettingActiveSkillCombo.ToolTip = CreateSkillToolTip(_currentSkill);
             }
 
             if (selectedPersonaCombo != null && PersonaActiveSkillCombo != null)
             {
                 PersonaActiveSkillCombo.SelectedItem = selectedPersonaCombo;
+                PersonaActiveSkillCombo.ToolTip = CreateSkillToolTip((DistillSkill)selectedPersonaCombo.Tag);
             }
             else if (PersonaActiveSkillCombo is { Items.Count: > 0 })
             {
                 PersonaActiveSkillCombo.SelectedIndex = 0;
+                PersonaActiveSkillCombo.ToolTip = CreateSkillToolTip((DistillSkill)((ComboBoxItem)PersonaActiveSkillCombo.Items[0]).Tag);
             }
 
             SettingSkillList.ItemsSource = items;
@@ -1757,6 +2058,7 @@ public partial class OverlayWindow : Window
             {
                 _skillStore.SetActiveSkillId(skill.Id);
                 _currentSkill = skill;
+                PersonaActiveSkillCombo.ToolTip = CreateSkillToolTip(skill);
 
                 if (SettingActiveSkillCombo != null)
                 {
@@ -1765,6 +2067,7 @@ public partial class OverlayWindow : Window
                         if (sItem.Tag is DistillSkill s && string.Equals(s.Id, skill.Id, StringComparison.OrdinalIgnoreCase))
                         {
                             SettingActiveSkillCombo.SelectedItem = sItem;
+                            SettingActiveSkillCombo.ToolTip = CreateSkillToolTip(skill);
                             break;
                         }
                     }
@@ -1794,6 +2097,7 @@ public partial class OverlayWindow : Window
             {
                 _skillStore.SetActiveSkillId(skill.Id);
                 _currentSkill = skill;
+                SettingActiveSkillCombo.ToolTip = CreateSkillToolTip(skill);
 
                 if (PersonaActiveSkillCombo != null)
                 {
@@ -1802,6 +2106,7 @@ public partial class OverlayWindow : Window
                         if (pItem.Tag is DistillSkill s && string.Equals(s.Id, skill.Id, StringComparison.OrdinalIgnoreCase))
                         {
                             PersonaActiveSkillCombo.SelectedItem = pItem;
+                            PersonaActiveSkillCombo.ToolTip = CreateSkillToolTip(skill);
                             break;
                         }
                     }
@@ -2191,4 +2496,28 @@ public sealed record SettingSkillItem(
     string Description,
     string TagText,
     Visibility DeleteVisibility);
+
+public sealed class PersonaGoalItemViewModel : System.ComponentModel.INotifyPropertyChanged
+{
+    private string _ultimateGoal = string.Empty;
+
+    public string ContactName { get; init; } = string.Empty;
+    public string TraitCountText { get; init; } = string.Empty;
+    public string UpdatedTimeText { get; init; } = string.Empty;
+
+    public string UltimateGoal
+    {
+        get => _ultimateGoal;
+        set
+        {
+            if (_ultimateGoal != value)
+            {
+                _ultimateGoal = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(UltimateGoal)));
+            }
+        }
+    }
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+}
 

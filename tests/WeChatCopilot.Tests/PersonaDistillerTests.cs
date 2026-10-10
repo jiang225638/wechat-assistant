@@ -359,6 +359,27 @@ public class PersonaDistillerTests
         Assert.Equal(300, custom.TimeoutSeconds);
     }
 
+    [Fact]
+    public void DeduplicateByDimension_SupportsArbitraryDimensionCounts()
+    {
+        var rawTraits = new List<PersonaTrait>
+        {
+            new("框架与自主性", "高位独立", 0.9, new[] { "原话1" }, 86),
+            new("高位框架信号", "奖品性强", 0.85, new[] { "原话2" }, 78),
+            new("低位框架信号", "极少跪舔", 0.7, new[] { "原话3" }, 18),
+            new("需求感公式", "低需求感", 0.88, new[] { "原话4" }, 81),
+            new("间接传递方式", "幽默推拉", 0.8, new[] { "原话5" }, 75),
+            new("关键认知与关系定位", "边界清晰", 0.75, new[] { "原话6" }, 67),
+            new("第七维度特质", "测试扩展特质", 0.82, new[] { "原话7" }, 70),
+            new("第八维度特质", "测试多维表现", 0.91, new[] { "原话8" }, 89)
+        };
+
+        var clean = PersonaDistiller.DeduplicateByDimension(rawTraits);
+        Assert.Equal(8, clean.Count);
+        Assert.Equal("关键认知与关系定位", clean[5].Dimension);
+        Assert.Equal("第八维度特质", clean[7].Dimension);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {

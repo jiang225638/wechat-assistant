@@ -184,4 +184,18 @@ public sealed class SkillStoreTests : IDisposable
         var other = _store.GetSkill("tds-chat");
         Assert.Equal("tdskill", _store.GetActiveSkillId());
     }
+
+    [Fact]
+    public void ScanWorkspaceSkills_PreservesDetailedDescriptionsAndDimensions()
+    {
+        var scanned = _store.ScanWorkspaceSkills();
+        Assert.NotEmpty(scanned);
+
+        var chatSkill = scanned.FirstOrDefault(s => s.Id.Contains("chat", StringComparison.OrdinalIgnoreCase));
+        if (chatSkill != null)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(chatSkill.Description));
+            Assert.True(chatSkill.Description.Length > 20);
+        }
+    }
 }

@@ -751,14 +751,14 @@ public static class PersonaDistiller
 
         if (finalTraits.Count > 0)
         {
-            return new DistillResult(true, new Persona(contactName, finalTraits, DateTime.Now, history.Count, skill?.Id), null);
+            return new DistillResult(true, new Persona(contactName, finalTraits, DateTime.Now, history.Count, skill?.Id, existing?.UltimateGoal), null);
         }
 
         string reducePreview = reduce.Success
             ? (reduce.Text.Length > 80 ? reduce.Text[..80] + "..." : reduce.Text).Replace('\n', ' ')
             : (reduce.Error ?? "调用失败");
 
-        return new DistillResult(false, new Persona(contactName, Array.Empty<PersonaTrait>(), DateTime.Now, history.Count),
+        return new DistillResult(false, new Persona(contactName, Array.Empty<PersonaTrait>(), DateTime.Now, history.Count, skill?.Id, existing?.UltimateGoal),
             $"合并特质失败: {reducePreview}");
     }
 

@@ -662,9 +662,10 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <!--  第 1 行：对象信息与关系定位  -->
+                            <!--  第 1 行：对象信息与作战策略  -->
                             <Grid Grid.Row="0" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -681,7 +682,7 @@
                                         Text="分析对象:" />
                                     <TextBlock
                                         x:Name="AiTargetContactText"
-                                        MaxWidth="110"
+                                        MaxWidth="115"
                                         VerticalAlignment="Center"
                                         FontSize="11.5"
                                         FontWeight="Bold"
@@ -708,46 +709,11 @@
                                     </Border>
                                 </StackPanel>
 
-                                <!--  右侧：关系定位输入/选择框  -->
+                                <!--  右侧：当前作战策略 Skill 胶囊徽章  -->
                                 <StackPanel
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
                                     Orientation="Horizontal">
-                                    <TextBlock
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center"
-                                        FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="关系:" />
-                                    <ComboBox
-                                        x:Name="RelationshipBox"
-                                        Width="126"
-                                        Height="32"
-                                        VerticalContentAlignment="Center"
-                                        FontSize="11"
-                                        IsEditable="True"
-                                        Text="🤖 智能推断"
-                                        ToolTip="支持直接输入任意自定义关系（如'刚加上的相亲对象'、'严肃领导'、'冷战中女友'），也可点击下拉选择常用预设">
-                                        <ComboBoxItem Content="🤖 智能推断" Tag="智能推断" />
-                                        <ComboBoxItem Content="❤️ 追求 / 恋爱心仪" Tag="追求/心仪" />
-                                        <ComboBoxItem Content="💼 职场 / 同事汇报" Tag="职场/同事" />
-                                        <ComboBoxItem Content="🍻 亲密 / 死党好友" Tag="亲密好友" />
-                                        <ComboBoxItem Content="🤝 商务 / 客户合作" Tag="商务/客户" />
-                                        <ComboBoxItem Content="❄️ 矛盾 / 冷战挽回" Tag="冷战/挽回" />
-                                        <ComboBoxItem Content="🌹 相亲 / 刚加好友" Tag="相亲/初识" />
-                                    </ComboBox>
-                                </StackPanel>
-                            </Grid>
-
-                            <!--  第 2 行：策略 Skill、候选条数与融入画像选项  -->
-                            <Grid Grid.Row="1" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <!--  左侧：当前作战策略 Skill 胶囊徽章  -->
-                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock
                                         Margin="0,0,4,0"
                                         VerticalAlignment="Center"
@@ -764,14 +730,74 @@
                                         CornerRadius="4">
                                         <TextBlock
                                             x:Name="AiTopSkillText"
-                                            MaxWidth="135"
+                                            MaxWidth="115"
                                             FontSize="10.5"
                                             FontWeight="SemiBold"
                                             Foreground="#38BDF8"
                                             Text="🧬 女娲心智蒸馏"
                                             TextTrimming="CharacterEllipsis"
-                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置-&gt;技能中心 切换）" />
+                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置->技能中心 切换）" />
                                     </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!--  第 2 行：用户期望回复方式 / 自定义意图输入框  -->
+                            <Grid Grid.Row="1" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Text="回复意图:" />
+                                <TextBox
+                                    x:Name="AiIntentBox"
+                                    Grid.Column="1"
+                                    Height="28"
+                                    FontSize="11"
+                                    Padding="6,2"
+                                    Style="{StaticResource FluentTextBox}"
+                                    ToolTip="输入你期望的回复方式或意图（如：高位推拉调侃、委婉推脱周六改约周日、真诚共情，留空则由画像与最终目的智能推导）" />
+                            </Grid>
+
+                            <!--  第 3 行：终极目的指示与候选设置  -->
+                            <Grid Grid.Row="2" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!--  左侧：当前好友终极战略目的胶囊/提示  -->
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Border
+                                        x:Name="AiGoalBadge"
+                                        Padding="6,2"
+                                        VerticalAlignment="Center"
+                                        Background="#2010B981"
+                                        BorderBrush="#4410B981"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Visibility="Collapsed">
+                                        <TextBlock
+                                            x:Name="AiGoalBadgeText"
+                                            MaxWidth="150"
+                                            FontSize="10.5"
+                                            FontWeight="SemiBold"
+                                            Foreground="#10B981"
+                                            Text="🚩 目的: 推进约会"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                    <TextBlock
+                                        x:Name="AiNoGoalPromptText"
+                                        VerticalAlignment="Center"
+                                        FontSize="10"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="🎯 目的: 未设置(可在设置中配置)"
+                                        ToolTip="前往【设置 -> 画像目的】为好友设定长线战略目的，所有回复都将以此为导向！"
+                                        Visibility="Visible" />
                                 </StackPanel>
 
                                 <!--  右侧：候选条数与画像融入  -->
@@ -809,16 +835,16 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!--  第 3 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
+                            <!--  第 4 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
                             <Button
                                 x:Name="GenerateButton"
-                                Grid.Row="2"
+                                Grid.Row="3"
                                 Height="32"
                                 HorizontalAlignment="Stretch"
                                 Click="GenerateButton_Click"
                                 Content="🚀 智能分析回复建议"
                                 Style="{StaticResource PrimaryAccentButton}"
-                                ToolTip="结合当前策略 Skill 与对方画像，一键生成意图剖析与针对性回复建议" />
+                                ToolTip="结合当前策略 Skill、用户意图与最终目的，一键生成动态意图剖析与量身回复建议" />
                         </Grid>
                     </Border>
 
@@ -1262,7 +1288,10 @@
                                     VerticalContentAlignment="Center"
                                     FontSize="11"
                                     SelectionChanged="PersonaActiveSkillCombo_SelectionChanged"
-                                    ToolTip="选择用于画像分析与特质蒸馏的认知方法论（与【设置 -&gt; 技能中心】双向同步）" />
+                                    ToolTip="选择用于画像分析与特质蒸馏的认知方法论（与【设置 -&gt; 技能中心】双向同步）"
+                                    ToolTipService.BetweenShowDelay="50"
+                                    ToolTipService.InitialShowDelay="100"
+                                    ToolTipService.ShowDuration="20000" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -1423,6 +1452,24 @@
                                                 FontSize="11"
                                                 Foreground="{StaticResource TextSecondaryBrush}"
                                                 Text="更新时间: --  |  历史消息: 0 条" />
+                                            <Border
+                                                x:Name="PersonaHeaderGoalBadge"
+                                                Margin="0,6,0,0"
+                                                Padding="6,2"
+                                                HorizontalAlignment="Left"
+                                                Background="#2010B981"
+                                                BorderBrush="#4410B981"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Visibility="Collapsed">
+                                                <TextBlock
+                                                    x:Name="PersonaHeaderGoalText"
+                                                    FontSize="10.5"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#10B981"
+                                                    Text="🚩 目的: 未设置"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </Border>
                                         </StackPanel>
                                         <Button
                                             x:Name="DeletePersonaButton"
@@ -1445,53 +1492,69 @@
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <StackPanel>
-                                        <Grid>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
                                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                                 <TextBlock
-                                                    Margin="0,0,6,0"
+                                                    Margin="0,0,4,0"
                                                     VerticalAlignment="Center"
-                                                    FontSize="13"
+                                                    FontSize="12"
                                                     Text="📊" />
                                                 <TextBlock
                                                     VerticalAlignment="Center"
-                                                    FontSize="12.5"
+                                                    FontSize="12"
                                                     FontWeight="Bold"
                                                     Foreground="{StaticResource TextPrimaryBrush}"
-                                                    Text="多维性格与沟通雷达图谱" />
+                                                    Text="沟通雷达图谱" />
                                                 <TextBlock
                                                     x:Name="RadarDimensionCountText"
-                                                    Margin="6,0,0,0"
+                                                    Margin="4,0,0,0"
                                                     VerticalAlignment="Center"
                                                     FontSize="10"
                                                     Foreground="{StaticResource TextSecondaryBrush}"
                                                     Text="" />
                                             </StackPanel>
                                             <StackPanel
+                                                Grid.Column="1"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Orientation="Horizontal">
                                                 <Button
-                                                    x:Name="RadarToggleDimButton"
-                                                    Margin="0,0,6,0"
-                                                    Padding="6,2"
-                                                    Click="RadarToggleDimButton_Click"
-                                                    Content="🎯 核心6维"
+                                                    x:Name="OpenPersonaAnalyticsButton"
+                                                    Margin="0,0,5,0"
+                                                    Padding="5,1.5"
+                                                    Click="OpenPersonaAnalyticsButton_Click"
+                                                    Content="🔍 放大看板"
                                                     FontSize="10"
                                                     Style="{StaticResource FluentButton}"
-                                                    ToolTip="点击在「核心6维精炼视角」与「全量特质视角」之间切换"
+                                                    ToolTip="打开放大版全景深度分析看板：包含高分辨率雷达图、柱状图、折线图及全量深度分析报告" />
+                                                <Button
+                                                    x:Name="RadarToggleDimButton"
+                                                    Margin="0,0,5,0"
+                                                    Padding="5,1.5"
+                                                    Click="RadarToggleDimButton_Click"
+                                                    Content="🎯 核心视角"
+                                                    FontSize="10"
+                                                    Style="{StaticResource FluentButton}"
+                                                    ToolTip="点击在「精选视角」与「全量特质视角」之间切换"
                                                     Visibility="Collapsed" />
                                                 <Border
-                                                    Padding="6,2"
+                                                    Padding="5,1.5"
                                                     Background="#2038BDF8"
                                                     BorderBrush="#5038BDF8"
                                                     BorderThickness="1"
                                                     CornerRadius="4">
                                                     <TextBlock
                                                         x:Name="RadarSkillBadgeText"
+                                                        MaxWidth="105"
                                                         FontSize="10"
                                                         FontWeight="SemiBold"
                                                         Foreground="#38BDF8"
-                                                        Text="🧬 女娲心智蒸馏" />
+                                                        Text="🧬 女娲心智蒸馏"
+                                                        TextTrimming="CharacterEllipsis" />
                                                 </Border>
                                             </StackPanel>
                                         </Grid>
@@ -1500,7 +1563,11 @@
                                             Width="360"
                                             Height="200"
                                             Margin="0,6,0,0"
-                                            HorizontalAlignment="Center" />
+                                            HorizontalAlignment="Center"
+                                            Background="Transparent"
+                                            Cursor="Hand"
+                                            MouseLeftButtonDown="RadarCanvas_MouseLeftButtonDown"
+                                            ToolTip="点击打开放大版全景深度分析看板（雷达图、柱状图、折线图及详细分析）" />
                                     </StackPanel>
                                 </Border>
 
@@ -1676,17 +1743,23 @@
                                 Style="{StaticResource SettingSubTabRadio}"
                                 Tag="1" />
                             <RadioButton
-                                x:Name="SettingSubTabPref"
+                                x:Name="SettingSubTabGoals"
                                 Click="SettingSubTab_Click"
-                                Content="🎨 偏好管理"
+                                Content="🎯 画像目的"
                                 Style="{StaticResource SettingSubTabRadio}"
                                 Tag="2" />
                             <RadioButton
-                                x:Name="SettingSubTabHelp"
+                                x:Name="SettingSubTabPref"
                                 Click="SettingSubTab_Click"
-                                Content="❓ 使用指南"
+                                Content="🎨 偏好"
                                 Style="{StaticResource SettingSubTabRadio}"
                                 Tag="3" />
+                            <RadioButton
+                                x:Name="SettingSubTabHelp"
+                                Click="SettingSubTab_Click"
+                                Content="❓ 指南"
+                                Style="{StaticResource SettingSubTabRadio}"
+                                Tag="4" />
                         </UniformGrid>
                     </Border>
 
@@ -1935,7 +2008,10 @@
                                             Height="35"
                                             VerticalContentAlignment="Center"
                                             FontSize="11.5"
-                                            SelectionChanged="SettingActiveSkillCombo_SelectionChanged" />
+                                            SelectionChanged="SettingActiveSkillCombo_SelectionChanged"
+                                            ToolTipService.BetweenShowDelay="50"
+                                            ToolTipService.InitialShowDelay="100"
+                                            ToolTipService.ShowDuration="20000" />
                                     </Grid>
 
                                     <!--  自定义技能快速添加卡片 (默认折叠)  -->
@@ -2077,7 +2153,171 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!--  子视图 2: 🎨 偏好与系统设置 (含数据存储)  -->
+                    <!--  子视图 2: 🎯 已保存画像列表与最终战略目的管理  -->
+                    <ScrollViewer
+                        x:Name="SettingViewGoals"
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto"
+                        Visibility="Collapsed">
+                        <StackPanel Margin="0,0,0,16">
+                            <Border
+                                Margin="0,0,0,12"
+                                Padding="12"
+                                Background="{StaticResource CardBgBrush}"
+                                BorderBrush="{StaticResource BorderLightBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="13"
+                                                FontWeight="Bold"
+                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Text="🎯 已保存画像与最终战略目的" />
+                                            <TextBlock
+                                                Margin="0,4,0,0"
+                                                FontSize="10.5"
+                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                LineHeight="15"
+                                                Text="聊天总是带有目的性的。为每个好友设定最终目的（如邀约约会、商务签约、化解误会等），往后「建议」中所有回复都将以此为导向！"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button
+                                            Grid.Column="1"
+                                            Padding="8,3"
+                                            VerticalAlignment="Top"
+                                            Click="RefreshSavedGoalsButton_Click"
+                                            Content="🔄 刷新"
+                                            FontSize="10.5"
+                                            Style="{StaticResource FluentButton}"
+                                            ToolTip="重新加载本地所有已保存画像" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!--  空状态卡片  -->
+                            <Border
+                                x:Name="NoSavedPersonasPlaceholder"
+                                Margin="0,6,0,0"
+                                Padding="20"
+                                Background="{StaticResource CardBgBrush}"
+                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock
+                                        Margin="0,0,0,8"
+                                        HorizontalAlignment="Center"
+                                        FontSize="28"
+                                        Text="👤" />
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Text="暂无已保存的联系人画像" />
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="11"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="在「画像」Tab 中一键蒸馏后即可在此配置长线聊天战略目的。"
+                                        TextAlignment="Center"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  已保存画像列表 ItemsControl  -->
+                            <ItemsControl x:Name="SavedPersonasGoalsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="0,0,0,10"
+                                            Padding="12"
+                                            Background="{StaticResource CardBgBrush}"
+                                            BorderBrush="{StaticResource BorderLightBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                            <StackPanel>
+                                                <!--  好友信息与特质指标行  -->
+                                                <Grid Margin="0,0,0,8">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            Text="👤"
+                                                            FontSize="14"
+                                                            Margin="0,0,6,0"
+                                                            VerticalAlignment="Center" />
+                                                        <TextBlock
+                                                            Text="{Binding ContactName}"
+                                                            FontSize="13"
+                                                            FontWeight="Bold"
+                                                            Foreground="#60A5FA"
+                                                            VerticalAlignment="Center" />
+                                                        <Border
+                                                            Margin="8,0,0,0"
+                                                            Padding="5,1"
+                                                            Background="#2210B981"
+                                                            BorderBrush="#4410B981"
+                                                            BorderThickness="1"
+                                                            CornerRadius="4"
+                                                            VerticalAlignment="Center">
+                                                            <TextBlock
+                                                                Text="{Binding TraitCountText}"
+                                                                FontSize="10"
+                                                                Foreground="#10B981" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="10"
+                                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                                        Text="{Binding UpdatedTimeText}" />
+                                                </Grid>
+
+                                                <!--  最终战略目的输入行  -->
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                    Text="🚩 最终战略目的 (Chat Objective):" />
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox
+                                                        Height="30"
+                                                        FontSize="11.5"
+                                                        Text="{Binding UltimateGoal, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                        Style="{StaticResource FluentTextBox}"
+                                                        ToolTip="输入与该好友聊天的终极战略目的（例如：推进恋爱关系并邀约线下约会、商务签约、化解误会等）" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Margin="8,0,0,0"
+                                                        Height="30"
+                                                        Padding="12,0"
+                                                        Click="SavePersonaGoal_Click"
+                                                        Tag="{Binding}"
+                                                        Content="💾 保存"
+                                                        FontSize="11"
+                                                        Style="{StaticResource PrimaryAccentButton}"
+                                                        ToolTip="保存该联系人的最终目的" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!--  子视图 3: 🎨 偏好与系统设置 (含数据存储)  -->
                     <ScrollViewer
                         x:Name="SettingViewPref"
                         Grid.Row="1"

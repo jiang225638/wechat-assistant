@@ -172,7 +172,7 @@ public sealed class SkillStore
                 if (descMatch.Success)
                 {
                     desc = descMatch.Groups[1].Value.Trim().Replace("\r", "").Replace("\n", " ").Trim('"', '\'', '|');
-                    if (desc.Length > 80) desc = desc[..77] + "...";
+                    if (desc.Length > 240) desc = desc[..237] + "...";
                 }
             }
 
