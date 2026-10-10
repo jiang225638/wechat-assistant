@@ -1,0 +1,101 @@
+name: Auto Release (自动打包发布)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号 (如 1.0.0)'
+        required: false
+        default: '1.0.0'
+
+# 赋予创建 Release 和上传资源的写权限
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: 构建安装包并发布到 Release
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 配置 .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 安装 Inno Setup 编译器
+        run: choco install innosetup --no-progress
+
+      - name: 运行单元测试
+        run: dotnet test tests/WeChatCopilot.Tests/WeChatCopilot.Tests.csproj -c Release
+
+      - name: 计算发布版本号与标签
+        id: get_version
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.version }}' -ne '') {
+            $ver = '${{ inputs.version }}'
+            $tag = "v$ver"
+          } elseif ('${{ github.ref_type }}' -eq 'tag') {
+            $tag = '${{ github.ref_name }}'
+            $ver = $tag.TrimStart('v')
+          } else {
+            $ver = "1.0.0"
+            $tag = "v1.0.0"
+          }
+          "version=$ver" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          Write-Host "Release Version: $ver, Tag: $tag"
+
+      - name: 执行打包构建脚本 (生成 Setup.exe 与单文件 EXE)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -Version "${{ steps.get_version.outputs.version }}"
+
+      - name: 确认打包产物生成完毕
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path dist | Format-Table Name, Length
+
+      - name: 发布至 GitHub Releases
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: 微信副驾 (WeChat Copilot) ${{ steps.get_version.outputs.tag }}
+          files: |
+            dist/WeChatCopilot_Setup_*.exe
+            dist/WeChatCopilot_Portable_*.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## 🚀 微信副驾 (WeChat Copilot) ${{ steps.get_version.outputs.tag }}
+
+            欢迎下载使用 **WeChat Copilot**！本安装包由 GitHub Actions 自动化编译打包生成。
+
+            ### 📦 文件下载列表：
+            - **`WeChatCopilot_Setup_v${{ steps.get_version.outputs.version }}.exe`** **（强烈推荐）**：标准 Windows 安装向导包，支持自定义安装路径、创建桌面快捷方式、开始菜单图标以及 Windows 控制面板标准卸载。
+            - **`WeChatCopilot_Portable_v${{ steps.get_version.outputs.version }}.exe`**：绿色免安装单文件版，双击直接运行，适合放 U 盘或快速体验。
+
+            > 🛡️ **运行环境自包含 (Self-Contained)**：  
+            > 安装包与单文件均已内置 .NET 10 Desktop 运行时，目标用户的 Windows 电脑**无需提前安装任何 .NET 环境或依赖库**，直接双击运行！
+
+      - name: 上传构建产物备份 (Action Artifacts)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: WeChatCopilot-${{ steps.get_version.outputs.tag }}-Binaries
+          path: dist/*
+          if-no-files-found: ignore
