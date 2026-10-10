@@ -1226,6 +1226,27 @@
                                     Style="{StaticResource FluentButton}"
                                     ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人" />
                             </Grid>
+
+                            <!--  3. 蒸馏技能视角选择（直观展示与快速切换）  -->
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Text="蒸馏技能：" />
+                                <ComboBox
+                                    x:Name="PersonaActiveSkillCombo"
+                                    Grid.Column="1"
+                                    Height="32"
+                                    VerticalContentAlignment="Center"
+                                    FontSize="11"
+                                    SelectionChanged="PersonaActiveSkillCombo_SelectionChanged"
+                                    ToolTip="选择用于画像分析与特质蒸馏的认知方法论（与【设置 -> 技能中心】双向同步）" />
+                            </Grid>
                         </StackPanel>
                     </Border>
 
@@ -1420,11 +1441,28 @@
                                                     FontWeight="Bold"
                                                     Foreground="{StaticResource TextPrimaryBrush}"
                                                     Text="多维性格与沟通雷达图谱" />
+                                                <TextBlock
+                                                    x:Name="RadarDimensionCountText"
+                                                    Margin="6,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="10"
+                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                    Text="" />
                                             </StackPanel>
                                             <StackPanel
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Orientation="Horizontal">
+                                                <Button
+                                                    x:Name="RadarToggleDimButton"
+                                                    Margin="0,0,6,0"
+                                                    Padding="6,2"
+                                                    Click="RadarToggleDimButton_Click"
+                                                    Content="🎯 核心6维"
+                                                    FontSize="10"
+                                                    Style="{StaticResource FluentButton}"
+                                                    Visibility="Collapsed"
+                                                    ToolTip="点击在「核心6维精炼视角」与「全量特质视角」之间切换" />
                                                 <Border
                                                     Padding="6,2"
                                                     Background="#2038BDF8"
@@ -1436,7 +1474,7 @@
                                                         FontSize="10"
                                                         FontWeight="SemiBold"
                                                         Foreground="#38BDF8"
-                                                        Text="🧬 女娲心智蒸馏 (Nuwa Skill)" />
+                                                        Text="🧬 女娲心智蒸馏" />
                                                 </Border>
                                             </StackPanel>
                                         </Grid>

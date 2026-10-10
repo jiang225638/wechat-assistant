@@ -74,6 +74,8 @@ public partial class OverlayWindow : Window
     private string? _mySelfNickname;
     private Persona? _currentLoadedPersona;
     private DistillSkill _currentSkill = DistillSkillPresets.Nuwa;
+    private const int MaxRadarDimensions = 6;
+    private bool _showAllRadarDimensions = false;
 
     public OverlayWindow()
     {
@@ -1183,43 +1185,133 @@ public partial class OverlayWindow : Window
         var cleanTraits = PersonaDistiller.DeduplicateByDimension(p.Traits, _history);
         PersonaCards.ItemsSource = cleanTraits;
 
+        // 呈现该画像生成时选用的技能，但不篡改用户当前活动蒸馏技能设置
+        DistillSkill displaySkill = _currentSkill;
         if (!string.IsNullOrWhiteSpace(p.SkillId))
         {
             var matchedSkill = _skillStore.GetSkill(p.SkillId);
-            if (matchedSkill != null && (_currentSkill == null || !string.Equals(_currentSkill.Id, matchedSkill.Id, StringComparison.OrdinalIgnoreCase)))
+            if (matchedSkill != null)
             {
-                _currentSkill = matchedSkill;
-                _skillStore.SetActiveSkillId(matchedSkill.Id);
-                RefreshSettingsSkillList();
+                displaySkill = matchedSkill;
             }
         }
 
-        DrawRadarChart(cleanTraits);
-        UpdateSkillBadge();
+        DrawRadarChart(cleanTraits, displaySkill);
+        UpdatePersonaSkillBadge(displaySkill);
     }
 
-    private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits)
+    private void UpdatePersonaSkillBadge(DistillSkill displaySkill)
+    {
+        if (RadarSkillBadgeText != null)
+        {
+            RadarSkillBadgeText.Text = $"{displaySkill.Icon} {displaySkill.Name}";
+            RadarSkillBadgeText.ToolTip = $"该画像生成时选用的技能视角：{displaySkill.Name}（当前活动蒸馏技能：{_currentSkill.Name}）";
+        }
+    }
+
+    private void RadarToggleDimButton_Click(object sender, RoutedEventArgs e)
+    {
+        _showAllRadarDimensions = !_showAllRadarDimensions;
+        if (_currentLoadedPersona != null)
+        {
+            var cleanTraits = PersonaDistiller.DeduplicateByDimension(_currentLoadedPersona.Traits, _history);
+            DistillSkill displaySkill = !string.IsNullOrWhiteSpace(_currentLoadedPersona.SkillId)
+                ? _skillStore.GetSkill(_currentLoadedPersona.SkillId)
+                : _currentSkill;
+            DrawRadarChart(cleanTraits, displaySkill);
+        }
+    }
+
+    private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits, DistillSkill? skill = null)
     {
         RadarCanvas.Children.Clear();
+        skill ??= _currentSkill ?? DistillSkillPresets.Nuwa;
 
         double cx = RadarCanvas.Width / 2.0;
         double cy = RadarCanvas.Height / 2.0;
-        double maxR = 64.0;
+        double maxR = 60.0;
 
         var data = new List<(string Label, double Score)>();
         if (traits is { Count: > 0 })
         {
-            foreach (var t in traits)
+            IReadOnlyList<PersonaTrait> displayTraits;
+            if (_showAllRadarDimensions || traits.Count <= MaxRadarDimensions)
+            {
+                displayTraits = traits;
+            }
+            else
+            {
+                // 智能挑选最具代表性的核心 6 维，杜绝圆周标记点过多拥挤重叠
+                var selected = new List<PersonaTrait>();
+
+                // 1. 优先匹配当前技能（或画像对应技能）定义的核心维度
+                if (skill.Dimensions is { Count: > 0 } skillDims)
+                {
+                    foreach (string d in skillDims)
+                    {
+                        var match = traits.FirstOrDefault(t =>
+                            string.Equals(t.Dimension, d, StringComparison.OrdinalIgnoreCase) ||
+                            t.Dimension.Contains(d, StringComparison.OrdinalIgnoreCase) ||
+                            d.Contains(t.Dimension, StringComparison.OrdinalIgnoreCase));
+                        if (match != null && !selected.Contains(match))
+                        {
+                            selected.Add(match);
+                            if (selected.Count >= MaxRadarDimensions) break;
+                        }
+                    }
+                }
+
+                // 2. 若不足 6 维，按特质显著度（可信度高 + 偏离中性分 50 + 证据数量多）补充
+                if (selected.Count < MaxRadarDimensions)
+                {
+                    var remaining = traits
+                        .Except(selected)
+                        .OrderByDescending(t => (t.Confidence * 100) + Math.Abs(t.Score - 50) + (t.Evidence.Count * 10))
+                        .Take(MaxRadarDimensions - selected.Count);
+                    selected.AddRange(remaining);
+                }
+
+                displayTraits = selected.Count >= 3 ? selected : traits.Take(MaxRadarDimensions).ToList();
+            }
+
+            foreach (var t in displayTraits)
             {
                 string label = t.Dimension.Length > 7 ? t.Dimension[..6] + ".." : t.Dimension;
                 data.Add((label, Math.Clamp(t.Score, 10, 100)));
             }
+
+            // 更新切换按钮与维度数量说明
+            if (RadarToggleDimButton != null)
+            {
+                if (traits.Count > MaxRadarDimensions)
+                {
+                    RadarToggleDimButton.Visibility = Visibility.Visible;
+                    RadarToggleDimButton.Content = _showAllRadarDimensions ? "🎯 核心6维" : $"🌐 全部({traits.Count})";
+                    RadarToggleDimButton.ToolTip = _showAllRadarDimensions
+                        ? "当前显示全量特质，点击切换为清爽直观的【核心6维】"
+                        : $"当前精选显示【核心6维】，点击展开全部 {traits.Count} 项维度标记点";
+                }
+                else
+                {
+                    RadarToggleDimButton.Visibility = Visibility.Collapsed;
+                }
+            }
+
+            if (RadarDimensionCountText != null)
+            {
+                RadarDimensionCountText.Text = traits.Count > MaxRadarDimensions
+                    ? (_showAllRadarDimensions ? $"({traits.Count}维全量)" : $"(核心6维 / 共{traits.Count}项)")
+                    : $"({traits.Count}维)";
+            }
         }
         else
         {
+            if (RadarToggleDimButton != null) RadarToggleDimButton.Visibility = Visibility.Collapsed;
+            if (RadarDimensionCountText != null) RadarDimensionCountText.Text = string.Empty;
+
             // 无画像数据时，使用当前激活 Skill 的预设维度展示中性底图 (50分基准)
-            var defaultDims = _currentSkill?.Dimensions is { Count: >= 3 }
-                ? _currentSkill.Dimensions
+            var defaultDims = skill.Dimensions is { Count: >= 3 }
+                ? skill.Dimensions.Take(MaxRadarDimensions)
                 : new[] { "沟通风格", "性格能量", "决策模式", "情绪阈值", "价值锚点", "隐形雷区" };
 
             foreach (var d in defaultDims)
@@ -1310,7 +1402,7 @@ public partial class OverlayWindow : Window
             }
         }
 
-        // 5. 外周维度标签与评分 (居中对齐)
+        // 5. 外周维度标签与评分 (居中对齐，杜绝重叠)
         double labelR = maxR + 18;
         for (int i = 0; i < count; i++)
         {
@@ -1567,7 +1659,7 @@ public partial class OverlayWindow : Window
 
     private void RefreshSettingsSkillList()
     {
-        if (SettingActiveSkillCombo == null || SettingSkillList == null) return;
+        if (SettingSkillList == null) return;
 
         _isSyncingSkillSelection = true;
         try
@@ -1575,21 +1667,41 @@ public partial class OverlayWindow : Window
             var allSkills = _skillStore.GetAllSkills();
             string activeId = _skillStore.GetActiveSkillId();
 
-            SettingActiveSkillCombo.Items.Clear();
-            ComboBoxItem? selectedCombo = null;
+            if (SettingActiveSkillCombo != null) SettingActiveSkillCombo.Items.Clear();
+            if (PersonaActiveSkillCombo != null) PersonaActiveSkillCombo.Items.Clear();
+
+            ComboBoxItem? selectedSettingCombo = null;
+            ComboBoxItem? selectedPersonaCombo = null;
 
             var items = new List<SettingSkillItem>();
             foreach (var skill in allSkills)
             {
-                var cItem = new ComboBoxItem
+                if (SettingActiveSkillCombo != null)
                 {
-                    Content = $"{skill.Icon} {skill.Name}",
-                    Tag = skill
-                };
-                SettingActiveSkillCombo.Items.Add(cItem);
-                if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
+                    var cItem = new ComboBoxItem
+                    {
+                        Content = $"{skill.Icon} {skill.Name}",
+                        Tag = skill
+                    };
+                    SettingActiveSkillCombo.Items.Add(cItem);
+                    if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        selectedSettingCombo = cItem;
+                    }
+                }
+
+                if (PersonaActiveSkillCombo != null)
                 {
-                    selectedCombo = cItem;
+                    var pItem = new ComboBoxItem
+                    {
+                        Content = $"{skill.Icon} {skill.Name}",
+                        Tag = skill
+                    };
+                    PersonaActiveSkillCombo.Items.Add(pItem);
+                    if (string.Equals(skill.Id, activeId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        selectedPersonaCombo = pItem;
+                    }
                 }
 
                 items.Add(new SettingSkillItem(
@@ -1601,15 +1713,24 @@ public partial class OverlayWindow : Window
                 ));
             }
 
-            if (selectedCombo != null)
+            if (selectedSettingCombo != null && SettingActiveSkillCombo != null)
             {
-                SettingActiveSkillCombo.SelectedItem = selectedCombo;
-                _currentSkill = (DistillSkill)selectedCombo.Tag;
+                SettingActiveSkillCombo.SelectedItem = selectedSettingCombo;
+                _currentSkill = (DistillSkill)selectedSettingCombo.Tag;
             }
-            else if (SettingActiveSkillCombo.Items.Count > 0)
+            else if (SettingActiveSkillCombo is { Items.Count: > 0 })
             {
                 SettingActiveSkillCombo.SelectedIndex = 0;
                 _currentSkill = (DistillSkill)((ComboBoxItem)SettingActiveSkillCombo.Items[0]).Tag;
+            }
+
+            if (selectedPersonaCombo != null && PersonaActiveSkillCombo != null)
+            {
+                PersonaActiveSkillCombo.SelectedItem = selectedPersonaCombo;
+            }
+            else if (PersonaActiveSkillCombo is { Items.Count: > 0 })
+            {
+                PersonaActiveSkillCombo.SelectedIndex = 0;
             }
 
             SettingSkillList.ItemsSource = items;
@@ -1621,21 +1742,71 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private void SettingActiveSkillCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void PersonaActiveSkillCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isSyncingSkillSelection) return;
 
-        if (SettingActiveSkillCombo.SelectedItem is ComboBoxItem item && item.Tag is DistillSkill skill)
+        if (PersonaActiveSkillCombo?.SelectedItem is ComboBoxItem item && item.Tag is DistillSkill skill)
         {
             _isSyncingSkillSelection = true;
             try
             {
                 _skillStore.SetActiveSkillId(skill.Id);
                 _currentSkill = skill;
+
+                if (SettingActiveSkillCombo != null)
+                {
+                    foreach (ComboBoxItem sItem in SettingActiveSkillCombo.Items)
+                    {
+                        if (sItem.Tag is DistillSkill s && string.Equals(s.Id, skill.Id, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SettingActiveSkillCombo.SelectedItem = sItem;
+                            break;
+                        }
+                    }
+                }
+
                 UpdateSkillBadge();
                 if (_currentLoadedPersona == null)
                 {
-                    DrawRadarChart(null);
+                    DrawRadarChart(null, _currentSkill);
+                }
+            }
+            finally
+            {
+                _isSyncingSkillSelection = false;
+            }
+        }
+    }
+
+    private void SettingActiveSkillCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isSyncingSkillSelection) return;
+
+        if (SettingActiveSkillCombo?.SelectedItem is ComboBoxItem item && item.Tag is DistillSkill skill)
+        {
+            _isSyncingSkillSelection = true;
+            try
+            {
+                _skillStore.SetActiveSkillId(skill.Id);
+                _currentSkill = skill;
+
+                if (PersonaActiveSkillCombo != null)
+                {
+                    foreach (ComboBoxItem pItem in PersonaActiveSkillCombo.Items)
+                    {
+                        if (pItem.Tag is DistillSkill s && string.Equals(s.Id, skill.Id, StringComparison.OrdinalIgnoreCase))
+                        {
+                            PersonaActiveSkillCombo.SelectedItem = pItem;
+                            break;
+                        }
+                    }
+                }
+
+                UpdateSkillBadge();
+                if (_currentLoadedPersona == null)
+                {
+                    DrawRadarChart(null, _currentSkill);
                 }
             }
             finally

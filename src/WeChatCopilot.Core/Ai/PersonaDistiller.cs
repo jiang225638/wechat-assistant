@@ -145,7 +145,11 @@ public static class PersonaDistiller
             }
         }
 
-        sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行。每行格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
+        string dimsGuide = skill.Dimensions.Count > 0
+            ? $"（建议优先提炼以下核心评估维度：【{string.Join("/", skill.Dimensions)}】）"
+            : "（请精炼归纳出 5~6 个最具辨识度的核心维度，避免零散子维度）";
+
+        sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行{dimsGuide}。每行格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
         return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 
@@ -230,7 +234,11 @@ public static class PersonaDistiller
             }
         }
 
-        sb.AppendLine($"请依据【{skill.Name}】认知体系输出合并后的画像。每个维度仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
+        string dimsGuide = skill.Dimensions.Count > 0
+            ? $"核心评估维度建议优先对齐：【{string.Join("/", skill.Dimensions)}】；"
+            : string.Empty;
+
+        sb.AppendLine($"请依据【{skill.Name}】认知体系输出合并后的画像。{dimsGuide}请精炼归纳出 5~6 个最具辨识度的核心特质维度（禁止生成过多碎维度），每个维度严格仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
         return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
 

@@ -173,4 +173,15 @@ public sealed class SkillStoreTests : IDisposable
         Assert.Equal("商务谈判", loaded.Dimensions[0]);
         Assert.Equal("出价策略", loaded.Dimensions[3]);
     }
+
+    [Fact]
+    public void GetSkill_DoesNotMutateActiveSkill()
+    {
+        _store.SetActiveSkillId("tdskill");
+        Assert.Equal("tdskill", _store.GetActiveSkillId());
+
+        // 查询其他技能不应改变当前激活技能
+        var other = _store.GetSkill("tds-chat");
+        Assert.Equal("tdskill", _store.GetActiveSkillId());
+    }
 }
