@@ -499,11 +499,13 @@ public partial class OverlayWindow : Window
         if (!string.IsNullOrWhiteSpace(target))
         {
             AiTargetContactText.Text = target;
+            AiTargetContactText.ToolTip = $"当前分析目标：{target}";
             var persona = _personaStore.Load(target);
             if (persona is { Traits.Count: > 0 })
             {
                 AiPersonaBadge.Visibility = Visibility.Visible;
                 AiPersonaBadgeText.Text = $"已融入画像 ({persona.Traits.Count}项)";
+                AiPersonaBadge.ToolTip = $"已加载「{target}」的人格特质画像（共 {persona.Traits.Count} 个维度），分析时将自动代入其思维模型与沟通偏好";
             }
             else
             {
@@ -513,6 +515,7 @@ public partial class OverlayWindow : Window
         else
         {
             AiTargetContactText.Text = "当前对话好友";
+            AiTargetContactText.ToolTip = "未指定特定联系人，将依据当前读取到的对话上下文进行智能分析";
             AiPersonaBadge.Visibility = Visibility.Collapsed;
         }
     }
@@ -899,6 +902,7 @@ public partial class OverlayWindow : Window
         if (AiTopSkillText != null)
         {
             AiTopSkillText.Text = $"{_currentSkill.Icon} {_currentSkill.Name}";
+            AiTopSkillText.ToolTip = $"当前全局生效策略：{_currentSkill.Name}\n{_currentSkill.Description}\n（可在 设置->技能中心 自由切换或导入）";
         }
         if (SubtextStrategyTitle != null)
         {

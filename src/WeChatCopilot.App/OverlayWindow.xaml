@@ -661,6 +661,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <!--  第 1 行：对象信息与关系定位  -->
@@ -680,14 +681,16 @@
                                         Text="分析对象:" />
                                     <TextBlock
                                         x:Name="AiTargetContactText"
+                                        MaxWidth="110"
                                         VerticalAlignment="Center"
                                         FontSize="11.5"
                                         FontWeight="Bold"
                                         Foreground="#60A5FA"
-                                        Text="当前对话好友" />
+                                        Text="当前对话好友"
+                                        TextTrimming="CharacterEllipsis" />
                                     <Border
                                         x:Name="AiPersonaBadge"
-                                        Margin="8,0,0,0"
+                                        Margin="6,0,0,0"
                                         Padding="5,1"
                                         VerticalAlignment="Center"
                                         Background="#2210B981"
@@ -697,26 +700,11 @@
                                         Visibility="Collapsed">
                                         <TextBlock
                                             x:Name="AiPersonaBadgeText"
+                                            MaxWidth="95"
                                             FontSize="10"
                                             Foreground="#10B981"
-                                            Text="已融入画像" />
-                                    </Border>
-                                    <Border
-                                        x:Name="AiSkillBadge"
-                                        Margin="6,0,0,0"
-                                        Padding="5,1"
-                                        VerticalAlignment="Center"
-                                        Background="#2038BDF8"
-                                        BorderBrush="#4438BDF8"
-                                        BorderThickness="1"
-                                        CornerRadius="4">
-                                        <TextBlock
-                                            x:Name="AiTopSkillText"
-                                            FontSize="10"
-                                            FontWeight="SemiBold"
-                                            Foreground="#38BDF8"
-                                            Text="🧬 女娲心智蒸馏"
-                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置-&gt;技能中心 切换）" />
+                                            Text="已融入画像"
+                                            TextTrimming="CharacterEllipsis" />
                                     </Border>
                                 </StackPanel>
 
@@ -733,10 +721,10 @@
                                         Text="关系:" />
                                     <ComboBox
                                         x:Name="RelationshipBox"
-                                        Width="138"
+                                        Width="126"
                                         Height="32"
                                         VerticalContentAlignment="Center"
-                                        FontSize="11.5"
+                                        FontSize="11"
                                         IsEditable="True"
                                         Text="🤖 智能推断"
                                         ToolTip="支持直接输入任意自定义关系（如'刚加上的相亲对象'、'严肃领导'、'冷战中女友'），也可点击下拉选择常用预设">
@@ -751,30 +739,61 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!--  第 2 行：策略 Skill、候选条数、融入画像与生成按钮（严格同一行水平对齐，高度均为 32px）  -->
-                            <Grid Grid.Row="1">
+                            <!--  第 2 行：策略 Skill、候选条数与融入画像选项  -->
+                            <Grid Grid.Row="1" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <!--  左侧：候选条数与画像选项  -->
+                                <!--  左侧：当前作战策略 Skill 胶囊徽章  -->
                                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock
                                         Margin="0,0,4,0"
                                         VerticalAlignment="Center"
-                                        FontSize="11.5"
+                                        FontSize="11"
                                         Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="候选条数:" />
+                                        Text="策略:" />
+                                    <Border
+                                        x:Name="AiSkillBadge"
+                                        Padding="6,2"
+                                        VerticalAlignment="Center"
+                                        Background="#2038BDF8"
+                                        BorderBrush="#4438BDF8"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                        <TextBlock
+                                            x:Name="AiTopSkillText"
+                                            MaxWidth="135"
+                                            FontSize="10.5"
+                                            FontWeight="SemiBold"
+                                            Foreground="#38BDF8"
+                                            Text="🧬 女娲心智蒸馏"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip="当前全局生效的沟通作战策略 Skill（在 设置-&gt;技能中心 切换）" />
+                                    </Border>
+                                </StackPanel>
+
+                                <!--  右侧：候选条数与画像融入  -->
+                                <StackPanel
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <TextBlock
+                                        Margin="0,0,4,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="候选:" />
                                     <ComboBox
                                         x:Name="CountBox"
-                                        Width="82"
-                                        Height="32"
-                                        Margin="0,0,10,0"
-                                        Padding="8,0,22,0"
+                                        Width="62"
+                                        Height="28"
+                                        Margin="0,0,6,0"
+                                        Padding="6,0,18,0"
                                         VerticalAlignment="Center"
                                         VerticalContentAlignment="Center"
-                                        FontSize="11.5"
+                                        FontSize="11"
                                         SelectedIndex="0">
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
                                         <ComboBoxItem Content="5 条" />
@@ -783,25 +802,23 @@
                                         x:Name="IncludePersonaCheck"
                                         VerticalAlignment="Center"
                                         Content="融入画像"
-                                        FontSize="11.5"
+                                        FontSize="11"
                                         Foreground="{StaticResource TextSecondaryBrush}"
                                         IsChecked="True"
                                         ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
                                 </StackPanel>
-
-                                <!--  右侧：智能分析与建议按钮（高度 32px，与左侧控件绝对居中对齐）  -->
-                                <Button
-                                    x:Name="GenerateButton"
-                                    Grid.Column="1"
-                                    Height="32"
-                                    Padding="12,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Click="GenerateButton_Click"
-                                    Content="🚀 智能分析"
-                                    Style="{StaticResource PrimaryAccentButton}"
-                                    ToolTip="结合当前策略 Skill 与对方画像，一键生成意图剖析与针对性回复建议" />
                             </Grid>
+
+                            <!--  第 3 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
+                            <Button
+                                x:Name="GenerateButton"
+                                Grid.Row="2"
+                                Height="32"
+                                HorizontalAlignment="Stretch"
+                                Click="GenerateButton_Click"
+                                Content="🚀 智能分析回复建议"
+                                Style="{StaticResource PrimaryAccentButton}"
+                                ToolTip="结合当前策略 Skill 与对方画像，一键生成意图剖析与针对性回复建议" />
                         </Grid>
                     </Border>
 
@@ -1245,7 +1262,7 @@
                                     VerticalContentAlignment="Center"
                                     FontSize="11"
                                     SelectionChanged="PersonaActiveSkillCombo_SelectionChanged"
-                                    ToolTip="选择用于画像分析与特质蒸馏的认知方法论（与【设置 -> 技能中心】双向同步）" />
+                                    ToolTip="选择用于画像分析与特质蒸馏的认知方法论（与【设置 -&gt; 技能中心】双向同步）" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -1461,8 +1478,8 @@
                                                     Content="🎯 核心6维"
                                                     FontSize="10"
                                                     Style="{StaticResource FluentButton}"
-                                                    Visibility="Collapsed"
-                                                    ToolTip="点击在「核心6维精炼视角」与「全量特质视角」之间切换" />
+                                                    ToolTip="点击在「核心6维精炼视角」与「全量特质视角」之间切换"
+                                                    Visibility="Collapsed" />
                                                 <Border
                                                     Padding="6,2"
                                                     Background="#2038BDF8"
