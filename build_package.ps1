@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Configuration = "Release",
     [string]$Version = "1.0.0",
     [bool]$IncludeSingleFile = $true
@@ -67,8 +67,7 @@ if ($iscc) {
 # 4. Optional: build standalone portable single-file exe
 if ($IncludeSingleFile) {
     Write-Host "`n[3/3] Building portable single-file executable..." -ForegroundColor Yellow
-    $singleObj = Join-Path $rootDir "src\WeChatCopilot.App\obj-sf\"
-    & dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true" "-p:EnableCompressionInSingleFile=true" "-p:BaseIntermediateOutputPath=$singleObj" -o $singleFileDir
+    & dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true" "-p:EnableCompressionInSingleFile=true" -o $singleFileDir
 
     if (Test-Path "$singleFileDir\WeChatCopilot.exe") {
         $portableTarget = Join-Path $distDir "WeChatCopilot_Portable_v$Version.exe"
