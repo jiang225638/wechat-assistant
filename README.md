@@ -6,14 +6,14 @@
 ![.NET Version](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)
 ![Language](https://img.shields.io/badge/C%23-14-239120?logo=csharp)
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark-2D7D9A)
-![Tests](https://img.shields.io/badge/Tests-139%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-146%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
 **为微信 PC 端量身打造的贴边悬浮式 AI 聊天副驾**  
 无感贴边跟随 · 纯视觉零侵入识别 · 可扩展 Skill 认知心智蒸馏 · 一体化意图穿透与多风格回复建议
 
-[核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
+[核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
 
 </div>
 
@@ -158,12 +158,17 @@ e:\huanmai\myprod
 │       └── DpapiProtector.cs     # Windows DPAPI 本地敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (139 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (146 项测试全覆盖)
 │       ├── PersonaDistillerTests.cs      # 画像蒸馏算法、证据过滤与可信度测试
 │       ├── OverlayWindowXamlResourceTests.cs # XAML 静态资源契约自动防御测试
 │       ├── PromptBuilderTests.cs         # 提示词工程与策略装配测试
 │       └── AiOutputParserTests.cs        # AI 输出容错解析测试
 │
+├── installer/                    # Inno Setup 自动化安装包工程配置
+│   ├── WeChatCopilot.iss         # Inno Setup 安装包编译脚本 (现代向导风格)
+│   └── ChineseSimplified.isl     # 简体中文向导语言资源
+│
+├── build_package.ps1             # 一键打包发布脚本 (生成 Setup.exe 与绿色单文件)
 ├── WeChatCopilot.slnx            # 现代化 .NET 解决方案配置
 └── README.md                     # 项目说明文档
 ```
@@ -186,7 +191,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (139 项测试全绿)
+# 2. 运行自动化测试 (146 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -201,6 +206,73 @@ dotnet run --project src/WeChatCopilot.App
 ```
 
 启动后，悬浮窗将自动搜索并贴合吸附在微信聊天窗口的右侧。
+
+---
+
+## 📦 打包发布 (EXE 安装文件)
+
+本项目提供开箱即用的自动化打包脚本与 Inno Setup 安装工程，可一键生成**标准安装向导安装包（Setup.exe）**与**绿色独立单文件版（Portable.exe）**。
+
+### 1. 产物类型与特点
+
+所有打包产物均输出在项目根目录的 `dist/` 文件夹下：
+
+| 产物文件 | 文件大小 | 类型说明 | 特点与优势 |
+| :--- | :--- | :--- | :--- |
+| **`WeChatCopilot_Setup_v1.0.0.exe`** | **~55 MB** | **标准 Windows 安装包**（强烈推荐） | 包含简体中文向导、自定义安装目录、创建桌面/开始菜单快捷方式、Windows 控制面板标准卸载、支持无管理员权限安装，支持升级自动覆盖。 |
+| **`WeChatCopilot_Portable_v1.0.0.exe`** | **~80 MB** | **绿色免安装单文件版** | 纯单个可执行程序，无需安装与解压，双击即可运行，方便放 U 盘或快速尝鲜。 |
+
+> 🛡️ **运行环境自包含 (Self-Contained)**：  
+> 两个产物均已内置 **.NET 10 Desktop 运行时**，目标用户的 Windows 电脑**无需提前安装 .NET 10 SDK 或任何依赖库**，直接双击运行！
+
+---
+
+### 2. 一键快速打包（推荐）
+
+项目根目录预置了自动化打包脚本 [`build_package.ps1`](file:///e:/huanmai/myprod/build_package.ps1)。在 PowerShell 中执行即可：
+
+```powershell
+# 1. 默认一键生成安装包与绿色单文件 (版本号默认为 v1.0.0)
+powershell -ExecutionPolicy Bypass -File .\build_package.ps1
+
+# 2. 指定自定义版本号打包 (例如发布 v1.0.1)
+powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -Version "1.0.1"
+
+# 3. 仅构建安装包（跳过单文件以加快打包速度）
+powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:$false
+```
+
+脚本执行完毕后，控制台将自动打印生成的安装包路径与体积大小。
+
+---
+
+### 3. 安装包工具依赖准备
+
+制作 `Setup.exe` 安装包依赖开源编译器 **Inno Setup 6**（命令行工具 `ISCC.exe`）：
+
+- **自动检测**：脚本会自动查找本机已安装的 Inno Setup 路径；
+- **若本机尚未安装**，只需在终端中运行一行命令即可安装：
+  ```powershell
+  winget install JRSoftware.InnoSetup
+  ```
+  *(安装完成后无需重启，脚本即可自动识别并调用)*
+
+---
+
+### 4. 手动执行打包命令（高级用户）
+
+如需脱离脚本手动执行每一步：
+
+```bash
+# 步骤 1：发布自包含应用依赖目录 (win-x64 Release)
+dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-x64 --self-contained true -o ./publish/win-x64
+
+# 步骤 2：使用 Inno Setup 编译器生成标准安装包
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DMyAppVersion=1.0.0 installer/WeChatCopilot.iss
+
+# 步骤 3（可选）：发布免安装独立单文件版
+dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ./publish/singlefile
+```
 
 ---
 
@@ -267,7 +339,7 @@ dotnet run --project src/WeChatCopilot.App
 dotnet test
 ```
 
-测试覆盖概览（139 项全通过）：
+测试覆盖概览（146 项全通过）：
 - `OverlayWindowXamlResourceTests`：**XAML 静态资源契约自动巡检**，防御编译漏检与运行时资源丢失；
 - `PersonaDistillerTests`：女娲心智蒸馏、自定义 Skill 动态装配、事实证据链过滤、可信度解析与 Map-Reduce 去重；
 - `AiOutputParserTests`：一体化 AI 建议多风格容错解析、潜台词与真实意图提取；

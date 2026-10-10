@@ -3,6 +3,8 @@
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+publish/
+dist/
 
 # Visual Studio files
 .vs/

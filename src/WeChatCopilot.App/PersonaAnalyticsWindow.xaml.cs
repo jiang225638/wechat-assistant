@@ -644,6 +644,14 @@ public partial class PersonaAnalyticsWindow : Window
     {
         base.OnStateChanged(e);
         UpdateMaximizeButtonVisual();
+
+        if (RootGrid != null)
+        {
+            // 最大化时 Windows 会向屏幕边界外延伸约 7px 隐藏系统边缘，适度增加内边距保持视觉间距一致
+            RootGrid.Margin = WindowState == WindowState.Maximized
+                ? new Thickness(25)
+                : new Thickness(18);
+        }
     }
 
     private void UpdateMaximizeButtonVisual()

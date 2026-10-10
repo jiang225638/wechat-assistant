@@ -10,8 +10,17 @@
     Background="#0F121C"
     WindowStyle="None"
     AllowsTransparency="False"
-    ResizeMode="CanResizeWithGrip"
+    ResizeMode="CanResize"
     WindowStartupLocation="CenterScreen">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="-1"
+            CornerRadius="0"
+            UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -119,7 +128,7 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="18">
+    <Grid x:Name="RootGrid" Margin="18">
         <Grid.RowDefinitions>
             <!--  顶部信息栏  -->
             <RowDefinition Height="Auto" />

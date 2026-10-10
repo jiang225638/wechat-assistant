@@ -758,7 +758,7 @@
                                     Grid.Column="1"
                                     Height="28"
                                     FontSize="11"
-                                    Padding="6,2"
+                                    Padding="6,5"
                                     Style="{StaticResource FluentTextBox}"
                                     ToolTip="输入你期望的回复方式或意图（如：高位推拉调侃、委婉推脱周六改约周日、真诚共情，留空则由画像与最终目的智能推导）" />
                             </Grid>
