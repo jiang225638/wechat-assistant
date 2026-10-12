@@ -10,17 +10,24 @@ namespace WeChatCopilot.Core.Models;
 /// <param name="Intent">对方的核心心理动机与真实诉求。</param>
 /// <param name="Strategy">建议采取的破局沟通策略与避坑指南。</param>
 /// <param name="Suggestions">结合对方人格定制的多种风格回复建议列表。</param>
+/// <param name="ContextFlowSummary">近期对话语境脉络与双方博弈走向。</param>
+/// <param name="DynamicDimensions">AI 根据最终目的、画像、Skill与意图动态提炼的专属博弈评估维度列表。</param>
 public sealed record UnifiedAiAdvice(
     string TargetQuote,
     string Literal,
     string Subtext,
     string Intent,
     string Strategy,
-    IReadOnlyList<ReplySuggestion> Suggestions)
+    IReadOnlyList<ReplySuggestion> Suggestions,
+    string ContextFlowSummary = "",
+    IReadOnlyList<string>? DynamicDimensions = null)
 {
     /// <summary>是否存在有效的潜台词或意图剖析。</summary>
     public bool HasSubtext => !string.IsNullOrWhiteSpace(Subtext) || !string.IsNullOrWhiteSpace(Intent);
 
     /// <summary>是否存在有效的候选回复建议。</summary>
     public bool HasSuggestions => Suggestions is { Count: > 0 };
+
+    /// <summary>是否存在动态量化评估维度。</summary>
+    public bool HasDynamicDimensions => DynamicDimensions is { Count: > 0 };
 }

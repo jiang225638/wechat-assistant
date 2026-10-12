@@ -141,7 +141,7 @@ public static class PromptBuilder
 
     /// <summary>
     /// 构建全能 AI 建议请求（合并潜台词剖析与多候选回复建议）：
-    /// 深度融合当前指导作战技能 (Skill)、对方人格画像、用户期望的回复方式与终极战略目的，一键完成“意图穿透 + 心理洞察 + 避坑策略 + 动态多风格候选回复”。
+    /// 深度融合当前指导作战技能 (Skill)、对方人格画像、用户期望的回复方式与终极战略目的，一键完成“多轮语境脉络 + 意图穿透 + 心理洞察 + 避坑策略 + 动态多风格候选回复”。
     /// </summary>
     public static AiRequest BuildUnifiedAdvice(
         AiSettings settings,
@@ -152,10 +152,15 @@ public static class PromptBuilder
         string? relationship = null,
         DistillSkill? skill = null,
         string? userIntent = null,
-        string? ultimateGoal = null)
+        string? ultimateGoal = null,
+        int? contextCount = null)
     {
         int n = Math.Clamp(count, 1, 5);
+        settings ??= new AiSettings();
         skill ??= DistillSkillPresets.Nuwa;
+
+        int effectiveContextCount = contextCount ?? (settings?.ContextMessageCount ?? 10);
+        if (effectiveContextCount <= 0) effectiveContextCount = 10;
 
         var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
         string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
@@ -168,9 +173,10 @@ public static class PromptBuilder
 
         // 1. 动态编排对应 Skill 体系的专属 SystemPrompt
         var sysSb = new StringBuilder();
-        sysSb.AppendLine($"你是一位精通人际交往心理学、微表情与对话攻防的顶级高情商聊天副驾大师，当前深度激活并应用【{skillIcon} {skillName}】作战体系。");
-        sysSb.AppendLine("用户会提供一段微信聊天上下文，以及【对方已知的人格画像特质】。");
-        sysSb.AppendLine($"你需要穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出量身定制的多风格回复建议。");
+        sysSb.AppendLine($"你是一位兼具人际博弈学、深度心理学与战略沟通智慧的全域对话军师与高维沟通副驾，当前深度激活并贯彻【{skillIcon} {skillName}】作战体系。");
+        sysSb.AppendLine("你的核心使命是穿透对话表象，结合【当前对话对象的终极战略目的】、【对方已知的人格画像特质】、【当前作战Skill】以及【用户期望的回复意图】，进行真正分层立体的战局研判与战术推演。");
+        sysSb.AppendLine($"你需要综合研判近期多轮对话脉络与博弈演进，穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出承前启后、量身定制的多风格回复建议。");
+        sysSb.AppendLine("严禁任何千篇一律、死板说教或浮于表面的无效闲聊！必须根据上述四大要素，实时动态提炼针对本场博弈的专属评估维度，并量化推演每一条回复方案的话语力量与战略推进力。");
         sysSb.AppendLine();
         sysSb.AppendLine($"【⚔️ 本作战流派的核心战略准则】：\n{tactics}");
 
@@ -189,17 +195,22 @@ public static class PromptBuilder
         sysSb.AppendLine();
         sysSb.AppendLine("严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n");
         sysSb.AppendLine("=== 意图剖析 ===");
+        sysSb.AppendLine("语境脉络：结合双方最近多轮聊天交互与最终战略目的，客观研判当前博弈阶段、话题演进轨迹与双方互动态势（如：商务谈判锁定期、破冰信任建立期、试探拉扯期等）");
         sysSb.AppendLine("字面意思：对方表面上说了什么");
-        sysSb.AppendLine("潜台词洞察：结合其性格特征与心智模型，深度剖析对方隐藏在背后的真实弦外之音、测试防备、好感信号或心理防线");
-        sysSb.AppendLine("真实心理：结合其价值锚点与需求状态，剖析对方潜意识里真正想推动什么、防范什么，以及对我方战略意图的态度倾向");
-        sysSb.AppendLine($"应对策略：基于【{skillName}】心法、对方画像雷区与我方战略目标，建议我方采取的最佳破局沟通策略与避坑指南\n");
+        sysSb.AppendLine("潜台词洞察：结合近期多轮语境、对方性格特征与心智模型，深度剖析对方隐藏在背后的真实弦外之音、潜意识动因或心理防线");
+        sysSb.AppendLine("真实心理：结合近期走向、价值锚点与需求状态，剖析对方在当前战局中真正想推动什么、防范什么，以及对我方战略意图的态度倾向");
+        sysSb.AppendLine($"破局心法：基于【{skillName}】心法、近期语境破局点、对方画像雷区与我方战略目标，建议我方采取的最佳破局战术策略与避坑指南\n");
+        sysSb.AppendLine("=== 动态博弈评估维度 ===");
+        sysSb.AppendLine("评估维度：[由你根据当前终极战略目的、对方画像特征、作战Skill与用户具体意图，量身动态提炼3~5个专属博弈维度，用逗号隔开。严禁千篇一律或死板写死！例如商务合作提炼：商业主导权, 筹码锁定, 成单推进力, 合作诚意；向上管理提炼：确定性交付, 信任资产, 边界防护, 向上赋能；破冰社交提炼：舒适安全感, 情绪共鸣, 价值吸引力, 邀约契机]\n");
         sysSb.AppendLine("=== 回复建议 ===");
-        sysSb.AppendLine("[具体战术风格] 回复内容 | 理由：针对对方画像特质与战略目的的战术动作依据");
+        sysSb.AppendLine("[战术风格] 回复内容 | 理由：针对对方画像特质与战略目的的战术动作依据 | 得分：维度1=xx, 维度2=yy, 维度3=zz | 推进力=xx, 安全度=yy");
         if (tones.Count > 0)
         {
             sysSb.AppendLine($"（【{skillName}】流派推荐破局风格参考：{string.Join("、", tones)}）");
         }
-        sysSb.AppendLine("（【重要】：方括号中的战术风格标签严禁千篇一律使用固定的'高情商/直接/专业/缓和'等刻板标签！必须根据对方画像特质、心理诉求以及用户的战略目的，动态生成极具针对性的战术风格标签，如：[情绪托底与台阶]、[破冰推拉反制]、[顺势价值锚定]、[安全感赋能]、[高位幽默切题]、[借势邀约引导]等！）");
+        sysSb.AppendLine("（【重要要求】：");
+        sysSb.AppendLine(" 1. 方括号中的战术风格标签严禁千篇一律使用固定的'高情商/直接/专业/缓和'等刻板标签！必须根据对方画像特质、心理诉求以及用户的战略目的，动态生成极具针对性的战术风格标签；");
+        sysSb.AppendLine(" 2. 每条回复建议末尾必须给出动态维度的量化评分（0-100）、推进力（0-100，对终极目标的实际推进推动力度）与安全度（0-100，对对方画像雷区与关系的稳健防御度）。）");
 
         // 2. 编排 UserPrompt
         var sb = new StringBuilder();
@@ -228,8 +239,8 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine("聊天上下文（[对方]=对方消息，[我]=用户自己消息）：");
-        sb.AppendLine(BuildTranscript(messages));
+        sb.AppendLine($"聊天上下文（基于最近 {effectiveContextCount} 条多轮交互分析，[对方]=对方消息，[我]=用户自己消息）：");
+        sb.AppendLine(BuildTranscript(messages, effectiveContextCount));
 
         if (persona is { Traits.Count: > 0 })
         {
@@ -243,10 +254,10 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
+        sb.AppendLine($"【🎯 对方最新发言】：\n“{targetStatement}”");
         sb.AppendLine();
-        sb.AppendLine($"请严格按约定格式，先输出【意图剖析】，再输出 {n} 条贴合对方画像与战略目的、动态命名战术风格的【回复建议】：");
+        sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】：");
 
-        return new AiRequest(sysSb.ToString(), sb.ToString(), settings.Model, settings.Temperature);
+        return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7);
     }
 }

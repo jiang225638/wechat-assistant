@@ -7,11 +7,13 @@
     Width="430"
     Height="690"
     MinWidth="390"
-    MinHeight="550"
+    MinHeight="520"
+    MaxWidth="800"
+    MaxHeight="1080"
     AllowsTransparency="True"
     Background="Transparent"
     Left="120"
-    ResizeMode="NoResize"
+    ResizeMode="CanResize"
     ShowInTaskbar="True"
     Top="120"
     Topmost="True"
@@ -36,15 +38,47 @@
         <SolidColorBrush x:Key="GreenBrush" Color="#10B981" />
         <SolidColorBrush x:Key="PurpleBrush" Color="#8B5CF6" />
 
+        <!--  主题扩展画刷  -->
+        <SolidColorBrush x:Key="ButtonBgBrush" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#44FFFFFF" />
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="SubBorderCheckedBrush" Color="#2D2B4E" />
+        <SolidColorBrush x:Key="SubBorderCheckedTextBrush" Color="#60A5FA" />
+        <SolidColorBrush x:Key="InputBgBrush" Color="#221A1A2B" />
+
+        <SolidColorBrush x:Key="KeyCapBgBrush" Color="#28FFFFFF" />
+        <SolidColorBrush x:Key="KeyCapBorderBrush" Color="#44FFFFFF" />
+        <SolidColorBrush x:Key="KeyCapTextBrush" Color="#FFFFFF" />
+
+        <SolidColorBrush x:Key="TabBarBgBrush" Color="#1C1C2A" />
+        <SolidColorBrush x:Key="TabItemTextBrush" Color="#A0A0B8" />
+        <SolidColorBrush x:Key="DiagBgBrush" Color="#1A1A28" />
+
+        <SolidColorBrush x:Key="IntentCardBgBrush" Color="#1C2136" />
+        <SolidColorBrush x:Key="IntentCardBorderBrush" Color="#3B4B75" />
+        <SolidColorBrush x:Key="IntentQuoteBgBrush" Color="#2A3352" />
+        <SolidColorBrush x:Key="IntentQuoteTextBrush" Color="#F3F4F6" />
+        <SolidColorBrush x:Key="IntentSubtextBgBrush" Color="#231F3D" />
+        <SolidColorBrush x:Key="IntentSubtextBorderBrush" Color="#558B5CF6" />
+        <SolidColorBrush x:Key="IntentSubtextTextBrush" Color="#EDE9FE" />
+        <SolidColorBrush x:Key="IntentDemandBgBrush" Color="#1E293B" />
+        <SolidColorBrush x:Key="IntentDemandTextBrush" Color="#E2E8F0" />
+        <SolidColorBrush x:Key="IntentStrategyBgBrush" Color="#182E2B" />
+        <SolidColorBrush x:Key="IntentStrategyBorderBrush" Color="#3310B981" />
+        <SolidColorBrush x:Key="IntentStrategyTextBrush" Color="#D1FAE5" />
+        <SolidColorBrush x:Key="IntentFlowBgBrush" Color="#1B2B3E" />
+        <SolidColorBrush x:Key="IntentFlowBorderBrush" Color="#38BDF8" />
+        <SolidColorBrush x:Key="IntentFlowTextBrush" Color="#E0F2FE" />
+
         <!--  扁平圆角按钮样式  -->
         <Style x:Key="FluentButton" TargetType="Button">
-            <Setter Property="Background" Value="#33FFFFFF" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="12,6" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -60,10 +94,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#44FFFFFF" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#22FFFFFF" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="border" Property="Opacity" Value="0.4" />
@@ -79,7 +113,7 @@
             x:Key="PrimaryAccentButton"
             BasedOn="{StaticResource FluentButton}"
             TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
             <Setter Property="BorderBrush" Value="#4B92FF" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
@@ -97,7 +131,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="border" Property="Opacity" Value="0.45" />
@@ -111,12 +145,12 @@
         <!--  扁平圆角开关按钮样式  -->
         <Style x:Key="FluentToggleButton" TargetType="ToggleButton">
             <Setter Property="Background" Value="#25FFFFFF" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="10,6" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
@@ -147,9 +181,9 @@
 
         <!--  现代输入框样式  -->
         <Style x:Key="FluentTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#221A1A2B" />
-            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="FontSize" Value="12" />
@@ -172,7 +206,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -182,8 +216,8 @@
 
         <!--  键盘按键外观样式  -->
         <Style x:Key="KeyCap" TargetType="Border">
-            <Setter Property="Background" Value="#28FFFFFF" />
-            <Setter Property="BorderBrush" Value="#44FFFFFF" />
+            <Setter Property="Background" Value="{DynamicResource KeyCapBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource KeyCapBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="4" />
             <Setter Property="Padding" Value="6,2" />
@@ -193,7 +227,7 @@
         <!--  设置页子导航 RadioButton 胶囊样式  -->
         <Style x:Key="SettingSubTabRadio" TargetType="RadioButton">
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TabItemTextBrush}" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Padding" Value="4,6" />
@@ -212,12 +246,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="subBorder" Property="Background" Value="#2D2B4E" />
-                                <Setter Property="Foreground" Value="#60A5FA" />
+                                <Setter TargetName="subBorder" Property="Background" Value="{DynamicResource SubBorderCheckedBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource SubBorderCheckedTextBrush}" />
                                 <Setter Property="FontWeight" Value="Bold" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -229,8 +263,8 @@
     <!--  外层卡片边框  -->
     <Border
         Padding="14"
-        Background="{StaticResource WindowBgBrush}"
-        BorderBrush="{StaticResource BorderLightBrush}"
+        Background="{DynamicResource WindowBgBrush}"
+        BorderBrush="{DynamicResource BorderLightBrush}"
         BorderThickness="1"
         CornerRadius="14">
         <Border.Effect>
@@ -283,13 +317,13 @@
                             VerticalAlignment="Center"
                             FontSize="14"
                             FontWeight="Bold"
-                            Foreground="{StaticResource TextPrimaryBrush}"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
                             Text="微信 Copilot" />
                         <TextBlock
                             Margin="6,0,0,0"
                             VerticalAlignment="Center"
                             FontSize="12"
-                            Foreground="{StaticResource TextSecondaryBrush}"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
                             Text="· 聊天副驾" />
                     </StackPanel>
 
@@ -342,8 +376,8 @@
                 <Border
                     Margin="0,10,0,0"
                     Padding="10,6"
-                    Background="{StaticResource CardSubtleBgBrush}"
-                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                    Background="{DynamicResource CardSubtleBgBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="8">
                     <Grid>
@@ -359,12 +393,12 @@
                                 Width="8"
                                 Height="8"
                                 Margin="0,0,8,0"
-                                Fill="{StaticResource GreenBrush}" />
+                                Fill="{DynamicResource GreenBrush}" />
                             <TextBlock
                                 x:Name="StatusText"
                                 VerticalAlignment="Center"
                                 FontSize="12"
-                                Foreground="{StaticResource TextPrimaryBrush}"
+                                Foreground="{DynamicResource TextPrimaryBrush}"
                                 Text="正在查找微信窗口..." />
                         </StackPanel>
 
@@ -386,8 +420,8 @@
                     x:Name="DiagPanel"
                     Margin="0,6,0,0"
                     Padding="8"
-                    Background="#1A1A28"
-                    BorderBrush="{StaticResource BorderSubtleBrush}"
+                    Background="{DynamicResource DiagBgBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                     BorderThickness="1"
                     CornerRadius="6"
                     Visibility="Collapsed">
@@ -395,7 +429,7 @@
                         x:Name="BoundsText"
                         FontFamily="Consolas"
                         FontSize="10"
-                        Foreground="{StaticResource TextSecondaryBrush}"
+                        Foreground="{DynamicResource TextSecondaryBrush}"
                         Text="句柄检测中..."
                         TextWrapping="Wrap" />
                 </Border>
@@ -413,8 +447,8 @@
                     <ControlTemplate TargetType="TabControl">
                         <Border
                             Padding="3"
-                            Background="#1C1C2A"
-                            BorderBrush="{StaticResource BorderSubtleBrush}"
+                            Background="{DynamicResource TabBarBgBrush}"
+                            BorderBrush="{DynamicResource BorderSubtleBrush}"
                             BorderThickness="1"
                             CornerRadius="8">
                             <UniformGrid IsItemsHost="True" Rows="1" />
@@ -423,7 +457,7 @@
                 </TabControl.Template>
                 <TabControl.Resources>
                     <Style TargetType="TabItem">
-                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TabItemTextBrush}" />
                         <Setter Property="FontSize" Value="12" />
                         <Setter Property="FontWeight" Value="SemiBold" />
                         <Setter Property="Padding" Value="4,7" />
@@ -445,18 +479,18 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource AccentBrush}" />
+                                            <Setter TargetName="tabBorder" Property="Background" Value="{DynamicResource AccentBrush}" />
                                             <Setter Property="Foreground" Value="#FFFFFF" />
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                         <MultiTrigger>
                                             <MultiTrigger.Conditions>
                                                 <Condition Property="IsSelected" Value="True" />
                                                 <Condition Property="IsMouseOver" Value="True" />
                                             </MultiTrigger.Conditions>
-                                            <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                                            <Setter TargetName="tabBorder" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
                                             <Setter Property="Foreground" Value="#FFFFFF" />
                                         </MultiTrigger>
                                     </ControlTemplate.Triggers>
@@ -501,8 +535,8 @@
                         Grid.Row="0"
                         Margin="0,0,0,8"
                         Padding="8"
-                        Background="{StaticResource CardSubtleBgBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                         <Grid>
@@ -555,8 +589,8 @@
                             Margin="10,0"
                             Padding="20"
                             VerticalAlignment="Center"
-                            Background="{StaticResource CardSubtleBgBrush}"
-                            BorderBrush="{StaticResource BorderSubtleBrush}"
+                            Background="{DynamicResource CardSubtleBgBrush}"
+                            BorderBrush="{DynamicResource BorderSubtleBrush}"
                             BorderThickness="1"
                             CornerRadius="10"
                             Visibility="Visible">
@@ -570,12 +604,12 @@
                                     HorizontalAlignment="Center"
                                     FontSize="14"
                                     FontWeight="SemiBold"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                     Text="对话缓冲为空" />
                                 <TextBlock
                                     Margin="0,8,0,0"
                                     FontSize="12"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     LineHeight="18"
                                     Text="点击上方【⚡ 读取当前对话】或开启【自动读取】，助手将对当前微信窗口进行气泡级识读与左右归属分类。"
                                     TextAlignment="Center"
@@ -610,7 +644,7 @@
                                                         Text="{Binding SenderLabel}" />
                                                     <TextBlock
                                                         FontSize="12.5"
-                                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                         LineHeight="18"
                                                         Text="{Binding Text}"
                                                         TextWrapping="Wrap" />
@@ -627,10 +661,10 @@
                             x:Name="OcrOutput"
                             Padding="8"
                             AcceptsReturn="True"
-                            Background="#FF13131F"
-                            BorderBrush="{StaticResource BorderSubtleBrush}"
+                            Background="{DynamicResource InputBgBrush}"
+                            BorderBrush="{DynamicResource BorderSubtleBrush}"
                             FontSize="11"
-                            Foreground="#FFD4D4D4"
+                            Foreground="{DynamicResource TextPrimaryBrush}"
                             IsReadOnly="True"
                             TextWrapping="Wrap"
                             VerticalScrollBarVisibility="Auto"
@@ -654,12 +688,13 @@
                         Grid.Row="0"
                         Margin="0,0,0,8"
                         Padding="10,9"
-                        Background="{StaticResource CardSubtleBgBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
@@ -679,7 +714,7 @@
                                         Margin="0,0,4,0"
                                         VerticalAlignment="Center"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="分析对象:" />
                                     <TextBlock
                                         x:Name="AiTargetContactText"
@@ -719,7 +754,7 @@
                                         Margin="0,0,4,0"
                                         VerticalAlignment="Center"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="策略:" />
                                     <Border
                                         x:Name="AiSkillBadge"
@@ -742,36 +777,14 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!--  第 2 行：用户期望回复方式 / 自定义意图输入框  -->
+                            <!--  第 2 行：当前好友战略目的（独立整行，支持直达配置）  -->
                             <Grid Grid.Row="1" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock
-                                    Margin="0,0,6,0"
-                                    VerticalAlignment="Center"
-                                    FontSize="11"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
-                                    Text="回复意图:" />
-                                <TextBox
-                                    x:Name="AiIntentBox"
-                                    Grid.Column="1"
-                                    Height="28"
-                                    FontSize="11"
-                                    Padding="6,5"
-                                    Style="{StaticResource FluentTextBox}"
-                                    ToolTip="输入你期望的回复方式或意图（如：高位推拉调侃、委婉推脱周六改约周日、真诚共情，留空则由画像与最终目的智能推导）" />
-                            </Grid>
-
-                            <!--  第 3 行：终极目的指示与候选设置  -->
-                            <Grid Grid.Row="2" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <!--  左侧：当前好友终极战略目的胶囊/提示  -->
+                                <!--  左侧：目的胶囊 / 未设置提示  -->
                                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                     <Border
                                         x:Name="AiGoalBadge"
@@ -784,7 +797,7 @@
                                         Visibility="Collapsed">
                                         <TextBlock
                                             x:Name="AiGoalBadgeText"
-                                            MaxWidth="150"
+                                            MaxWidth="230"
                                             FontSize="10.5"
                                             FontWeight="SemiBold"
                                             Foreground="#10B981"
@@ -794,29 +807,91 @@
                                     <TextBlock
                                         x:Name="AiNoGoalPromptText"
                                         VerticalAlignment="Center"
-                                        FontSize="10"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        Text="🎯 目的: 未设置(可在设置中配置)"
-                                        ToolTip="前往【设置 -> 画像目的】为好友设定长线战略目的，所有回复都将以此为导向！"
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        Text="🎯 最终目的: 未设置(回复将以此为导向)"
+                                        ToolTip="点击右侧【设置】为好友设定长线战略目的，所有建议回复都将以此目的为核心导向！"
                                         Visibility="Visible" />
                                 </StackPanel>
 
-                                <!--  右侧：候选条数与画像融入  -->
-                                <StackPanel
+                                <!--  右侧：直达设置目的快捷按钮  -->
+                                <Button
+                                    x:Name="SettingNavigateGoalBtn"
                                     Grid.Column="1"
+                                    Padding="6,2"
                                     VerticalAlignment="Center"
-                                    Orientation="Horizontal">
+                                    Click="SettingNavigateGoalBtn_Click"
+                                    Content="⚙️ 设置目的"
+                                    FontSize="10.5"
+                                    Style="{StaticResource FluentButton}"
+                                    ToolTip="快速前往【设置 -> 画像目的】配置长线战略目的" />
+                            </Grid>
+
+                            <!--  第 3 行：用户期望回复方式 / 自定义意图输入框  -->
+                            <Grid Grid.Row="2" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    Text="回复意图:" />
+                                <TextBox
+                                    x:Name="AiIntentBox"
+                                    Grid.Column="1"
+                                    Height="28"
+                                    FontSize="11"
+                                    Padding="6,5"
+                                    Style="{StaticResource FluentTextBox}"
+                                    ToolTip="输入你期望的回复方式或意图（如：高位推拉调侃、委婉推脱周六改约周日、真诚共情，留空则由画像与最终目的智能推导）" />
+                            </Grid>
+
+                            <!--  第 4 行：语境跨度、候选方案与画像融入参数（独立整行，排版从容防遮挡）  -->
+                            <Grid Grid.Row="3" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock
                                         Margin="0,0,4,0"
                                         VerticalAlignment="Center"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        Text="语境:" />
+                                    <ComboBox
+                                        x:Name="AiContextCountCombo"
+                                        Width="68"
+                                        Height="26"
+                                        Padding="6,0,18,0"
+                                        VerticalAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        FontSize="11"
+                                        SelectionChanged="AiContextCountCombo_SelectionChanged"
+                                        ToolTip="分析最近多轮语境条数（默认10条，包含3~6轮完整来回研判）">
+                                        <ComboBoxItem Content="5 条" Tag="5" />
+                                        <ComboBoxItem Content="10 条" Tag="10" IsSelected="True" />
+                                        <ComboBoxItem Content="15 条" Tag="15" />
+                                        <ComboBoxItem Content="20 条" Tag="20" />
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock
+                                        Margin="0,0,4,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="候选:" />
                                     <ComboBox
                                         x:Name="CountBox"
                                         Width="62"
-                                        Height="28"
-                                        Margin="0,0,6,0"
+                                        Height="26"
                                         Padding="6,0,18,0"
                                         VerticalAlignment="Center"
                                         VerticalContentAlignment="Center"
@@ -825,21 +900,24 @@
                                         <ComboBoxItem Content="3 条" IsSelected="True" />
                                         <ComboBoxItem Content="5 条" />
                                     </ComboBox>
-                                    <CheckBox
-                                        x:Name="IncludePersonaCheck"
-                                        VerticalAlignment="Center"
-                                        Content="融入画像"
-                                        FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
-                                        IsChecked="True"
-                                        ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
                                 </StackPanel>
+
+                                <CheckBox
+                                    x:Name="IncludePersonaCheck"
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Content="融入画像"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    IsChecked="True"
+                                    ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
                             </Grid>
 
-                            <!--  第 4 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
+                            <!--  第 5 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
                             <Button
                                 x:Name="GenerateButton"
-                                Grid.Row="3"
+                                Grid.Row="4"
                                 Height="32"
                                 HorizontalAlignment="Stretch"
                                 Click="GenerateButton_Click"
@@ -875,7 +953,7 @@
                                 VerticalAlignment="Top"
                                 Background="Transparent"
                                 BorderThickness="0"
-                                Foreground="{StaticResource AccentBrush}"
+                                Foreground="{DynamicResource AccentBrush}"
                                 IsIndeterminate="True"
                                 Visibility="Visible" />
 
@@ -903,7 +981,7 @@
                                         x:Name="AiStatusText"
                                         VerticalAlignment="Center"
                                         FontSize="11.5"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         LineHeight="16"
                                         Text="AI 正在结合当前作战策略与对方画像深度剖析意图并生成回复建议..."
                                         TextWrapping="Wrap" />
@@ -921,7 +999,7 @@
                                     Content="✕"
                                     Cursor="Hand"
                                     FontSize="10"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     ToolTip="关闭提示"
                                     Visibility="Collapsed" />
                             </Grid>
@@ -939,8 +1017,8 @@
                                 x:Name="AiEmptyPlaceholder"
                                 Margin="0,20,0,0"
                                 Padding="20"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel HorizontalAlignment="Center">
@@ -953,12 +1031,12 @@
                                         HorizontalAlignment="Center"
                                         FontSize="14"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="智能副驾已就绪" />
                                     <TextBlock
                                         Margin="0,8,0,0"
                                         FontSize="12"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="18"
                                         Text="在上方选取专属【策略 Skill】并点击【🚀 智能分析】，AI 将深度穿透对方人格画像与最新发言，一网打尽「意图剖析」与「实战回复方案」。"
                                         TextAlignment="Center"
@@ -972,8 +1050,8 @@
                                 <Border
                                     Margin="0,0,0,10"
                                     Padding="12"
-                                    Background="#1C2136"
-                                    BorderBrush="#3B4B75"
+                                    Background="{DynamicResource IntentCardBgBrush}"
+                                    BorderBrush="{DynamicResource IntentCardBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <StackPanel>
@@ -996,6 +1074,39 @@
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 Orientation="Horizontal">
+                                                <Button
+                                                    x:Name="OpenAdviceAnalyticsHeaderButton"
+                                                    Margin="0,0,6,0"
+                                                    Height="22"
+                                                    Padding="6,0"
+                                                    Background="#2538BDF8"
+                                                    BorderBrush="#6638BDF8"
+                                                    BorderThickness="1"
+                                                    Cursor="Hand"
+                                                    Click="OpenAdviceAnalyticsButton_Click"
+                                                    ToolTip="打开话语力量与博弈推演全景大看板">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border
+                                                                x:Name="b"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="4"
+                                                                Padding="{TemplateBinding Padding}">
+                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                    <TextBlock Text="🔍" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="放大看板" FontSize="10.5" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="b" Property="Background" Value="#4038BDF8" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
                                                 <Border
                                                     x:Name="AiAppliedSkillBadge"
                                                     Margin="0,0,6,0"
@@ -1023,17 +1134,43 @@
                                             </StackPanel>
                                         </Grid>
 
+                                        <!--  近期多轮语境脉络与情感走向  -->
+                                        <Border
+                                            x:Name="ContextFlowBorder"
+                                            Margin="0,0,0,8"
+                                            Padding="10,8"
+                                            Background="{DynamicResource IntentFlowBgBrush}"
+                                            BorderBrush="{DynamicResource IntentFlowBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Visibility="Collapsed">
+                                            <StackPanel>
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="{DynamicResource IntentFlowTextBrush}"
+                                                    Text="🌊 近期语境脉络与情感走向" />
+                                                <TextBlock
+                                                    x:Name="ContextFlowText"
+                                                    Margin="0,4,0,0"
+                                                    FontSize="12"
+                                                    Foreground="{DynamicResource IntentFlowTextBrush}"
+                                                    LineHeight="18"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+
                                         <!--  对方原话引用气泡  -->
                                         <Border
                                             Margin="0,0,0,8"
                                             Padding="10,8"
-                                            Background="#2A3352"
+                                            Background="{DynamicResource IntentQuoteBgBrush}"
                                             CornerRadius="6">
                                             <TextBlock
                                                 x:Name="SubtextTargetText"
                                                 FontSize="12.5"
                                                 FontWeight="SemiBold"
-                                                Foreground="#F3F4F6"
+                                                Foreground="{DynamicResource IntentQuoteTextBrush}"
                                                 LineHeight="18"
                                                 Text="“原话”"
                                                 TextWrapping="Wrap" />
@@ -1043,21 +1180,21 @@
                                         <Border
                                             Margin="0,0,0,6"
                                             Padding="10,8"
-                                            Background="#231F3D"
-                                            BorderBrush="#558B5CF6"
+                                            Background="{DynamicResource IntentSubtextBgBrush}"
+                                            BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="6">
                                             <StackPanel>
                                                 <TextBlock
                                                     FontSize="11"
                                                     FontWeight="Bold"
-                                                    Foreground="#C4B5FD"
+                                                    Foreground="{DynamicResource IntentSubtextTextBrush}"
                                                     Text="💡 潜台词洞察（弦外之音）" />
                                                 <TextBlock
                                                     x:Name="SubtextSubtextText"
                                                     Margin="0,4,0,0"
                                                     FontSize="12"
-                                                    Foreground="#EDE9FE"
+                                                    Foreground="{DynamicResource IntentSubtextTextBrush}"
                                                     LineHeight="18"
                                                     TextWrapping="Wrap" />
                                             </StackPanel>
@@ -1067,19 +1204,19 @@
                                         <Border
                                             Margin="0,0,0,6"
                                             Padding="10,8"
-                                            Background="#1E293B"
+                                            Background="{DynamicResource IntentDemandBgBrush}"
                                             CornerRadius="6">
                                             <StackPanel>
                                                 <TextBlock
                                                     FontSize="11"
                                                     FontWeight="Bold"
-                                                    Foreground="#94A3B8"
+                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="🎯 真实心理诉求" />
                                                 <TextBlock
                                                     x:Name="SubtextIntentText"
                                                     Margin="0,4,0,0"
                                                     FontSize="12"
-                                                    Foreground="#E2E8F0"
+                                                    Foreground="{DynamicResource IntentDemandTextBrush}"
                                                     LineHeight="18"
                                                     TextWrapping="Wrap" />
                                             </StackPanel>
@@ -1088,8 +1225,8 @@
                                         <!--  破局建议策略  -->
                                         <Border
                                             Padding="10,8"
-                                            Background="#182E2B"
-                                            BorderBrush="#3310B981"
+                                            Background="{DynamicResource IntentStrategyBgBrush}"
+                                            BorderBrush="{DynamicResource IntentStrategyBorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="6">
                                             <StackPanel>
@@ -1097,13 +1234,13 @@
                                                     x:Name="SubtextStrategyTitle"
                                                     FontSize="11"
                                                     FontWeight="Bold"
-                                                    Foreground="#6EE7B7"
+                                                    Foreground="{DynamicResource GreenBrush}"
                                                     Text="⚡ 破局沟通策略与避坑指南" />
                                                 <TextBlock
                                                     x:Name="SubtextStrategyText"
                                                     Margin="0,4,0,0"
                                                     FontSize="12"
-                                                    Foreground="#D1FAE5"
+                                                    Foreground="{DynamicResource IntentStrategyTextBrush}"
                                                     LineHeight="18"
                                                     TextWrapping="Wrap" />
                                             </StackPanel>
@@ -1114,25 +1251,61 @@
                                 <!--  卡片 2: 精选回复方案  -->
                                 <Border Margin="0,4,0,4">
                                     <StackPanel>
-                                        <StackPanel Margin="2,0,0,8" Orientation="Horizontal">
-                                            <TextBlock
-                                                Margin="0,0,6,0"
+                                        <Grid Margin="2,0,0,8">
+                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                <TextBlock
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="13"
+                                                    Text="💬" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    FontWeight="Bold"
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                                    Text="多风格回复建议" />
+                                                <TextBlock
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                                    Text="(点击「复制」可直接粘贴发微信)" />
+                                            </StackPanel>
+                                            <Button
+                                                x:Name="OpenAdviceAnalyticsButton"
+                                                HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
-                                                FontSize="13"
-                                                Text="💬" />
-                                            <TextBlock
-                                                VerticalAlignment="Center"
-                                                FontSize="12"
-                                                FontWeight="Bold"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
-                                                Text="多风格回复建议" />
-                                            <TextBlock
-                                                Margin="8,0,0,0"
-                                                VerticalAlignment="Center"
-                                                FontSize="11"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
-                                                Text="(点击「复制」可直接粘贴发微信)" />
-                                        </StackPanel>
+                                                Height="24"
+                                                Padding="8,0"
+                                                Background="#2538BDF8"
+                                                BorderBrush="#6638BDF8"
+                                                BorderThickness="1"
+                                                Cursor="Hand"
+                                                Click="OpenAdviceAnalyticsButton_Click"
+                                                ToolTip="打开话语力量与博弈推演全景大看板（一屏全景纵览重叠雷达、量化柱状与双轴象限图）">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border
+                                                            x:Name="btnBrd"
+                                                            Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            CornerRadius="4"
+                                                            Padding="{TemplateBinding Padding}">
+                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock Text="🔍" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                                                <TextBlock Text="放大看板" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="btnBrd" Property="Background" Value="#4038BDF8" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </Grid>
 
                                         <ItemsControl x:Name="SuggestionCards">
                                             <ItemsControl.ItemTemplate>
@@ -1140,23 +1313,46 @@
                                                     <Border
                                                         Margin="0,0,0,8"
                                                         Padding="12"
-                                                        Background="{StaticResource CardBgBrush}"
-                                                        BorderBrush="{StaticResource BorderLightBrush}"
+                                                        Background="{DynamicResource CardBgBrush}"
+                                                        BorderBrush="{DynamicResource BorderLightBrush}"
                                                         BorderThickness="1"
                                                         CornerRadius="10">
                                                         <StackPanel>
                                                             <Grid>
-                                                                <Border
-                                                                    Padding="6,2"
-                                                                    HorizontalAlignment="Left"
-                                                                    Background="#223B82F6"
-                                                                    CornerRadius="4">
-                                                                    <TextBlock
-                                                                        FontSize="11"
-                                                                        FontWeight="Bold"
-                                                                        Foreground="#60A5FA"
-                                                                        Text="{Binding Tone}" />
-                                                                </Border>
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                                                    <Border
+                                                                        Padding="6,2"
+                                                                        Margin="0,0,6,0"
+                                                                        Background="#223B82F6"
+                                                                        CornerRadius="4">
+                                                                        <TextBlock
+                                                                            FontSize="11"
+                                                                            FontWeight="Bold"
+                                                                            Foreground="#60A5FA"
+                                                                            Text="{Binding Tone}" />
+                                                                    </Border>
+                                                                    <Border
+                                                                        Padding="5,2"
+                                                                        Margin="0,0,5,0"
+                                                                        Background="#2010B981"
+                                                                        CornerRadius="4">
+                                                                        <TextBlock
+                                                                            FontSize="10"
+                                                                            FontWeight="SemiBold"
+                                                                            Foreground="#34D399"
+                                                                            Text="{Binding GoalPushScore, StringFormat='🚩 推进力 {0:0}'}" />
+                                                                    </Border>
+                                                                    <Border
+                                                                        Padding="5,2"
+                                                                        Background="#2038BDF8"
+                                                                        CornerRadius="4">
+                                                                        <TextBlock
+                                                                            FontSize="10"
+                                                                            FontWeight="SemiBold"
+                                                                            Foreground="#38BDF8"
+                                                                            Text="{Binding PersonaSafetyScore, StringFormat='🛡️ 安全度 {0:0}'}" />
+                                                                    </Border>
+                                                                </StackPanel>
                                                                 <Button
                                                                     Padding="8,3"
                                                                     HorizontalAlignment="Right"
@@ -1169,14 +1365,14 @@
                                                             <TextBlock
                                                                 Margin="0,8,0,0"
                                                                 FontSize="13"
-                                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                                 LineHeight="19"
                                                                 Text="{Binding Text}"
                                                                 TextWrapping="Wrap" />
                                                             <TextBlock
                                                                 Margin="0,6,0,0"
                                                                 FontSize="11"
-                                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                 Text="{Binding ReasonLine}"
                                                                 TextWrapping="Wrap" />
                                                         </StackPanel>
@@ -1209,8 +1405,8 @@
                         Grid.Row="0"
                         Margin="0,0,0,8"
                         Padding="10,8"
-                        Background="{StaticResource CardSubtleBgBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                         <StackPanel>
@@ -1224,7 +1420,7 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontSize="11.5"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     Text="已保存画像:" />
                                 <ComboBox
                                     x:Name="SavedPersonasCombo"
@@ -1248,7 +1444,7 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontSize="11.5"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     Text="选择好友:" />
                                 <TextBox
                                     x:Name="ContactBox"
@@ -1280,7 +1476,7 @@
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     FontSize="11"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     Text="蒸馏技能：" />
                                 <ComboBox
                                     x:Name="PersonaActiveSkillCombo"
@@ -1302,8 +1498,8 @@
                         Grid.Row="1"
                         Margin="0,0,0,8"
                         Padding="8"
-                        Background="{StaticResource CardSubtleBgBrush}"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                         <Grid>
@@ -1346,8 +1542,8 @@
                         x:Name="PersonaStatusCard"
                         Grid.Row="2"
                         Margin="0,0,0,8"
-                        Background="#1F2433"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         ClipToBounds="True"
                         CornerRadius="6">
@@ -1366,7 +1562,7 @@
                                 VerticalAlignment="Top"
                                 Background="Transparent"
                                 BorderThickness="0"
-                                Foreground="{StaticResource AccentBrush}"
+                                Foreground="{DynamicResource AccentBrush}"
                                 IsIndeterminate="True"
                                 Visibility="Collapsed" />
 
@@ -1377,7 +1573,7 @@
                                 Margin="10,6"
                                 VerticalAlignment="Center"
                                 FontSize="11"
-                                Foreground="{StaticResource TextSecondaryBrush}"
+                                Foreground="{DynamicResource TextSecondaryBrush}"
                                 LineHeight="16"
                                 Text="就绪：请先输入或同步好友，点击【✨ 一键蒸馏画像】"
                                 TextWrapping="Wrap" />
@@ -1392,8 +1588,8 @@
                             Margin="10,0"
                             Padding="20"
                             VerticalAlignment="Center"
-                            Background="{StaticResource CardSubtleBgBrush}"
-                            BorderBrush="{StaticResource BorderSubtleBrush}"
+                            Background="{DynamicResource CardSubtleBgBrush}"
+                            BorderBrush="{DynamicResource BorderSubtleBrush}"
                             BorderThickness="1"
                             CornerRadius="10"
                             Visibility="Visible">
@@ -1408,12 +1604,12 @@
                                     HorizontalAlignment="Center"
                                     FontSize="14"
                                     FontWeight="SemiBold"
-                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                     Text="暂无此人画像" />
                                 <TextBlock
                                     Margin="0,8,0,0"
                                     FontSize="12"
-                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                     LineHeight="18"
                                     Text="点击【⚡ 拉取 TraceMemo】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 蒸馏/更新画像】，AI 将基于女娲 (Nuwa Skill) 心智蒸馏方法论，深度提炼心智模型、决策启发式、表达DNA等认知操作系统全景。"
                                     TextAlignment="Center"
@@ -1431,8 +1627,8 @@
                                 <Border
                                     Margin="0,0,0,10"
                                     Padding="12,10"
-                                    Background="{StaticResource CardBgBrush}"
-                                    BorderBrush="{StaticResource BorderLightBrush}"
+                                    Background="{DynamicResource CardBgBrush}"
+                                    BorderBrush="{DynamicResource BorderLightBrush}"
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <Grid>
@@ -1445,13 +1641,13 @@
                                                 x:Name="PersonaHeaderName"
                                                 FontSize="14"
                                                 FontWeight="Bold"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 Text="联系人画像" />
                                             <TextBlock
                                                 x:Name="PersonaHeaderMeta"
                                                 Margin="0,4,0,0"
                                                 FontSize="11"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="更新时间: --  |  历史消息: 0 条" />
                                             <Border
                                                 x:Name="PersonaHeaderGoalBadge"
@@ -1488,8 +1684,8 @@
                                 <Border
                                     Margin="0,0,0,10"
                                     Padding="12,10"
-                                    Background="{StaticResource CardBgBrush}"
-                                    BorderBrush="{StaticResource BorderLightBrush}"
+                                    Background="{DynamicResource CardBgBrush}"
+                                    BorderBrush="{DynamicResource BorderLightBrush}"
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <StackPanel>
@@ -1508,14 +1704,14 @@
                                                     VerticalAlignment="Center"
                                                     FontSize="12"
                                                     FontWeight="Bold"
-                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                     Text="沟通雷达图谱" />
                                                 <TextBlock
                                                     x:Name="RadarDimensionCountText"
                                                     Margin="4,0,0,0"
                                                     VerticalAlignment="Center"
                                                     FontSize="10"
-                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="" />
                                             </StackPanel>
                                             <StackPanel
@@ -1579,8 +1775,8 @@
                                             <Border
                                                 Margin="0,0,0,8"
                                                 Padding="12"
-                                                Background="{StaticResource CardBgBrush}"
-                                                BorderBrush="{StaticResource BorderLightBrush}"
+                                                Background="{DynamicResource CardBgBrush}"
+                                                BorderBrush="{DynamicResource BorderLightBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="10">
                                                 <StackPanel>
@@ -1628,7 +1824,7 @@
                                                             <Border
                                                                 Margin="0,0,6,2"
                                                                 Padding="5,1"
-                                                                Background="#1E293B"
+                                                                Background="{DynamicResource CardSubtleBgBrush}"
                                                                 BorderBrush="#4038BDF8"
                                                                 BorderThickness="1"
                                                                 CornerRadius="4"
@@ -1653,7 +1849,7 @@
                                                             Orientation="Horizontal">
                                                             <TextBlock
                                                                 FontSize="10"
-                                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                 Text="可信度: " />
                                                             <TextBlock
                                                                 Margin="0,0,6,0"
@@ -1666,7 +1862,7 @@
                                                                 Height="5"
                                                                 VerticalAlignment="Center"
                                                                 Background="#33FFFFFF"
-                                                                Foreground="{StaticResource GreenBrush}"
+                                                                Foreground="{DynamicResource GreenBrush}"
                                                                 Maximum="100"
                                                                 Value="{Binding ConfidencePercent, Mode=OneWay}" />
                                                         </StackPanel>
@@ -1676,7 +1872,7 @@
                                                     <TextBlock
                                                         Margin="0,8,0,0"
                                                         FontSize="13"
-                                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                         LineHeight="19"
                                                         Text="{Binding Attribute}"
                                                         TextWrapping="Wrap" />
@@ -1685,19 +1881,19 @@
                                                     <Expander
                                                         Margin="0,6,0,0"
                                                         FontSize="11"
-                                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                         Header="{Binding EvidenceSummary}"
                                                         Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
                                                         <Border
                                                             Margin="0,4,0,0"
                                                             Padding="8"
-                                                            Background="#1A1A28"
+                                                            Background="{DynamicResource CardSubtleBgBrush}"
                                                             CornerRadius="6">
 
                                                             <TextBlock
                                                                 FontSize="11"
                                                                 FontStyle="Italic"
-                                                                Foreground="#D1D5DB"
+                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                 LineHeight="17"
                                                                 Text="{Binding EvidenceText}"
                                                                 TextWrapping="Wrap" />
@@ -1725,8 +1921,8 @@
                         Grid.Row="0"
                         Margin="0,0,0,10"
                         Padding="3"
-                        Background="#181826"
-                        BorderBrush="{StaticResource BorderSubtleBrush}"
+                        Background="{DynamicResource TabBarBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                         <UniformGrid Rows="1">
@@ -1774,22 +1970,22 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
                                     <TextBlock
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="🧠 AI 模型与服务设置" />
 
                                     <!--  接口基址  -->
                                     <TextBlock
                                         Margin="0,10,0,4"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="接口基址 (Endpoint，OpenAI 兼容，含 /v1)：" />
                                     <TextBox
                                         x:Name="SettingEndpointBox"
@@ -1810,7 +2006,7 @@
                                             <TextBlock
                                                 Margin="0,0,0,4"
                                                 FontSize="11"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="模型名称 (Model)：" />
                                             <TextBox
                                                 x:Name="SettingModelBox"
@@ -1822,7 +2018,7 @@
                                             <TextBlock
                                                 Margin="0,0,0,4"
                                                 FontSize="11"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="温度 (0~1)：" />
                                             <TextBox
                                                 x:Name="SettingTempBox"
@@ -1834,7 +2030,7 @@
                                             <TextBlock
                                                 Margin="0,0,0,4"
                                                 FontSize="11"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="超时 (秒)：" />
                                             <TextBox
                                                 x:Name="SettingTimeoutBox"
@@ -1849,23 +2045,23 @@
                                     <TextBlock
                                         Margin="0,8,0,4"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="API Key（本机 DPAPI 硬件加密，不落明文）：" />
                                     <PasswordBox
                                         x:Name="SettingKeyBox"
                                         Height="32"
                                         Padding="8,5"
                                         VerticalContentAlignment="Center"
-                                        Background="#221A1A2B"
-                                        BorderBrush="{StaticResource BorderLightBrush}"
+                                        Background="{DynamicResource InputBgBrush}"
+                                        BorderBrush="{DynamicResource BorderLightBrush}"
                                         FontSize="11.5"
-                                        Foreground="{StaticResource TextPrimaryBrush}" />
+                                        Foreground="{DynamicResource TextPrimaryBrush}" />
 
                                     <!--  TraceMemo 基址  -->
                                     <TextBlock
                                         Margin="0,8,0,4"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="TraceMemo API 基址（本地历史读取服务）：" />
                                     <TextBox
                                         x:Name="SettingTraceMemoBox"
@@ -1878,8 +2074,8 @@
                                         x:Name="SettingTestResultBorder"
                                         Margin="0,10,0,0"
                                         Padding="10,8"
-                                        Background="#222234"
-                                        BorderBrush="#3A3A52"
+                                        Background="{DynamicResource CardSubtleBgBrush}"
+                                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         Visibility="Collapsed">
@@ -1903,7 +2099,7 @@
                                                     Margin="8,0,0,0"
                                                     VerticalAlignment="Center"
                                                     FontSize="10.5"
-                                                    Foreground="#9CA3AF"
+                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="(耗时 320ms)" />
                                             </StackPanel>
                                             <TextBox
@@ -1911,11 +2107,11 @@
                                                 MaxHeight="90"
                                                 Margin="0,6,0,0"
                                                 Padding="6"
-                                                Background="#181824"
-                                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                                Background="{DynamicResource InputBgBrush}"
+                                                BorderBrush="{DynamicResource BorderSubtleBrush}"
                                                 BorderThickness="1"
                                                 FontSize="11"
-                                                Foreground="#E5E7EB"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 IsReadOnly="True"
                                                 TextWrapping="Wrap"
                                                 VerticalScrollBarVisibility="Auto" />
@@ -1956,8 +2152,8 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
@@ -1965,7 +2161,7 @@
                                         <TextBlock
                                             FontSize="13"
                                             FontWeight="Bold"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             Text="🧬 技能中心 (Skill Studio)" />
                                         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                                             <Button
@@ -1989,7 +2185,7 @@
                                     <TextBlock
                                         Margin="0,6,0,8"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="管理画像蒸馏与聊天回复策略技能（支持女娲、兔导情景流、麦肯锡、职场商业及导入技能）。" />
 
                                     <!--  全局默认技能  -->
@@ -2001,7 +2197,7 @@
                                         <TextBlock
                                             VerticalAlignment="Center"
                                             FontSize="11"
-                                            Foreground="{StaticResource TextSecondaryBrush}"
+                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                             Text="全局默认技能：" />
                                         <ComboBox
                                             x:Name="SettingActiveSkillCombo"
@@ -2020,7 +2216,7 @@
                                         x:Name="SettingCustomSkillCard"
                                         Margin="0,0,0,10"
                                         Padding="10"
-                                        Background="#201C30"
+                                        Background="{DynamicResource CardSubtleBgBrush}"
                                         BorderBrush="#448B5CF6"
                                         BorderThickness="1"
                                         CornerRadius="8"
@@ -2100,8 +2296,8 @@
                                                 <Border
                                                     Margin="0,0,0,6"
                                                     Padding="10,8"
-                                                    Background="#1A1A28"
-                                                    BorderBrush="#25FFFFFF"
+                                                    Background="{DynamicResource CardSubtleBgBrush}"
+                                                    BorderBrush="{DynamicResource BorderSubtleBrush}"
                                                     BorderThickness="1"
                                                     CornerRadius="6">
                                                     <Grid>
@@ -2114,7 +2310,7 @@
                                                                 <TextBlock
                                                                     FontSize="12"
                                                                     FontWeight="Bold"
-                                                                    Foreground="{StaticResource TextPrimaryBrush}"
+                                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                                     Text="{Binding DisplayTitle}" />
                                                                 <Border
                                                                     Margin="6,0,0,0"
@@ -2130,7 +2326,7 @@
                                                             <TextBlock
                                                                 Margin="0,3,0,0"
                                                                 FontSize="10.5"
-                                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                 Text="{Binding Description}"
                                                                 TextWrapping="Wrap" />
                                                         </StackPanel>
@@ -2164,8 +2360,8 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
@@ -2178,12 +2374,12 @@
                                             <TextBlock
                                                 FontSize="13"
                                                 FontWeight="Bold"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 Text="🎯 已保存画像与最终战略目的" />
                                             <TextBlock
                                                 Margin="0,4,0,0"
                                                 FontSize="10.5"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 LineHeight="15"
                                                 Text="聊天总是带有目的性的。为每个好友设定最终目的（如邀约约会、商务签约、化解误会等），往后「建议」中所有回复都将以此为导向！"
                                                 TextWrapping="Wrap" />
@@ -2206,8 +2402,8 @@
                                 x:Name="NoSavedPersonasPlaceholder"
                                 Margin="0,6,0,0"
                                 Padding="20"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderSubtleBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10"
                                 Visibility="Collapsed">
@@ -2221,12 +2417,12 @@
                                         HorizontalAlignment="Center"
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="暂无已保存的联系人画像" />
                                     <TextBlock
                                         Margin="0,6,0,0"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="在「画像」Tab 中一键蒸馏后即可在此配置长线聊天战略目的。"
                                         TextAlignment="Center"
                                         TextWrapping="Wrap" />
@@ -2240,8 +2436,8 @@
                                         <Border
                                             Margin="0,0,0,10"
                                             Padding="12"
-                                            Background="{StaticResource CardBgBrush}"
-                                            BorderBrush="{StaticResource BorderLightBrush}"
+                                            Background="{DynamicResource CardBgBrush}"
+                                            BorderBrush="{DynamicResource BorderLightBrush}"
                                             BorderThickness="1"
                                             CornerRadius="10">
                                             <StackPanel>
@@ -2277,7 +2473,7 @@
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Center"
                                                         FontSize="10"
-                                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                         Text="{Binding UpdatedTimeText}" />
                                                 </Grid>
 
@@ -2285,7 +2481,7 @@
                                                 <TextBlock
                                                     FontSize="11"
                                                     FontWeight="SemiBold"
-                                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="🚩 最终战略目的 (Chat Objective):" />
                                                 <Grid Margin="0,6,0,0">
                                                     <Grid.ColumnDefinitions>
@@ -2329,18 +2525,18 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
                                     <TextBlock
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="🎨 偏好与系统设置" />
 
-                                    <!--  悬浮窗透明度  -->
+                                    <!--  外观主题选择  -->
                                     <Grid Margin="0,10,0,6">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -2349,11 +2545,74 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="11.5"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                                Text="外观主题" />
+                                            <TextBlock
+                                                FontSize="10.5"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                                Text="深浅双套高质感 Fluent 主题热重载" />
+                                        </StackPanel>
+                                        <ComboBox
+                                            x:Name="SettingThemeCombo"
+                                            Grid.Column="1"
+                                            Width="145"
+                                            Height="28"
+                                            Padding="8,0,24,0"
+                                            VerticalContentAlignment="Center"
+                                            FontSize="11"
+                                            SelectionChanged="SettingThemeCombo_SelectionChanged">
+                                            <ComboBoxItem Content="🌙 深色模式" Tag="Dark" IsSelected="True" />
+                                            <ComboBoxItem Content="☀️ 浅色模式" Tag="Light" />
+                                            <ComboBoxItem Content="🔄 跟随系统" Tag="System" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <!--  对话语境分析跨度  -->
+                                    <Grid Margin="0,6,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="11.5"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                                Text="对话语境分析跨度" />
+                                            <TextBlock
+                                                FontSize="10.5"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                                Text="智能分析时默认研判的最近消息条数" />
+                                        </StackPanel>
+                                        <ComboBox
+                                            x:Name="SettingContextCountCombo"
+                                            Grid.Column="1"
+                                            Width="145"
+                                            Height="28"
+                                            Padding="8,0,24,0"
+                                            VerticalContentAlignment="Center"
+                                            FontSize="11"
+                                            SelectionChanged="SettingContextCountCombo_SelectionChanged">
+                                            <ComboBoxItem Content="5 条（快速针对）" Tag="5" />
+                                            <ComboBoxItem Content="10 条（推荐·黄金区间）" Tag="10" IsSelected="True" />
+                                            <ComboBoxItem Content="15 条（深度脉络）" Tag="15" />
+                                            <ComboBoxItem Content="20 条（全景长文）" Tag="20" />
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <!--  悬浮窗透明度  -->
+                                    <Grid Margin="0,6,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="11.5"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 Text="悬浮窗透明度" />
                                             <TextBlock
                                                 FontSize="10.5"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="调节悬浮窗不透明度，兼顾聊天视线" />
                                         </StackPanel>
                                         <ComboBox
@@ -2384,11 +2643,11 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="11.5"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 Text="OCR 采样放大倍率" />
                                             <TextBlock
                                                 FontSize="10.5"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="高分屏与小字体自适应优化" />
                                         </StackPanel>
                                         <ComboBox
@@ -2418,11 +2677,11 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="11.5"
-                                                Foreground="{StaticResource TextPrimaryBrush}"
+                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                 Text="己方微信昵称/备注" />
                                             <TextBlock
                                                 FontSize="10.5"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="手动锁定本人身份，避免画像混淆" />
                                         </StackPanel>
                                         <TextBox
@@ -2439,20 +2698,20 @@
                             <!--  模块 2: 数据与存储管理  -->
                             <Border
                                 Padding="12"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
                                     <TextBlock
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="📁 数据与隐私管理" />
                                     <TextBlock
                                         Margin="0,6,0,10"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         Text="所有画像档案、自定义 Skill 与加密密钥均保存在本地计算机中，安全可控。" />
 
                                     <Grid>
@@ -2487,8 +2746,8 @@
                             <Border
                                 Margin="0,0,0,10"
                                 Padding="14"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
@@ -2496,7 +2755,7 @@
                                         Margin="0,0,0,10"
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="⌨️ 全局快捷键指南" />
 
                                     <Grid Margin="0,4">
@@ -2508,27 +2767,27 @@
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Ctrl" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Alt" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="W" />
                                             </Border>
                                         </StackPanel>
@@ -2537,7 +2796,7 @@
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             FontSize="12"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             Text="快速显示 / 隐藏悬浮窗" />
                                     </Grid>
 
@@ -2550,27 +2809,27 @@
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Ctrl" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Alt" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="D" />
                                             </Border>
                                         </StackPanel>
@@ -2579,7 +2838,7 @@
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             FontSize="12"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             Text="立即抓取并读取当前对话气泡" />
                                     </Grid>
 
@@ -2592,27 +2851,27 @@
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Ctrl" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Alt" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="E" />
                                             </Border>
                                         </StackPanel>
@@ -2621,7 +2880,7 @@
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             FontSize="12"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             Text="重新定位并贴齐微信右侧边缘" />
                                     </Grid>
 
@@ -2634,27 +2893,27 @@
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Ctrl" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="Alt" />
                                             </Border>
                                             <TextBlock
                                                 VerticalAlignment="Center"
-                                                Foreground="{StaticResource TextSecondaryBrush}"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                 Text="+" />
                                             <Border Style="{StaticResource KeyCap}">
                                                 <TextBlock
                                                     FontSize="10"
-                                                    Foreground="White"
+                                                    Foreground="{DynamicResource KeyCapTextBrush}"
                                                     Text="O" />
                                             </Border>
                                         </StackPanel>
@@ -2663,7 +2922,7 @@
                                             Margin="10,0,0,0"
                                             VerticalAlignment="Center"
                                             FontSize="12"
-                                            Foreground="{StaticResource TextPrimaryBrush}"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                             Text="进行全窗口 OCR 识别（排错使用）" />
                                     </Grid>
                                 </StackPanel>
@@ -2673,8 +2932,8 @@
                             <Border
                                 Margin="0,0,0,10"
                                 Padding="14"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
@@ -2682,11 +2941,11 @@
                                         Margin="0,0,0,8"
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="💬 聊天记录获取与 TraceMemo 服务说明" />
                                     <TextBlock
                                         FontSize="11.5"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="19"
                                         Text="本助手的深层人格画像蒸馏与上下文分析，依赖本地运行的 TraceMemo 服务获取微信长历史聊天记录。&#x0a;• 安全透明：TraceMemo 完全运行在您个人电脑本地，聊天数据不经过任何第三方云端。&#x0a;• 准备工作：请先前往 GitHub 下载并启动 TraceMemo，启动后微信副驾即可自动或一键拉取长聊天记录。"
                                         TextWrapping="Wrap" />
@@ -2694,8 +2953,8 @@
                                     <Border
                                         Margin="0,10,0,0"
                                         Padding="10,8"
-                                        Background="#1C1B2E"
-                                        BorderBrush="#448B5CF6"
+                                        Background="{DynamicResource CardSubtleBgBrush}"
+                                        BorderBrush="{DynamicResource BorderSubtleBrush}"
                                         BorderThickness="1"
                                         CornerRadius="6">
                                         <Grid>
@@ -2746,8 +3005,8 @@
                             <Border
                                 Margin="0,0,0,10"
                                 Padding="14"
-                                Background="{StaticResource CardBgBrush}"
-                                BorderBrush="{StaticResource BorderLightBrush}"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
@@ -2755,11 +3014,11 @@
                                         Margin="0,0,0,8"
                                         FontSize="13"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimaryBrush}"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                         Text="🛡️ 本地优先与隐私安全原则" />
                                     <TextBlock
                                         FontSize="11.5"
-                                        Foreground="{StaticResource TextSecondaryBrush}"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="19"
                                         Text="• 只读不代发：本助手绝不会模拟键盘鼠标自动发送消息，完全由您自主确认与复制。&#x0a;• 本地安全：API Key 经 Windows DPAPI 加密保存，仅您当前登录的 Windows 账户能解密。&#x0a;• 风险隔离：历史会话通过本地 TraceMemo 读取，本工具不植入任何微信内存外挂。"
                                         TextWrapping="Wrap" />

@@ -1,0 +1,506 @@
+<Window
+    x:Class="WeChatCopilot.App.AdviceAnalyticsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="话语力量与博弈推演全景大看板"
+    Icon="app.ico"
+    Width="1120"
+    Height="780"
+    MinWidth="960"
+    MinHeight="640"
+    Background="{DynamicResource WindowBgBrush}"
+    WindowStyle="None"
+    AllowsTransparency="False"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterScreen">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome
+            CaptionHeight="0"
+            ResizeBorderThickness="6"
+            GlassFrameThickness="-1"
+            CornerRadius="0"
+            UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- 基础默认画刷 (支持 ThemeManager 动态热重载) -->
+        <SolidColorBrush x:Key="WindowBgBrush" Color="#181824" />
+        <SolidColorBrush x:Key="CardBgBrush" Color="#222233" />
+        <SolidColorBrush x:Key="CardSubtleBgBrush" Color="#1B1B2A" />
+        <SolidColorBrush x:Key="BorderLightBrush" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F3F4F6" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#A0A0B8" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+        <SolidColorBrush x:Key="PrimaryAccentBrush" Color="#3B82F6" />
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#2563EB" />
+        <SolidColorBrush x:Key="GreenBrush" Color="#10B981" />
+        <SolidColorBrush x:Key="PurpleBrush" Color="#8B5CF6" />
+        <SolidColorBrush x:Key="ButtonBgBrush" Color="#33FFFFFF" />
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#44FFFFFF" />
+        <SolidColorBrush x:Key="ButtonPressedBrush" Color="#22FFFFFF" />
+        <SolidColorBrush x:Key="IntentCardBgBrush" Color="#1C2136" />
+        <SolidColorBrush x:Key="IntentCardBorderBrush" Color="#3B4B75" />
+        <SolidColorBrush x:Key="IntentQuoteBgBrush" Color="#2A3352" />
+        <SolidColorBrush x:Key="IntentQuoteTextBrush" Color="#F3F4F6" />
+        <SolidColorBrush x:Key="IntentSubtextBgBrush" Color="#231F3D" />
+        <SolidColorBrush x:Key="IntentSubtextBorderBrush" Color="#558B5CF6" />
+        <SolidColorBrush x:Key="IntentSubtextTextBrush" Color="#EDE9FE" />
+        <SolidColorBrush x:Key="IntentDemandBgBrush" Color="#1E293B" />
+        <SolidColorBrush x:Key="IntentDemandTextBrush" Color="#E2E8F0" />
+        <SolidColorBrush x:Key="IntentStrategyBgBrush" Color="#182E2B" />
+        <SolidColorBrush x:Key="IntentStrategyBorderBrush" Color="#3310B981" />
+        <SolidColorBrush x:Key="IntentStrategyTextBrush" Color="#D1FAE5" />
+        <SolidColorBrush x:Key="IntentFlowBgBrush" Color="#1B2B3E" />
+        <SolidColorBrush x:Key="IntentFlowBorderBrush" Color="#38BDF8" />
+        <SolidColorBrush x:Key="IntentFlowTextBrush" Color="#E0F2FE" />
+
+        <!-- 窗口控制按钮样式 -->
+        <Style x:Key="WindowCtrlButton" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 危险/关闭控制按钮样式 -->
+        <Style x:Key="WindowCloseButton" BasedOn="{StaticResource WindowCtrlButton}" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#DC2626" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#B91C1C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 通用操作按钮样式 -->
+        <Style x:Key="ActionBtnStyle" TargetType="Button">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 高光主操作按钮 -->
+        <Style x:Key="PrimaryActionBtnStyle" BasedOn="{StaticResource ActionBtnStyle}" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PrimaryAccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- 0: 顶部战略元信息标题栏 -->
+            <RowDefinition Height="54" />
+            <!-- 1: 中部一屏三大复合图表矩阵 (42%) -->
+            <RowDefinition Height="330" />
+            <!-- 2: 下部战局沙盘与方案对战列表 (自适应充满) -->
+            <RowDefinition Height="*" />
+            <!-- 3: 底部状态与操作栏 -->
+            <RowDefinition Height="46" />
+        </Grid.RowDefinitions>
+
+        <!-- ==================== ROW 0: 顶部 Header ==================== -->
+        <Border
+            Grid.Row="0"
+            x:Name="HeaderBorder"
+            Background="{DynamicResource CardSubtleBgBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="0,0,0,1"
+            MouseLeftButtonDown="HeaderBorder_MouseLeftButtonDown">
+            <Grid Margin="16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 左侧: 标题与标识 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="30" Height="30" CornerRadius="6" Background="#2638BDF8" BorderBrush="#5538BDF8" BorderThickness="1" Margin="0,0,10,0">
+                        <TextBlock Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="话语力量与博弈推演全景大看板" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="一屏全景纵览 · 目的 × 画像 × Skill × 意图 动态多维立体研判" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 中间: 战略要素胶囊指示器 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <!-- 对话对象 -->
+                    <Border Background="#203B82F6" BorderBrush="#403B82F6" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👤 对方: " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="HeaderContactName" Text="当前好友" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 终极战略目的 -->
+                    <Border Background="#2210B981" BorderBrush="#5510B981" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🚩 战略目的: " FontSize="11" Foreground="#34D399" />
+                            <TextBlock x:Name="HeaderGoalText" Text="推进深度交流与共识达成" FontSize="11" FontWeight="Bold" Foreground="#6EE7B7" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 作战体系 Skill -->
+                    <Border Background="#228B5CF6" BorderBrush="#558B5CF6" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚔️ 技能体系: " FontSize="11" Foreground="#A78BFA" />
+                            <TextBlock x:Name="HeaderSkillText" Text="🧬 女娲心智" FontSize="11" FontWeight="SemiBold" Foreground="#DDD6FE" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 回复意图 -->
+                    <Border x:Name="HeaderIntentBorder" Background="#22F59E0B" BorderBrush="#55F59E0B" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🎯 意图导向: " FontSize="11" Foreground="#FBBF24" />
+                            <TextBlock x:Name="HeaderIntentText" Text="自然顺承与价值推进" FontSize="11" FontWeight="SemiBold" Foreground="#FDE68A" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 右侧: 窗口操作按钮 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource WindowCtrlButton}" Click="MinimizeButton_Click" ToolTip="最小化">
+                        <TextBlock Text="─" FontSize="12" FontWeight="Bold" />
+                    </Button>
+                    <Button Style="{StaticResource WindowCtrlButton}" Click="MaximizeButton_Click" ToolTip="最大化/还原">
+                        <TextBlock Text="🗖" FontSize="11" />
+                    </Button>
+                    <Button Style="{StaticResource WindowCloseButton}" Click="CloseButton_Click" ToolTip="关闭">
+                        <TextBlock Text="✕" FontSize="12" FontWeight="Bold" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ROW 1: 一屏三大复合图表矩阵 ==================== -->
+        <Grid Grid.Row="1" Margin="12,10,12,6">
+            <Grid.ColumnDefinitions>
+                <!-- 图表 1: 多方案全景重叠雷达 (38%) -->
+                <ColumnDefinition Width="3.9*" />
+                <!-- 图表 2: 动态维度量化对决柱状图 (33%) -->
+                <ColumnDefinition Width="3.3*" />
+                <!-- 图表 3: 战略博弈双轴象限矩阵 (28%) -->
+                <ColumnDefinition Width="2.8*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ============ 图表 1: 多方案全景重叠雷达图 ============ -->
+            <Border
+                Grid.Column="0"
+                Margin="0,0,6,0"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource BorderLightBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="10,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="⚔️" FontSize="13" Margin="0,0,5,0" />
+                            <TextBlock Text="多方案全景重叠雷达" FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="动态提炼专属博弈维度" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Grid>
+
+                    <!-- 图例选择栏 (点击可高亮聚焦方案) -->
+                    <WrapPanel Grid.Row="1" x:Name="RadarLegendPanel" Margin="0,5,0,2" HorizontalAlignment="Center" />
+
+                    <!-- 雷达 Canvas 绘制区 -->
+                    <Canvas Grid.Row="2" x:Name="RadarCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="360" Height="240" />
+                </Grid>
+            </Border>
+
+            <!-- ============ 图表 2: 动态维度量化对决柱状图 ============ -->
+            <Border
+                Grid.Column="1"
+                Margin="4,0,4,0"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource BorderLightBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="10,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,4">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="📊" FontSize="13" Margin="0,0,5,0" />
+                            <TextBlock Text="动态维度分组量化对决" FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="单项爆发力纵览" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Grid>
+
+                    <!-- 柱状图容器 (支持垂直滚动以防维度较多) -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="BarChartContainer" Margin="4,4,6,4" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- ============ 图表 3: 战略博弈双轴象限图 ============ -->
+            <Border
+                Grid.Column="2"
+                Margin="6,0,0,0"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource BorderLightBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="10,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🧭" FontSize="13" Margin="0,0,5,0" />
+                            <TextBlock Text="战略博弈双轴象限" FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="推进力 (Y) vs 安全度 (X)" FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Grid>
+
+                    <!-- 象限图 Canvas 绘制区 -->
+                    <Canvas Grid.Row="1" x:Name="QuadrantCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="280" Height="255" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== ROW 2: 战局沙盘与方案对战列表 ==================== -->
+        <Grid Grid.Row="2" Margin="12,4,12,6">
+            <Grid.ColumnDefinitions>
+                <!-- 左侧: 战局立体沙盘推演流 (36%) -->
+                <ColumnDefinition Width="3.6*" />
+                <!-- 右侧: 候选方案对战卡片 (64%) -->
+                <ColumnDefinition Width="6.4*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ============ 左侧: 战局立体沙盘推演流 ============ -->
+            <Border
+                Grid.Column="0"
+                Margin="0,0,6,0"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource BorderLightBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="12,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🧠" FontSize="13" Margin="0,0,6,0" />
+                            <TextBlock Text="战局立体推演沙盘" FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- 战局态势与语境脉络 -->
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="10,8"
+                                Background="{DynamicResource IntentFlowBgBrush}"
+                                BorderBrush="{DynamicResource IntentFlowBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock Text="🌊 战局态势与语境阶段" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource IntentFlowTextBrush}" />
+                                    <TextBlock x:Name="SandtableContextFlowText" Margin="0,4,0,0" FontSize="11.5" Foreground="{DynamicResource IntentFlowTextBrush}" LineHeight="17" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 对方最新原话 -->
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="10,8"
+                                Background="{DynamicResource IntentQuoteBgBrush}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock Text="💬 对方最新发言原话" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock x:Name="SandtableTargetQuoteText" Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource IntentQuoteTextBrush}" LineHeight="17" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 潜台词深度穿透 -->
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="10,8"
+                                Background="{DynamicResource IntentSubtextBgBrush}"
+                                BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock Text="💡 潜台词洞察（真实弦外之音）" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource IntentSubtextTextBrush}" />
+                                    <TextBlock x:Name="SandtableSubtextText" Margin="0,4,0,0" FontSize="11.5" Foreground="{DynamicResource IntentSubtextTextBrush}" LineHeight="17" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 画像透视与底牌动机 -->
+                            <Border
+                                Margin="0,0,0,8"
+                                Padding="10,8"
+                                Background="{DynamicResource IntentDemandBgBrush}"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock Text="🎯 画像透视与底层价值动因" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock x:Name="SandtableIntentText" Margin="0,4,0,0" FontSize="11.5" Foreground="{DynamicResource IntentDemandTextBrush}" LineHeight="17" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 破局心法与避坑指南 -->
+                            <Border
+                                Padding="10,8"
+                                Background="{DynamicResource IntentStrategyBgBrush}"
+                                BorderBrush="{DynamicResource IntentStrategyBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <TextBlock x:Name="SandtableStrategyTitle" Text="⚡ 实战破局心法与避坑策略" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource GreenBrush}" />
+                                    <TextBlock x:Name="SandtableStrategyText" Margin="0,4,0,0" FontSize="11.5" Foreground="{DynamicResource IntentStrategyTextBrush}" LineHeight="17" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- ============ 右侧: 候选方案对战卡片 ============ -->
+            <Border
+                Grid.Column="1"
+                Margin="6,0,0,0"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource BorderLightBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="12,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="💬" FontSize="13" Margin="0,0,6,0" />
+                            <TextBlock Text="候选回复方案量化对决" FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="（点击卡片可在上方图表中联动高亮并穿透查看）" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="SuggestionsCardsContainer" />
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ==================== ROW 3: 底部控制与导出栏 ==================== -->
+        <Border
+            Grid.Row="3"
+            Background="{DynamicResource CardSubtleBgBrush}"
+            BorderBrush="{DynamicResource BorderSubtleBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="16,0">
+            <Grid VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 底部提示信息 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="BottomStatusText" Text="✨ 动态量化研判完成 · 维度自适应提炼 · 感受话语的力量" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- 底部按钮操作组 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button
+                        x:Name="ExportReportButton"
+                        Style="{StaticResource ActionBtnStyle}"
+                        Click="ExportReportButton_Click"
+                        Margin="0,0,10,0"
+                        Content="📊 导出博弈推演完整报告" />
+                    <Button
+                        Style="{StaticResource PrimaryActionBtnStyle}"
+                        Click="CloseButton_Click"
+                        Content="完成纵览并返回" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

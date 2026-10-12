@@ -43,6 +43,17 @@ public partial class OverlayWindow : Window
     private const uint VK_D = 0x44;
     private int _ocrUpscaleFactor = 3;
 
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTLEFT = 10;
+    private const int HTRIGHT = 11;
+    private const int HTTOP = 12;
+    private const int HTTOPLEFT = 13;
+    private const int HTTOPRIGHT = 14;
+    private const int HTBOTTOM = 15;
+    private const int HTBOTTOMLEFT = 16;
+    private const int HTBOTTOMRIGHT = 17;
+    private const double ResizeBorder = 7.0;
+
     private readonly IWeChatWindowLocator _locator = new WeChatWindowLocator();
     private readonly IWindowTracker _tracker = new PollingWindowTracker();
     private readonly IOcrEngine _ocrEngine = new WindowsMediaOcrEngine();
@@ -58,6 +69,7 @@ public partial class OverlayWindow : Window
 
     private readonly DispatcherTimer _relocateTimer;
     private readonly DispatcherTimer _autoReadTimer;
+    private readonly DispatcherTimer _saveSizeDebounceTimer;
 
     private IHotkeyManager? _hotkeys;
     private System.Windows.Forms.NotifyIcon? _tray;
@@ -77,6 +89,12 @@ public partial class OverlayWindow : Window
     private const int MaxRadarDimensions = 6;
     private bool _showAllRadarDimensions = false;
 
+    private UnifiedAiAdvice? _lastUnifiedAdvice;
+    private string? _lastAdviceContactName;
+    private DistillSkill? _lastAdviceSkill;
+    private string? _lastAdviceGoal;
+    private string? _lastAdviceIntent;
+
     public OverlayWindow()
     {
         InitializeComponent();
@@ -95,6 +113,31 @@ public partial class OverlayWindow : Window
         _autoReadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _autoReadTimer.Tick += async (_, _) => await AutoReadTickAsync();
 
+        _saveSizeDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _saveSizeDebounceTimer.Tick += (_, _) =>
+        {
+            _saveSizeDebounceTimer.Stop();
+            if (IsLoaded && WindowState == WindowState.Normal && ActualWidth >= MinWidth && ActualHeight >= MinHeight)
+            {
+                var cur = _settingsStore.Load();
+                if (Math.Abs(cur.WindowWidth - ActualWidth) > 1 || Math.Abs(cur.WindowHeight - ActualHeight) > 1)
+                {
+                    cur.WindowWidth = Math.Round(ActualWidth);
+                    cur.WindowHeight = Math.Round(ActualHeight);
+                    _settingsStore.Save(cur);
+                }
+            }
+        };
+
+        SizeChanged += (_, _) =>
+        {
+            if (IsLoaded && WindowState == WindowState.Normal)
+            {
+                _saveSizeDebounceTimer.Stop();
+                _saveSizeDebounceTimer.Start();
+            }
+        };
+
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -103,6 +146,31 @@ public partial class OverlayWindow : Window
     {
         _hwnd = new WindowInteropHelper(this).EnsureHandle();
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+
+        var savedSettings = _settingsStore.Load();
+        if (savedSettings.WindowWidth >= MinWidth && savedSettings.WindowWidth <= MaxWidth)
+        {
+            Width = savedSettings.WindowWidth;
+        }
+        if (savedSettings.WindowHeight >= MinHeight && savedSettings.WindowHeight <= MaxHeight)
+        {
+            Height = savedSettings.WindowHeight;
+        }
+
+        ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Dark");
+
+        if (AiContextCountCombo != null)
+        {
+            int savedCount = savedSettings.ContextMessageCount > 0 ? savedSettings.ContextMessageCount : 10;
+            foreach (ComboBoxItem item in AiContextCountCombo.Items)
+            {
+                if (item.Tag is string tagStr && int.TryParse(tagStr, out int c) && c == savedCount)
+                {
+                    AiContextCountCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
 
         InitHotkeys();
         InitTray();
@@ -118,6 +186,7 @@ public partial class OverlayWindow : Window
         _tracker.Dispose();
         _relocateTimer.Stop();
         _autoReadTimer.Stop();
+        _saveSizeDebounceTimer.Stop();
         _hotkeys?.Dispose();
         _settingTestCts?.Cancel();
         _settingTestCts?.Dispose();
@@ -136,6 +205,40 @@ public partial class OverlayWindow : Window
         {
             _hotkeys?.OnHotkeyMessage(wParam.ToInt32());
             handled = true;
+        }
+        else if (msg == WM_NCHITTEST)
+        {
+            if (WindowState == WindowState.Normal)
+            {
+                int x = (short)(lParam.ToInt64() & 0xFFFF);
+                int y = (short)((lParam.ToInt64() >> 16) & 0xFFFF);
+                try
+                {
+                    Point pt = PointFromScreen(new Point(x, y));
+                    double w = ActualWidth;
+                    double h = ActualHeight;
+                    if (w > 0 && h > 0)
+                    {
+                        bool left = pt.X <= ResizeBorder;
+                        bool right = pt.X >= w - ResizeBorder;
+                        bool top = pt.Y <= ResizeBorder;
+                        bool bottom = pt.Y >= h - ResizeBorder;
+
+                        if (top && left) { handled = true; return (nint)HTTOPLEFT; }
+                        if (top && right) { handled = true; return (nint)HTTOPRIGHT; }
+                        if (bottom && left) { handled = true; return (nint)HTBOTTOMLEFT; }
+                        if (bottom && right) { handled = true; return (nint)HTBOTTOMRIGHT; }
+                        if (left) { handled = true; return (nint)HTLEFT; }
+                        if (right) { handled = true; return (nint)HTRIGHT; }
+                        if (top) { handled = true; return (nint)HTTOP; }
+                        if (bottom) { handled = true; return (nint)HTBOTTOM; }
+                    }
+                }
+                catch
+                {
+                    // 忽略销毁或未就绪时的坐标转换异常
+                }
+            }
         }
 
         return nint.Zero;
@@ -576,6 +679,17 @@ public partial class OverlayWindow : Window
             var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
             string targetStatement = latestIncoming?.Text ?? string.Empty;
 
+            int contextCount = 10;
+            if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
+                int.TryParse(item.Tag?.ToString(), out int parsed) && parsed > 0)
+            {
+                contextCount = parsed;
+            }
+            else if (settings.ContextMessageCount > 0)
+            {
+                contextCount = settings.ContextMessageCount;
+            }
+
             AiRequest req = PromptBuilder.BuildUnifiedAdvice(
                 settings,
                 _conversation.Messages,
@@ -585,7 +699,8 @@ public partial class OverlayWindow : Window
                 relationship: null,
                 activeSkill,
                 userIntent: userIntent,
-                ultimateGoal: ultimateGoal);
+                ultimateGoal: ultimateGoal,
+                contextCount: contextCount);
 
             AiReply reply = await provider.CompleteAsync(req);
             AiStatusBanner.Visibility = Visibility.Collapsed;
@@ -610,6 +725,20 @@ public partial class OverlayWindow : Window
         }
     }
 
+    private void AiContextCountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr && int.TryParse(tagStr, out int count) && count > 0)
+        {
+            var s = _settingsStore.Load();
+            if (s.ContextMessageCount != count)
+            {
+                s.ContextMessageCount = count;
+                _settingsStore.Save(s);
+            }
+        }
+    }
+
     private void ShowUnifiedAdvice(UnifiedAiAdvice advice, string? contactName, DistillSkill? activeSkill = null)
     {
         AiEmptyPlaceholder.Visibility = Visibility.Collapsed;
@@ -624,6 +753,16 @@ public partial class OverlayWindow : Window
 
         string targetAuthor = !string.IsNullOrWhiteSpace(contactName) ? $"{contactName} 原话" : "对方最新发言";
         SubtextTargetAuthor.Text = targetAuthor;
+
+        if (!string.IsNullOrWhiteSpace(advice.ContextFlowSummary))
+        {
+            ContextFlowBorder.Visibility = Visibility.Visible;
+            ContextFlowText.Text = advice.ContextFlowSummary;
+        }
+        else
+        {
+            ContextFlowBorder.Visibility = Visibility.Collapsed;
+        }
 
         SubtextTargetText.Text = !string.IsNullOrWhiteSpace(advice.TargetQuote)
             ? $"“{advice.TargetQuote}”"
@@ -643,6 +782,12 @@ public partial class OverlayWindow : Window
 
         SuggestionCards.ItemsSource = advice.Suggestions;
         UnifiedAiScroll.ScrollToTop();
+
+        _lastUnifiedAdvice = advice;
+        _lastAdviceContactName = contactName;
+        _lastAdviceSkill = activeSkill ?? _currentSkill;
+        _lastAdviceGoal = _currentLoadedPersona?.UltimateGoal ?? (AiGoalBadge?.Visibility == Visibility.Visible ? AiGoalBadgeText?.Text : null);
+        _lastAdviceIntent = AiIntentBox?.Text?.Trim();
     }
 
     private void SetAiStatus(string text, bool isError = false)
@@ -1418,6 +1563,48 @@ public partial class OverlayWindow : Window
         win.Show();
     }
 
+    private void OpenAdviceAnalyticsButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenAdviceAnalyticsDashboard();
+    }
+
+    private void OpenAdviceAnalyticsDashboard()
+    {
+        if (_lastUnifiedAdvice == null)
+        {
+            MessageBox.Show("当前尚未生成建议数据。\n请先选择联系人并点击【⚡ 智能分析回复建议】生成战局研判与回复方案。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var skill = _lastAdviceSkill ?? _currentSkill;
+        var persona = _currentLoadedPersona;
+        string contact = !string.IsNullOrWhiteSpace(_lastAdviceContactName)
+            ? _lastAdviceContactName
+            : (persona?.ContactName ?? (_currentChatContact.Length > 0 ? _currentChatContact : "当前好友"));
+        string goal = !string.IsNullOrWhiteSpace(_lastAdviceGoal)
+            ? _lastAdviceGoal
+            : (_currentLoadedPersona?.UltimateGoal ?? (AiGoalBadge?.Visibility == Visibility.Visible ? AiGoalBadgeText?.Text : null) ?? "推进深度交流与共识达成");
+        string intent = !string.IsNullOrWhiteSpace(_lastAdviceIntent)
+            ? _lastAdviceIntent
+            : (AiIntentBox?.Text?.Trim() ?? string.Empty);
+
+        var win = new AdviceAnalyticsWindow(_lastUnifiedAdvice, persona, skill, contact, goal, intent)
+        {
+            Owner = this
+        };
+
+        try
+        {
+            var s = _settingsStore.Load();
+            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Dark");
+        }
+        catch
+        {
+        }
+
+        win.Show();
+    }
+
     private void RadarToggleDimButton_Click(object sender, RoutedEventArgs e)
     {
         _showAllRadarDimensions = !_showAllRadarDimensions;
@@ -1633,7 +1820,7 @@ public partial class OverlayWindow : Window
                 Text = $"{data[i].Label}\n{scoreText}",
                 FontSize = 10,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(167, 243, 208)),
+                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 TextAlignment = TextAlignment.Center,
                 Width = 70
             };
@@ -1818,6 +2005,34 @@ public partial class OverlayWindow : Window
 
         SettingSelfNicknameBox.Text = _mySelfNickname ?? string.Empty;
 
+        // 外观主题
+        string currentTheme = s.ThemeMode ?? "Dark";
+        if (SettingThemeCombo != null)
+        {
+            foreach (ComboBoxItem item in SettingThemeCombo.Items)
+            {
+                if (string.Equals(item.Tag as string, currentTheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    SettingThemeCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
+        // 对话语境分析跨度
+        int currentContextCount = s.ContextMessageCount > 0 ? s.ContextMessageCount : 10;
+        if (SettingContextCountCombo != null)
+        {
+            foreach (ComboBoxItem item in SettingContextCountCombo.Items)
+            {
+                if (item.Tag is string tagStr && int.TryParse(tagStr, out int c) && c == currentContextCount)
+                {
+                    SettingContextCountCombo.SelectedItem = item;
+                    break;
+                }
+            }
+        }
+
         // 窗口透明度
         double currentOpacity = this.Opacity;
         foreach (ComboBoxItem item in SettingOpacityCombo.Items)
@@ -1846,6 +2061,55 @@ public partial class OverlayWindow : Window
         }
 
         RefreshSettingsSkillList();
+    }
+
+    private void SettingThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SettingThemeCombo?.SelectedItem is ComboBoxItem item && item.Tag is string theme)
+        {
+            var s = _settingsStore.Load();
+            if (!string.Equals(s.ThemeMode, theme, StringComparison.OrdinalIgnoreCase))
+            {
+                s.ThemeMode = theme;
+                _settingsStore.Save(s);
+            }
+            ThemeManager.ApplyTheme(this, theme);
+        }
+    }
+
+    private void SettingContextCountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SettingContextCountCombo?.SelectedItem is ComboBoxItem item &&
+            item.Tag is string tagStr && int.TryParse(tagStr, out int count) && count > 0)
+        {
+            var s = _settingsStore.Load();
+            if (s.ContextMessageCount != count)
+            {
+                s.ContextMessageCount = count;
+                _settingsStore.Save(s);
+            }
+
+            if (AiContextCountCombo != null)
+            {
+                foreach (ComboBoxItem aiItem in AiContextCountCombo.Items)
+                {
+                    if (aiItem.Tag is string aiTag && int.TryParse(aiTag, out int c) && c == count)
+                    {
+                        AiContextCountCombo.SelectedItem = aiItem;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void SettingNavigateGoalBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (MainTabControl != null)
+        {
+            MainTabControl.SelectedIndex = 3;
+        }
+        SwitchSettingSubTab(2);
     }
 
     private void SettingSubTab_Click(object sender, RoutedEventArgs e)
@@ -2315,8 +2579,9 @@ public partial class OverlayWindow : Window
             ? tSec
             : 180;
 
+        var existing = _settingsStore.Load();
         string encrypted = string.IsNullOrEmpty(SettingKeyBox.Password)
-            ? _settingsStore.Load().EncryptedApiKey
+            ? existing.EncryptedApiKey
             : DpapiProtector.Protect(SettingKeyBox.Password);
 
         var saved = new AiSettings
@@ -2326,7 +2591,11 @@ public partial class OverlayWindow : Window
             Temperature = temp,
             TimeoutSeconds = timeoutSec,
             EncryptedApiKey = encrypted,
-            TraceMemoBaseUrl = SettingTraceMemoBox.Text.Trim()
+            TraceMemoBaseUrl = SettingTraceMemoBox.Text.Trim(),
+            ContextMessageCount = existing.ContextMessageCount,
+            ThemeMode = existing.ThemeMode,
+            WindowWidth = existing.WindowWidth,
+            WindowHeight = existing.WindowHeight
         };
 
         _settingsStore.Save(saved);

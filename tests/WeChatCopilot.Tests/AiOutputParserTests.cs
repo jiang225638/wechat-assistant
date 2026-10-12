@@ -181,7 +181,66 @@ public class AiOutputParserTests
 
         Assert.Equal("默认发言", advice.TargetQuote);
         Assert.Empty(advice.Literal);
-        Assert.Empty(advice.Subtext);
         Assert.Empty(advice.Suggestions);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_ParsesContextFlowSummary()
+    {
+        string raw =
+            "语境脉络：双方前期探讨周末露营话题，氛围轻松活跃，对方因临时加班产生打扰愧疚感，整体处于稳步升温期的轻度防备拉扯。\n" +
+            "目标原话：“我周末可能要加班，晚点回复你哈”\n" +
+            "字面意思：说明周末可能有工作安排\n" +
+            "潜台词洞察：怕你误会冷落，主动打预防针\n" +
+            "真实心理：希望保留自我节奏的同时不切断互动\n" +
+            "应对策略：轻松托底，不追问不施压\n" +
+            "[轻松托底] 没事你先忙，手头事情搞定再说 | 理由：卸下对方回复压力";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw);
+
+        Assert.Equal("双方前期探讨周末露营话题，氛围轻松活跃，对方因临时加班产生打扰愧疚感，整体处于稳步升温期的轻度防备拉扯。", advice.ContextFlowSummary);
+        Assert.Equal("我周末可能要加班，晚点回复你哈", advice.TargetQuote);
+        Assert.Equal("怕你误会冷落，主动打预防针", advice.Subtext);
+        Assert.Single(advice.Suggestions);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_ParsesDynamicDimensionsAndScores()
+    {
+        string raw =
+            "=== 动态博弈评估维度 ===\n" +
+            "评估维度：商业主导权, 筹码锁定, 成单推进力, 信任赋能, 让步防守\n" +
+            "=== 意图剖析 ===\n" +
+            "战局态势：双方处于商务报价的关键博弈期，对方试图通过试探底线压低价格。\n" +
+            "目标原话：“这个报价有点超出预算了，别家给的更优惠”\n" +
+            "字面意思：表示预算不足并提及竞品价格优势。\n" +
+            "潜台词洞察：并非否定合作，而是习惯性议价博弈，试探是否有谈判空间。\n" +
+            "画像透视：务实谨慎型决策者，极度注重性价比与风险兜底。\n" +
+            "破局战术：坚守核心价值锚点，不直接降价，提供差异化服务包作为让步置换。\n" +
+            "=== 回复建议 ===\n" +
+            "[价值锚定反制] 明白您的考量！咱们方案包含7*24h定制保障与首期免费升级，这些竞品通常单独计费。若预算有硬性红线，我可申请为您优化配置方案。 | 理由：亮出隐形价值打破竞品价格假象 | 得分：商业主导权=88, 筹码锁定=92, 成单推进力=85, 信任赋能=90, 让步防守=82 | 推进力=86, 安全度=90\n" +
+            "[以退为进探底] 理解！如果方便的话，您重点关注的是首期成本还是长期运维？我们也有精简版方案可供选择。 | 理由：不急于降价，试探其真实预算痛点 | 得分：商业主导权=75, 筹码锁定=80, 成单推进力=70, 信任赋能=95, 让步防守=90 | 推进力=72, 安全度=94";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw);
+
+        Assert.NotNull(advice.DynamicDimensions);
+        Assert.Equal(5, advice.DynamicDimensions.Count);
+        Assert.Contains("商业主导权", advice.DynamicDimensions);
+        Assert.Contains("成单推进力", advice.DynamicDimensions);
+
+        Assert.Equal(2, advice.Suggestions.Count);
+        var s1 = advice.Suggestions[0];
+        Assert.Equal("价值锚定反制", s1.Tone);
+        Assert.Equal(86, s1.GoalPushScore);
+        Assert.Equal(90, s1.PersonaSafetyScore);
+        Assert.NotNull(s1.DimensionScores);
+        Assert.Equal(88, s1.DimensionScores["商业主导权"]);
+        Assert.Equal(92, s1.DimensionScores["筹码锁定"]);
+
+        var s2 = advice.Suggestions[1];
+        Assert.Equal(72, s2.GoalPushScore);
+        Assert.Equal(94, s2.PersonaSafetyScore);
+        Assert.NotNull(s2.DimensionScores);
+        Assert.Equal(95, s2.DimensionScores["信任赋能"]);
     }
 }

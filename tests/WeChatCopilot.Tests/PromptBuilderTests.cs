@@ -263,5 +263,57 @@ public class PromptBuilderTests
         Assert.Contains("严禁", req.SystemPrompt);
         Assert.Contains("动态生成", req.SystemPrompt);
     }
+
+    [Fact]
+    public void BuildUnifiedAdvice_RespectsContextCount()
+    {
+        var settings = new AiSettings { ContextMessageCount = 5 };
+        var msgs = Enumerable.Range(1, 20)
+            .Select(i => M(i % 2 == 0 ? MessageRole.Incoming : MessageRole.Outgoing, $"第{i}句消息"))
+            .ToList();
+
+        // 1. 使用 settings 默认值 5
+        var req5 = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 3);
+        Assert.Contains("第20句消息", req5.UserPrompt);
+        Assert.Contains("第16句消息", req5.UserPrompt);
+        Assert.DoesNotContain("第15句消息", req5.UserPrompt);
+        Assert.Contains("最近 5 条", req5.UserPrompt);
+
+        // 2. 显式覆盖 contextCount = 10
+        var req10 = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 3, contextCount: 10);
+        Assert.Contains("第20句消息", req10.UserPrompt);
+        Assert.Contains("第11句消息", req10.UserPrompt);
+        Assert.DoesNotContain("第10句消息", req10.UserPrompt);
+        Assert.Contains("最近 10 条", req10.UserPrompt);
+        Assert.Contains("语境脉络", req10.SystemPrompt);
+    }
+
+    [Fact]
+    public void BuildUnifiedAdvice_RequiresDynamicDimensionsAndScores()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "你们价格能不能再降5个点？") };
+        var persona = new Persona("陈总", new[]
+        {
+            new PersonaTrait("谈判风格", "锱铢必较，看重ROI", 0.95, new[] { "降点" })
+        }, DateTime.Now, 10, UltimateGoal: "锁定季度订单并守住利润底线");
+
+        var req = PromptBuilder.BuildUnifiedAdvice(
+            settings,
+            msgs,
+            count: 3,
+            persona: persona,
+            contactName: "陈总",
+            skill: DistillSkillPresets.Workplace,
+            userIntent: "以附加增值服务置换价格折让");
+
+        Assert.Contains("动态博弈评估维度", req.SystemPrompt);
+        Assert.Contains("评估维度：", req.SystemPrompt);
+        Assert.Contains("推进力=", req.SystemPrompt);
+        Assert.Contains("安全度=", req.SystemPrompt);
+        Assert.Contains("全域对话军师", req.SystemPrompt);
+        Assert.Contains("锁定季度订单并守住利润底线", req.UserPrompt);
+        Assert.Contains("以附加增值服务置换价格折让", req.UserPrompt);
+    }
 }
 
