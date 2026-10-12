@@ -1,17 +1,17 @@
-# WeChat Copilot · 微信智能聊天副驾
+<h1 align="center">WeChat Copilot · 微信智能聊天副驾</h1>
 
 <div align="center">
 
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011%20x64-0078D4?logo=windows)
 ![.NET Version](https://img.shields.io/badge/.NET-10.0%20LTS-512BD4?logo=dotnet)
 ![Language](https://img.shields.io/badge/C%23-14-239120?logo=csharp)
-![UI](https://img.shields.io/badge/WPF-Fluent%20Dark-2D7D9A)
-![Tests](https://img.shields.io/badge/Tests-146%20Passed-brightgreen?logo=xunit)
+![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
+![Tests](https://img.shields.io/badge/Tests-158%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
-**为微信 PC 端量身打造的贴边悬浮式 AI 聊天副驾**  
-无感贴边跟随 · 纯视觉零侵入识别 · 可扩展 Skill 认知心智蒸馏 · 一体化意图穿透与多风格回复建议
+**为微信 PC 端量身打造的贴边悬浮式 AI 智能沟通副驾**  
+无感贴边跟随 · 自由拖拽缩放 · 明暗双主题 · 动态认知蒸馏 · 话语力量全景博弈大看板
 
 [核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
 
@@ -21,56 +21,68 @@
 
 ## 📖 项目简介
 
-**WeChat Copilot** 是一款专为 Windows 平台微信 PC 端量身定制的**智能对话辅助桌面工具**。以轻量无边框的 Fluent 暗色悬浮窗形态，自动贴合微信聊天窗口边缘，随微信窗口平滑移动与跨屏漫游。
+**WeChat Copilot** 是一款专为 Windows 平台微信 PC 端量身定制的**全域智能对话辅助桌面工具**。以轻量无边框的现代 Fluent 悬浮窗形态，自动贴合微信聊天窗口边缘，随微信窗口平滑移动与跨屏漫游；同时支持鼠标移动到边框自由缩放尺寸与明暗双主题无缝热切换。
 
-项目遵循 **“本地优先 (Local-First)”** 与 **“只读不代发”** 的严苛安全原则：
+项目严格遵循 **“本地优先 (Local-First)”** 与 **“只读不代发”** 的严苛安全原则：
 - **热链路（实时感知）**：Windows 原生硬件级视觉 OCR 与聊天气泡几何判定，不注入进程、不解密内存、不 Hook 接口，安全零风控识读当前对话；
 - **冷链路（深度认知）**：对接本地 [TraceMemo](https://github.com/Wxw-Gu/TraceMemo) 离线服务，基于可插拔的 **Skill 认知蒸馏方法论**（如女娲心智模型、表达DNA、决策启发式等），生成动态自适应的多维雷达图谱与长效画像；
-- **AI 一体化策略看板**：单次模型推理，深度融合对方认知画像与作战策略，同步输出**潜台词剖析、心理诉求、避坑应对策略**与**多风格高情商回复建议**。
+- **AI 动态立体研判与话语力量看板**：彻底去除死板硬编码，由【终极战略目的 $\times$ 认知画像 $\times$ 作战Skill $\times$ 用户意图】协同驱动，实时提炼专属博弈维度，在一屏全景大看板中融合**重叠雷达、量化柱状、战略双轴象限图**，让用户直观感受话语的力量。
 
 ---
 
 ## ✨ 核心特性
 
-### 1. 📌 智能贴边吸附与平滑跟随 (Overlay & Magnet Tracking)
+### 1. 📌 智能贴边吸附、平滑跟随与自由缩放拖拽 (Overlay, Tracking & Resizing)
 - **微信窗口自适应定位**：支持微信主窗口（`WeChatMainWndForPC`）与独立单聊窗口（`ChatWnd`），自动吸附贴边。
 - **平滑无抖跟随**：实时感知微信窗口移动、缩放与跨多显示器拖拽，毫秒级平滑跟随；支持一键“固定/解锁”自由拖拽。
+- **边框自由缩放调节**：鼠标移动到悬浮窗边框或四角时，自动显示双向/四向调整光标，支持 8 个方向自由拉伸放大缩小，窗口尺寸防抖持久化记忆。
 - **智能生命周期感知**：微信最小化或隐藏时自动收起，恢复激活时平滑重现。
 
-### 2. ⚡ 热链路：纯视觉零侵入当前对话识别 (Vision OCR & Bubble Geometry)
+### 2. 🎨 Fluent 明暗双主题动态热重载 (Dark & Light Themes)
+- **深浅主题无缝切换**：在设置中支持**深色模式 (Fluent Dark)**、**浅色模式 (Fluent Light)** 与**跟随系统 (System)** 动态热切换，无需重启即刻刷新全窗口调色板。
+- **全要素高对比度保证**：浅色模式下白底黑字清爽利落、阴影通透；深色模式深邃科技感，彻底杜绝任何“白底白字”或隐形文字。
+
+### 3. ⚡ 热链路：纯视觉零侵入当前对话识别 (Vision OCR & Bubble Geometry)
 - **零封号风险**：完全依靠屏幕截图与 Windows 原生 WinRT OCR（`Windows.Media.Ocr`）引擎识别，绝不触碰微信内部内存或数据库。
 - **气泡几何推断收发**：根据聊天气泡水平坐标中线与几何位置，精准区分**对方发言（左侧）**与**自己发言（右侧）**。
 - **双引擎接入**：支持纯视觉 OCR 一键抓取，同时支持直连本地 TraceMemo 毫秒级提取零乱码原文字流。
 
-### 3. 🧠 冷链路：动态 Skill 认知蒸馏与多维雷达图谱 (Cognitive Skill & Radar)
+### 4. 🧠 冷链路：动态 Skill 认知蒸馏与心智雷达图谱 (Cognitive Skill & Radar)
 - **TraceMemo 历史对接**：自动对接本地 [TraceMemo](https://github.com/Wxw-Gu/TraceMemo) 微信历史记录服务，智能过滤公众号（`gh_*`）、系统通知（`notifymessage`）与群聊噪声。
 - **可插拔自定义 Skill 认知策略引擎**：
   - **预置「🧬 女娲心智蒸馏」**：提炼**心智模型（三重验证）、决策启发式、表达DNA、诚实边界、反模式雷区、价值锚点**等认知操作系统全景；
   - **自定义 Skill 扩展**：支持本地导入 `SKILL.md` 或手动新增自定义策略，**雷达图谱维度与分析卡片自动随新 Skill 的维度定义动态重绘与适配**。
-- **高防御特质卡片**：
-  - 双列物理隔离布局，超长特质名称（如 10+ 汉字）智能截断加浮动 ToolTip，彻底解决文字与可信度重叠；
-  - 动态量化评分（0~100分）、专属方法论标签、严谨可信度进度条及真实原话证据链。
+- **画像全景深度分析看板 (`PersonaAnalyticsWindow`)**：
+  - 配备与建议看板一致的现代化顶部全景边框（支持全屏拖拽、双击缩放、最小化 `─`、最大化/还原 `🗖`、关闭 `✕`）；
+  - 提供高分辨率多维雷达图谱、特质分值对比柱状图、特质走势折线图与真实原话证据清单，支持一键导出完整 Markdown 分析报告。
 
-### 4. 💡 AI 建议一体化看板 (Unified AI Advice)
-单次大模型调用，深度融合当前策略 Skill 与对方人格画像：
-- **🎯 目标原话**：智能锁定对方最新发言。
-- **🟣 潜台词洞察**：穿透客套与言不由衷，剖析真实内心态度。
-- **🔵 真实意图剖析**：洞察对方当下的核心关切与心理诉求。
-- **🟢 应对破局策略**：结合选定 Skill 给出立竿见影的应对破局方案与雷区警示。
-- **💬 多风格回复卡片**：提供**高情商、直接务实、温和共情、幽默化解**等多风格回复候选，附带设计逻辑与一键快捷复制。
-- **自适应防溢出提示框**：顶部 2px 极细流光循环滚动进度条，长报错/网络异常自动折行展示与滚动保护，支持一键消除。
+### 5. ⚔️ 动态博弈立体研判与话语力量全景大看板 (`AdviceAnalyticsWindow`)
+彻底告别刻板狭隘的“恋爱/情感”偏置与硬编码死板标签，升级为**全域战略沟通军师**（覆盖商务谈判、职场汇报、合作博弈、社交破冰、亲密关系等全场景）：
+- **四大战略要素协同驱动**：根据当前对话对象的【终极战略目的】、【人物认知画像】、【激活作战Skill】与【用户期望的回复意图】进行分层立体研判。
+- **自适应动态博弈维度**：由 AI 在推理时实时提炼 3～6 个专属博弈维度（如商务提炼：`商业主导权`、`筹码锁定`、`成单推进力`；向上管理提炼：`确定性交付`、`信任资产`、`边界防护`；社交破冰提炼：`舒适安全感`、`情绪共鸣`、`邀约契机`）。
+- **多指标量化赋能**：每条候选回复均提供动态维度评分、**【🚩 目标推进力】**（0-100）与**【🛡️ 画像安全度】**（0-100）。
+- **一屏全景纵览复合图表大看板**：
+  - **图表 1（多方案全景重叠雷达图）**：基于动态维度多边形，方案 1（流光天蓝）、方案 2（翡翠绿）、方案 3（紫罗兰）半透明重叠绘制，直观展现攻防形态覆盖；
+  - **图表 2（动态维度分组对决柱状图）**：按动态维度横向并排对比各候选回复方案的量化得分，单项爆发力一目了然；
+  - **图表 3（战略博弈双轴象限图）**：纵轴【推进力】vs 横轴【安全度】，方案清晰定位在**🌟 黄金破局**、**⚡ 高能突刺**、**🛡️ 稳健防守**、**⚠️ 谨慎踩雷**四大象限；
+  - **战局沙盘与卡片联动高亮**：点击方案卡片可在图表中联动高亮聚焦，支持一键快捷复制话术与导出 Markdown 战局推演报告。
 
-### 5. ⚙️ 全新集成设置中心 (Settings Hub)
-主界面内嵌 4 大设置专区，告别多窗口切换：
+### 6. 🎯 终极战略目的与多轮语境深度调节 (Strategic Goals & Context Depth)
+- **多轮语境深度可调**：支持快捷切换或自定义分析深度（最近 3 条、5 条、10 条、15 条、20 条），避免孤立研判最后一句话，全面捕捉语境脉络与情感演进。
+- **联系人终极战略目的管理**：为每位好友持久化设定终极战略目的，一键直达编辑与管理，所有回复建议均以目的达成为最高推进锚点。
+
+### 7. ⚙️ 全新集成设置中心 (Settings Hub)
+主界面内嵌 5 大设置专区，告别多窗口切换：
 1. **🤖 AI 模型与接口**：配置 API 基础路径、模型名称、温度系数、密码级 DPAPI 密钥与连通性测试；
 2. **🏷️ 技能中心 (Skills)**：查看当前生效技能，一键切换、创建自定义 Skill 或导入本地 `SKILL.md`；
-3. **🎨 偏好与系统**：窗口透明度调节、OCR 放大倍率、己方微信昵称偏好、本地数据目录一键直达与缓存清理；
-4. **📖 使用指南**：完整操作指引、快捷键一览、TraceMemo 官方下载与隐私安全声明。
+3. **🚩 目的管理 (Goals)**：统一查看和管理所有联系人的终极战略目的；
+4. **🎨 偏好与系统**：外观主题（深色/浅色/跟随系统）、悬浮窗透明度调节、OCR 采样放大倍率、己方微信昵称偏好与数据目录一键直达；
+5. **📖 使用指南**：完整操作指引、快捷键一览与 TraceMemo 官方下载。
 
-### 6. 🛡️ 本地优先与安全防护 (Security & Privacy)
+### 8. 🛡️ 本地优先与安全防护 (Security & Privacy)
 - **DPAPI 硬件级加密**：API Key 仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **前置异常契约守护**：WPF XAML 静态资源自动契约单测守护，异常穿透直达底层根本原因并支持一键打开日志目录。
+- **全方位测试守护**：158 项自动化单测守护核心业务算法、提示词组装与 XAML 静态/动态资源契约。
 
 ---
 
@@ -79,10 +91,10 @@
 ```mermaid
 flowchart TD
     subgraph UI["🖥️ 用户界面层 (WeChatCopilot.App)"]
-        Overlay["悬浮主窗口 (OverlayWindow - Fluent Dark)\n【💬 对话】 【✨ 建议】 【👤 画像】 【⚙️ 设置】"]
-        RadarView["动态多维雷达图谱 (WPF Canvas)"]
-        UnifiedAdviceView["一体化 AI 建议看板"]
-        SettingsView["集成设置中心 (AI / 技能 / 偏好 / 指南)"]
+        Overlay["悬浮主窗口 (OverlayWindow - Fluent Dark & Light)\n【💬 对话】 【✨ 建议】 【👤 画像】 【⚙️ 设置】"]
+        AdviceAnalytics["话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow)\n【重叠雷达】 【分组柱状】 【双轴象限】 【沙盘对决】"]
+        PersonaAnalytics["联系人画像深度分析看板 (PersonaAnalyticsWindow)\n【大雷达】 【分值柱状】 【走势折线】 【证据链】"]
+        Theme["动态主题管理器 (ThemeManager)"]
     end
 
     subgraph HotLink["⚡ 热链路 (实时交互)"]
@@ -90,7 +102,7 @@ flowchart TD
         Cropper["区域几何裁切 (ChatRegionCropper)"]
         WinRTOCR["Windows 视觉 OCR 引擎"]
         Segmenter["气泡左右几何推断 (MessageSegmenter)\n左=对方 / 右=己方"]
-        ConvBuffer["滑动对话缓冲 (ConversationBuffer)"]
+        ConvBuffer["多轮对话滑动缓冲 (ConversationBuffer)"]
     end
 
     subgraph ColdLink["🧠 冷链路 (历史蒸馏)"]
@@ -98,13 +110,13 @@ flowchart TD
         TMClient["TraceMemo 客户端 (TraceMemoClient)\n系统服务号与群聊噪声强力过滤"]
         SkillStore["技能仓库 (SkillStore)\n内置女娲 / 自定义技能 / SKILL.md"]
         Distiller["人格蒸馏器 (PersonaDistiller)\nMap-Reduce 蒸馏 & 证据链去重"]
-        PersonaStore["本地画像持久化 (PersonaStore)\nJSON 存储"]
+        PersonaStore["本地画像与终极目的持久化 (PersonaStore)"]
     end
 
     subgraph AI["🤖 AI 智能层 (WeChatCopilot.AI & Core)"]
-        Prompt["提示词工程 (PromptBuilder)\n显式注入策略Skill、关系定位与多维画像"]
+        Prompt["动态提示词工程 (PromptBuilder)\n目的 × 画像 × Skill × 意图 多维战略装配"]
         Client["OpenAI 兼容客户端 (AiClient)\nDeepSeek / Qwen / Kimi / Ollama 等"]
-        Parser["输出容错解析器 (AiOutputParser)"]
+        Parser["输出容错解析器 (AiOutputParser)\n动态维度提炼 & 推进力/安全度量化解析"]
     end
 
     WeChatWin -->|截屏抓取| Cropper --> WinRTOCR --> Segmenter --> ConvBuffer
@@ -112,12 +124,14 @@ flowchart TD
     SkillStore -->|注入认知维度与系统提示词| Distiller
     Distiller --> PersonaStore
     
-    ConvBuffer -->|当前会话| Prompt
-    PersonaStore -->|注入画像| Prompt
-    SkillStore -->|注入作战策略| Prompt
-    Prompt --> Client --> Parser --> UnifiedAdviceView
-    PersonaStore --> RadarView
+    ConvBuffer -->|多轮会话| Prompt
+    PersonaStore -->|注入画像与终极目的| Prompt
+    SkillStore -->|注入作战策略心法| Prompt
+    Prompt --> Client --> Parser --> Overlay
+    Parser --> AdviceAnalytics
+    PersonaStore --> PersonaAnalytics
     Overlay --> UI
+    Theme --> UI
 ```
 
 ---
@@ -129,12 +143,17 @@ e:\huanmai\myprod
 ├── src/
 │   ├── WeChatCopilot.App/        # 应用程序主工程 (WPF + XAML + Fluent 主题)
 │   │   ├── OverlayWindow.xaml    # 贴边悬浮窗主界面 (对话 / 建议 / 画像 / 设置 4 大 Tab)
-│   │   ├── OverlayWindow.xaml.cs # 交互事件、雷达图动态绘制、自动吸附对齐逻辑
-│   │   └── App.xaml / App.xaml.cs# 全局暗色主题管理、全局未捕获异常穿透拦截与日志记录
+│   │   ├── OverlayWindow.xaml.cs # 交互事件、雷达图动态绘制、自动吸附与缩放对齐逻辑
+│   │   ├── AdviceAnalyticsWindow.xaml    # 话语力量全景大看板 (重叠雷达/分组柱状/双轴象限)
+│   │   ├── AdviceAnalyticsWindow.xaml.cs # 全景图表 Canvas 绘制与卡片联动交互引擎
+│   │   ├── PersonaAnalyticsWindow.xaml   # 联系人画像深度看板 (现代化顶部边框与多图表)
+│   │   ├── PersonaAnalyticsWindow.xaml.cs# 画像雷达图/柱状图/折线图绘制与报告导出
+│   │   ├── ThemeManager.cs       # 明暗双主题 (Dark/Light/System) 动态热重载管理器
+│   │   └── App.xaml / App.xaml.cs# 全局生命周期管理、未捕获异常穿透拦截与日志记录
 │   │
 │   ├── WeChatCopilot.Core/       # 核心业务逻辑与领域模型
-│   │   ├── Ai/                   # PromptBuilder、AiOutputParser (意图穿透/建议/提示词工程)
-│   │   ├── Models/               # Persona、DistillSkill、UnifiedAiAdvice、PersonaTrait
+│   │   ├── Ai/                   # PromptBuilder、AiOutputParser (动态维度/推进力/安全度解析)
+│   │   ├── Models/               # Persona、DistillSkill、UnifiedAiAdvice、ReplySuggestion
 │   │   ├── Processing/           # 气泡切分 MessageSegmenter、文本规整 OcrTextJoiner
 │   │   └── Services/             # PersonaDistiller (多维心智画像提炼与证据链去重)
 │   │
@@ -154,21 +173,26 @@ e:\huanmai\myprod
 │   └── WeChatCopilot.Data/       # 数据持久化与外部适配层
 │       ├── SkillStore.cs         # 策略技能本地存储与 Markdown 导入解析
 │       ├── TraceMemoClient.cs    # TraceMemo 本地 API 客户端与系统号过滤
-│       ├── PersonaStore.cs       # 联系人画像本地存储与管理
+│       ├── PersonaStore.cs       # 联系人画像与终极战略目的本地存储
+│       ├── SettingsStore.cs      # 系统设置（主题/透明度/语境条数）持久化
 │       └── DpapiProtector.cs     # Windows DPAPI 本地敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (146 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (158 项测试全覆盖)
 │       ├── PersonaDistillerTests.cs      # 画像蒸馏算法、证据过滤与可信度测试
-│       ├── OverlayWindowXamlResourceTests.cs # XAML 静态资源契约自动防御测试
-│       ├── PromptBuilderTests.cs         # 提示词工程与策略装配测试
-│       └── AiOutputParserTests.cs        # AI 输出容错解析测试
+│       ├── OverlayWindowXamlResourceTests.cs # XAML 静态/动态资源契约与 ThemeManager 测试
+│       ├── PromptBuilderTests.cs         # 动态博弈维度提示词工程与装配测试
+│       ├── AiOutputParserTests.cs        # 动态维度与推进力/安全度容错解析测试
+│       └── SettingsStoreTests.cs         # 基础与外观配置读写测试
 │
 ├── installer/                    # Inno Setup 自动化安装包工程配置
 │   ├── WeChatCopilot.iss         # Inno Setup 安装包编译脚本 (现代向导风格)
 │   └── ChineseSimplified.isl     # 简体中文向导语言资源
 │
+├── .github/workflows/
+│   └── release.yml               # GitHub Actions CI/CD (全自动版本自增打包发布)
 ├── build_package.ps1             # 一键打包发布脚本 (生成 Setup.exe 与绿色单文件)
+├── Directory.Build.props         # 统一项目属性与 BaseVersion 版本控制
 ├── WeChatCopilot.slnx            # 现代化 .NET 解决方案配置
 └── README.md                     # 项目说明文档
 ```
@@ -191,7 +215,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (146 项测试全绿)
+# 2. 运行自动化测试 (158 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -211,68 +235,44 @@ dotnet run --project src/WeChatCopilot.App
 
 ## 📦 打包发布 (EXE 安装文件)
 
-本项目提供开箱即用的自动化打包脚本与 Inno Setup 安装工程，可一键生成**标准安装向导安装包（Setup.exe）**与**绿色独立单文件版（Portable.exe）**。
+本项目提供开箱即用的自动化打包脚本与 GitHub Actions 持续集成工作流，可一键生成**标准安装向导安装包（Setup.exe）**与**绿色独立单文件版（Portable.exe）**。
 
 ### 1. 产物类型与特点
 
-所有打包产物均输出在项目根目录的 `dist/` 文件夹下：
+所有本地打包产物均输出在项目根目录的 `dist/` 文件夹下：
 
 | 产物文件 | 文件大小 | 类型说明 | 特点与优势 |
 | :--- | :--- | :--- | :--- |
-| **`WeChatCopilot_Setup_v1.0.0.exe`** | **~55 MB** | **标准 Windows 安装包**（强烈推荐） | 包含简体中文向导、自定义安装目录、创建桌面/开始菜单快捷方式、Windows 控制面板标准卸载、支持无管理员权限安装，支持升级自动覆盖。 |
-| **`WeChatCopilot_Portable_v1.0.0.exe`** | **~80 MB** | **绿色免安装单文件版** | 纯单个可执行程序，无需安装与解压，双击即可运行，方便放 U 盘或快速尝鲜。 |
+| **`WeChatCopilot_Setup_v1.0.x.exe`** | **~55 MB** | **标准 Windows 安装包**（强烈推荐） | 包含简体中文向导、自定义安装目录、创建桌面/开始菜单快捷方式、Windows 控制面板标准卸载、支持无管理员权限安装，支持升级自动覆盖。 |
+| **`WeChatCopilot_Portable_v1.0.x.exe`** | **~80 MB** | **绿色免安装单文件版** | 纯单个可执行程序，无需安装与解压，双击即可运行，方便放 U 盘或快速尝鲜。 |
 
 > 🛡️ **运行环境自包含 (Self-Contained)**：  
 > 两个产物均已内置 **.NET 10 Desktop 运行时**，目标用户的 Windows 电脑**无需提前安装 .NET 10 SDK 或任何依赖库**，直接双击运行！
 
 ---
 
-### 2. 一键快速打包（推荐）
+### 2. 一键本地打包脚本
 
 项目根目录预置了自动化打包脚本 [`build_package.ps1`](file:///e:/huanmai/myprod/build_package.ps1)。在 PowerShell 中执行即可：
 
 ```powershell
-# 1. 默认一键生成安装包与绿色单文件 (版本号默认为 v1.0.0)
+# 1. 默认一键生成安装包与绿色单文件
 powershell -ExecutionPolicy Bypass -File .\build_package.ps1
 
-# 2. 指定自定义版本号打包 (例如发布 v1.0.1)
-powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -Version "1.0.1"
+# 2. 指定自定义版本号打包 (例如发布 v1.0.2)
+powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -Version "1.0.2"
 
 # 3. 仅构建安装包（跳过单文件以加快打包速度）
 powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:$false
 ```
 
-脚本执行完毕后，控制台将自动打印生成的安装包路径与体积大小。
-
 ---
 
-### 3. 安装包工具依赖准备
+### 3. GitHub Actions 全自动版本递增发布
 
-制作 `Setup.exe` 安装包依赖开源编译器 **Inno Setup 6**（命令行工具 `ISCC.exe`）：
-
-- **自动检测**：脚本会自动查找本机已安装的 Inno Setup 路径；
-- **若本机尚未安装**，只需在终端中运行一行命令即可安装：
-  ```powershell
-  winget install JRSoftware.InnoSetup
-  ```
-  *(安装完成后无需重启，脚本即可自动识别并调用)*
-
----
-
-### 4. 手动执行打包命令（高级用户）
-
-如需脱离脚本手动执行每一步：
-
-```bash
-# 步骤 1：发布自包含应用依赖目录 (win-x64 Release)
-dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-x64 --self-contained true -o ./publish/win-x64
-
-# 步骤 2：使用 Inno Setup 编译器生成标准安装包
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" /DMyAppVersion=1.0.0 installer/WeChatCopilot.iss
-
-# 步骤 3（可选）：发布免安装独立单文件版
-dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ./publish/singlefile
-```
+项目已集成全自动 CI/CD 工作流 [`.github/workflows/release.yml`](file:///e:/huanmai/myprod/.github/workflows/release.yml)：
+- 每次您执行 `git push` 到 `main` 分支后，GitHub Actions 会**基于构建序号自动递增版本号**（`v1.0.1` -> `v1.0.2` -> `v1.0.3`...）；
+- 自动编译、运行测试并发布到 GitHub Releases，附带标准安装包与绿色便携版下载，免去手动修改版本号与打标签的繁琐流程。
 
 ---
 
@@ -297,8 +297,14 @@ dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-
 - **自定义技能**：点击【➕ 新建自定义技能】，填写技能名称、专属图标、核心提示词以及关注维度（逗号分隔）；
 - **导入外部技能**：点击【📥 导入 SKILL.md 文件】，一键将标准的 Agent Skill 规范文件解析转换为本地策略。
 
-### 3. 数据与偏好管理
+### 3. 终极目的战略管理 (Goals)
+在【设置】->【🚩 终极战略目的】中：
+- 查看已保存的联系人列表与其对应的终极目的；
+- 随时修改或添加目标，并在「建议」面板中直观高亮展示。
+
+### 4. 数据与偏好管理
 在【设置】->【🎨 偏好与系统设置】中：
+- **外观主题**：自由切换深色（Dark）、浅色（Light）与跟随系统（System）；
 - **悬浮窗透明度**：支持调节 60%~100% 窗口透明度；
 - **OCR 采样放大倍率**：高分屏或小字体推荐设为 2x / 3x 以提升文字识别准确率；
 - **己方微信昵称**：配置本人的微信昵称，确保历史对话中发言方精准识别与证据去重；
@@ -316,7 +322,7 @@ dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-
 | <kbd>Alt</kbd> + <kbd>D</kbd> | **读取当前对话** | 立即截图并执行视觉 OCR 读取最新消息 |
 | <kbd>Alt</kbd> + <kbd>O</kbd> | **整窗 OCR 原文识别** | 截取完整聊天区域并展示所有文本原始识别流 |
 
-*注：亦可通过悬浮窗顶部标题栏拖拽移动；点击【📌 吸附中/已固定】可切换自由摆放模式。*
+*注：亦可通过悬浮窗顶部标题栏拖拽移动；点击【📌 吸附中/已固定】可切换自由摆放模式；鼠标移至窗口四周边缘可随意缩放窗口大小。*
 
 ---
 
@@ -333,20 +339,20 @@ dotnet publish src/WeChatCopilot.App/WeChatCopilot.App.csproj -c Release -r win-
 
 ## 🧪 自动化测试
 
-项目内置完善的自动化测试矩阵，覆盖提示词工程、算法去重、大模型响应容错解析、XAML 静态资源契约防御与 DPAPI 加密：
+项目内置完善的自动化测试矩阵，覆盖提示词工程、算法去重、大模型响应容错解析、XAML 静态/动态资源契约防御与 DPAPI 加密：
 
 ```bash
 dotnet test
 ```
 
-测试覆盖概览（146 项全通过）：
-- `OverlayWindowXamlResourceTests`：**XAML 静态资源契约自动巡检**，防御编译漏检与运行时资源丢失；
+测试覆盖概览（**158 项全通过**）：
+- `OverlayWindowXamlResourceTests`：**XAML 静态与动态资源契约自动巡检**，守护 `OverlayWindow`、`AdviceAnalyticsWindow`、`PersonaAnalyticsWindow` 资源完整性与 `ThemeManager` 画刷全覆盖；
 - `PersonaDistillerTests`：女娲心智蒸馏、自定义 Skill 动态装配、事实证据链过滤、可信度解析与 Map-Reduce 去重；
-- `AiOutputParserTests`：一体化 AI 建议多风格容错解析、潜台词与真实意图提取；
-- `PromptBuilderTests`：上下文拼接、发言者角色标注、认知画像与作战策略装配；
+- `AiOutputParserTests`：一体化 AI 建议多风格容错解析、动态博弈维度提取、推进力与安全度量化评分；
+- `PromptBuilderTests`：多轮语境深度拼接、角色标注、动态博弈维度提示词工程与装配；
 - `TraceMemoClientTests`：系统号过滤（`notifymessage`/`gh_*`等）、端点探测与数据安全适配；
 - `MessageSegmenterTests` & `ChatRegionCropperTests`：左右气泡几何计算与区域剪裁；
-- `DpapiProtectorTests`：本地数据加解密与用户隔离验证。
+- `SettingsStoreTests` & `DpapiProtectorTests`：本地数据加解密、主题模式读写与用户隔离验证。
 
 ---
 
