@@ -127,25 +127,75 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- 窗口控制按钮样式 -->
+        <Style x:Key="WindowCtrlButton" TargetType="Button">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#2A3448" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#1E2536" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 危险/关闭控制按钮样式 -->
+        <Style x:Key="WindowCloseButton" BasedOn="{StaticResource WindowCtrlButton}" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#DC2626" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#B91C1C" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <Grid x:Name="RootGrid" Margin="18">
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
-            <!--  顶部信息栏  -->
+            <!-- 0: 顶部全景边框与控制栏 -->
             <RowDefinition Height="Auto" />
-            <!--  主内容 Tab 切换区  -->
+            <!-- 1: 主内容 Tab 切换区 -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!--  ==================== ROW 0: 顶部信息栏与操作工具条 ====================  -->
+        <!-- ==================== ROW 0: 顶部全景边框与控制栏 ==================== -->
         <Border
             Grid.Row="0"
-            Margin="0,0,0,14"
-            Padding="16,12"
-            Background="{StaticResource CardBg}"
+            x:Name="HeaderBorder"
+            Background="{StaticResource CardSubtleBg}"
             BorderBrush="{StaticResource BorderColor}"
-            BorderThickness="1"
-            CornerRadius="10"
+            BorderThickness="0,0,0,1"
+            Padding="16,10"
             MouseLeftButtonDown="Header_MouseLeftButtonDown">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -153,18 +203,16 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <!--  左侧：联系人主体信息与画像元数据胶囊  -->
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock
-                            Text="👤"
-                            FontSize="20"
-                            Margin="0,0,8,0"
-                            VerticalAlignment="Center" />
+                <!-- 左侧：联系人主体信息与画像元数据胶囊 -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="28" Height="28" CornerRadius="6" Background="#2638BDF8" BorderBrush="#5538BDF8" BorderThickness="1" Margin="0,0,8,0">
+                            <TextBlock Text="👤" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
                         <TextBlock
                             x:Name="HeaderContactName"
                             Text="联系人全景画像看板"
-                            FontSize="18"
+                            FontSize="15"
                             FontWeight="Bold"
                             Foreground="{StaticResource TextPrimary}"
                             VerticalAlignment="Center" />
@@ -186,9 +234,9 @@
                         </Border>
                     </StackPanel>
 
-                    <!--  元数据指标标签组  -->
+                    <!-- 元数据指标标签组 -->
                     <StackPanel
-                        Margin="0,6,0,0"
+                        Margin="0,5,0,0"
                         Orientation="Horizontal"
                         VerticalAlignment="Center">
                         <TextBlock
@@ -207,16 +255,17 @@
                             x:Name="MetaDimensionCount"
                             Text="📊 共提取 6 个独立量化特质维度"
                             FontSize="11"
-                            Foreground="#10B981"
+                            Foreground="{StaticResource AccentGreen}"
                             FontWeight="SemiBold" />
                     </StackPanel>
                 </StackPanel>
 
-                <!--  右侧：功能操作按钮  -->
+                <!-- 右侧：功能操作按钮组与窗口控制组 -->
                 <StackPanel
                     Grid.Column="1"
                     Orientation="Horizontal"
                     VerticalAlignment="Center">
+                    <!-- 业务功能按钮 -->
                     <Button
                         x:Name="CopyReportButton"
                         Click="CopyReportButton_Click"
@@ -229,27 +278,44 @@
                         Click="ExportReportButton_Click"
                         Content="💾 导出报告文本"
                         Style="{StaticResource TopActionButton}"
-                        Margin="0,0,8,0"
+                        Margin="0,0,14,0"
                         ToolTip="将画像分析报告导出保存为本地文件" />
+
+                    <!-- 分割线 -->
+                    <Rectangle Width="1" Height="20" Fill="{StaticResource BorderColor}" Margin="0,0,14,0" VerticalAlignment="Center" />
+
+                    <!-- 窗口控制按钮组 (像建议中的放大看板一样) -->
+                    <Button
+                        x:Name="MinimizeButton"
+                        Style="{StaticResource WindowCtrlButton}"
+                        Click="MinimizeButton_Click"
+                        ToolTip="最小化">
+                        <TextBlock Text="─" FontSize="12" FontWeight="Bold" />
+                    </Button>
                     <Button
                         x:Name="MaximizeButton"
+                        Style="{StaticResource WindowCtrlButton}"
                         Click="MaximizeButton_Click"
-                        Content="🗖 最大化"
-                        Style="{StaticResource TopActionButton}"
-                        Margin="0,0,8,0"
-                        ToolTip="最大化或还原窗口" />
+                        ToolTip="最大化/还原">
+                        <TextBlock x:Name="MaximizeButtonIcon" Text="🗖" FontSize="11" />
+                    </Button>
                     <Button
                         x:Name="CloseButton"
+                        Style="{StaticResource WindowCloseButton}"
                         Click="CloseButton_Click"
-                        Content="关闭"
-                        Width="65"
-                        Style="{StaticResource TopActionButton}" />
+                        ToolTip="关闭">
+                        <TextBlock Text="✕" FontSize="12" FontWeight="Bold" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!--  ==================== ROW 1: 核心分析 Tab 区域 ====================  -->
-        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+        <!-- ==================== ROW 1: 核心分析 Tab 区域 ==================== -->
+        <TabControl
+            Grid.Row="1"
+            Margin="16,10,16,14"
+            Background="Transparent"
+            BorderThickness="0">
 
             <!--  TAB 1: 多维可视化图表看板 (雷达图 + 柱状图 + 折线图)  -->
             <TabItem Header="📊 多维可视化图表看板 (雷达图 / 柱状图 / 折线图)">

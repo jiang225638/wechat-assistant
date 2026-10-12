@@ -11,7 +11,7 @@ on:
       version:
         description: '发布版本号 (如 1.0.0)'
         required: false
-        default: '1.0.1'
+        default: '1.0.0'
 
 # 赋予创建 Release 和上传资源的写权限
 permissions:
@@ -50,12 +50,20 @@ jobs:
             $tag = '${{ github.ref_name }}'
             $ver = $tag.TrimStart('v')
           } else {
-            $ver = "1.0.0"
-            $tag = "v1.0.0"
+            # 全自动递增模式：基于 BaseVersion + GitHub Actions 构建序号 (github.run_number) 自动递增
+            $baseVer = "1.0"
+            if (Test-Path "Directory.Build.props") {
+              [xml]$xml = Get-Content "Directory.Build.props"
+              if ($xml.Project.PropertyGroup.BaseVersion) {
+                $baseVer = $xml.Project.PropertyGroup.BaseVersion.Trim()
+              }
+            }
+            $ver = "$baseVer.${{ github.run_number }}"
+            $tag = "v$ver"
           }
           "version=$ver" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
-          Write-Host "Release Version: $ver, Tag: $tag"
+          Write-Host "Auto Release Version: $ver, Tag: $tag"
 
       - name: 执行打包构建脚本 (生成 Setup.exe 与单文件 EXE)
         shell: pwsh
@@ -73,6 +81,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: 微信副驾 (WeChat Copilot) ${{ steps.get_version.outputs.tag }}
           files: |
             dist/WeChatCopilot_Setup_*.exe

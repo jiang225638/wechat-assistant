@@ -304,4 +304,52 @@ public class OverlayWindowXamlResourceTests
         Assert.True(unhandledDynamicKeys.Count == 0,
             $"Found DynamicResource keys in AdviceAnalyticsWindow.xaml not updated by ThemeManager: {string.Join(", ", unhandledDynamicKeys.Distinct())}");
     }
+
+    [Fact]
+    public void PersonaAnalyticsWindow_AllStaticResourceReferences_MustBeDefined()
+    {
+        string currentDir = AppContext.BaseDirectory;
+        string? repoRoot = null;
+        var dir = new DirectoryInfo(currentDir);
+        while (dir != null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "WeChatCopilot.slnx")) || File.Exists(Path.Combine(dir.FullName, "Directory.Build.props")))
+            {
+                repoRoot = dir.FullName;
+                break;
+            }
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(repoRoot);
+        string xamlPath = Path.Combine(repoRoot, "src", "WeChatCopilot.App", "PersonaAnalyticsWindow.xaml");
+        Assert.True(File.Exists(xamlPath), $"XAML file not found at {xamlPath}");
+
+        string xamlContent = File.ReadAllText(xamlPath);
+
+        var keyMatches = Regex.Matches(xamlContent, @"x:Key=""([^""]+)""");
+        var definedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match m in keyMatches)
+        {
+            definedKeys.Add(m.Groups[1].Value.Trim());
+        }
+
+        var resourceMatches = Regex.Matches(xamlContent, @"\{StaticResource\s+([a-zA-Z0-9_]+)\}");
+        var referencedKeys = new HashSet<string>(StringComparer.Ordinal);
+        var missingKeys = new List<string>();
+
+        foreach (Match m in resourceMatches)
+        {
+            string key = m.Groups[1].Value.Trim();
+            referencedKeys.Add(key);
+            if (!definedKeys.Contains(key))
+            {
+                missingKeys.Add(key);
+            }
+        }
+
+        Assert.True(referencedKeys.Count > 0, "Should have referenced resources");
+        Assert.True(missingKeys.Count == 0,
+            $"Found missing StaticResource references in PersonaAnalyticsWindow.xaml: {string.Join(", ", missingKeys.Distinct())}");
+    }
 }

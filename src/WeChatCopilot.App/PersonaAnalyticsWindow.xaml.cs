@@ -622,6 +622,11 @@ public partial class PersonaAnalyticsWindow : Window
         }
     }
 
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
     private void MaximizeButton_Click(object sender, RoutedEventArgs e)
     {
         ToggleMaximize();
@@ -649,24 +654,24 @@ public partial class PersonaAnalyticsWindow : Window
         {
             // 最大化时 Windows 会向屏幕边界外延伸约 7px 隐藏系统边缘，适度增加内边距保持视觉间距一致
             RootGrid.Margin = WindowState == WindowState.Maximized
-                ? new Thickness(25)
-                : new Thickness(18);
+                ? new Thickness(7)
+                : new Thickness(0);
         }
     }
 
     private void UpdateMaximizeButtonVisual()
     {
-        if (MaximizeButton == null) return;
+        if (MaximizeButtonIcon == null) return;
 
         if (WindowState == WindowState.Maximized)
         {
-            MaximizeButton.Content = "🗗 还原";
-            MaximizeButton.ToolTip = "还原窗口大小";
+            MaximizeButtonIcon.Text = "🗗";
+            if (MaximizeButton != null) MaximizeButton.ToolTip = "还原窗口大小";
         }
         else
         {
-            MaximizeButton.Content = "🗖 最大化";
-            MaximizeButton.ToolTip = "最大化窗口";
+            MaximizeButtonIcon.Text = "🗖";
+            if (MaximizeButton != null) MaximizeButton.ToolTip = "最大化窗口";
         }
     }
 
