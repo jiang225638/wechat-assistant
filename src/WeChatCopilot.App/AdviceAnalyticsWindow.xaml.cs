@@ -53,7 +53,7 @@ public partial class AdviceAnalyticsWindow : Window
 
         _advice = advice ?? throw new ArgumentNullException(nameof(advice));
         _persona = persona;
-        _skill = skill ?? DistillSkillPresets.Nuwa;
+        _skill = skill ?? DistillSkillPresets.Intimacy;
         _contactName = !string.IsNullOrWhiteSpace(contactName)
             ? contactName
             : (_persona?.ContactName ?? "对方");

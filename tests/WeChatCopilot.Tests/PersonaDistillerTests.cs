@@ -67,7 +67,7 @@ public class PersonaDistillerTests
     {
         var req = PersonaDistiller.BuildMapRequest(new AiSettings(), new[] { H(MessageRole.Incoming, "在吗") });
 
-        foreach (string dim in DistillSkillPresets.Nuwa.Dimensions)
+        foreach (string dim in DistillSkillPresets.Intimacy.Dimensions)
         {
             Assert.Contains(dim, req.SystemPrompt);
         }
@@ -257,19 +257,17 @@ public class PersonaDistillerTests
     }
 
     [Fact]
-    public void BuildDirectDistillRequest_IncludesNuwaMethodologyGuidelines()
+    public void BuildDirectDistillRequest_IncludesDefaultMethodologyGuidelines()
     {
-        var req = PersonaDistiller.BuildDirectDistillRequest(new AiSettings(), "乔布斯", new[]
+        var req = PersonaDistiller.BuildDirectDistillRequest(new AiSettings(), "对方", new[]
         {
-            new HistoryMessage(MessageRole.Incoming, "Stay hungry, stay foolish.")
+            new HistoryMessage(MessageRole.Incoming, "在吗")
         });
 
-        Assert.Contains("女娲", req.SystemPrompt);
-        Assert.Contains("心智模型", req.SystemPrompt);
-        Assert.Contains("决策启发式", req.SystemPrompt);
-        Assert.Contains("表达DNA", req.SystemPrompt);
-        Assert.Contains("三重验证", req.SystemPrompt);
-        Assert.Contains("乔布斯", req.UserPrompt);
+        Assert.Contains("亲密关系", req.SystemPrompt);
+        Assert.Contains("情感表达", req.SystemPrompt);
+        Assert.Contains("依恋安全感", req.SystemPrompt);
+        Assert.Contains("对方", req.UserPrompt);
     }
 
     [Fact]

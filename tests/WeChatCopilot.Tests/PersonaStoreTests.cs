@@ -106,4 +106,49 @@ public class PersonaStoreTests
         // 不存在的联系人返回 false
         Assert.False(store.UpdateUltimateGoal("不存在的人", "目标"));
     }
+
+    [Fact]
+    public void Load_MigratesExistingJsonToSqlite()
+    {
+        string dir = TempDir();
+        var store = new PersonaStore(dir);
+
+        // 手工写入一个 legacy JSON 文件
+        string jsonPath = Path.Combine(dir, "老王.json");
+        var legacy = new Persona("老王", Array.Empty<PersonaTrait>(), new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc), 20, "intimacy", "老友相聚");
+        File.WriteAllText(jsonPath, System.Text.Json.JsonSerializer.Serialize(legacy));
+
+        // SQLite 中目前无记录
+        Assert.Null(store.SqliteStorage.GetPersona("老王"));
+
+        // 调用 Load 触发自动迁移
+        var loaded = store.Load("老王");
+        Assert.NotNull(loaded);
+        Assert.Equal("老王", loaded.ContactName);
+        Assert.Equal("老友相聚", loaded.UltimateGoal);
+
+        // 验证 SQLite 中已经自动建档
+        var sqlitePersona = store.SqliteStorage.GetPersona("老王");
+        Assert.NotNull(sqlitePersona);
+        Assert.Equal("老王", sqlitePersona.ContactName);
+        Assert.Equal("老友相聚", sqlitePersona.UltimateGoal);
+    }
+
+    [Fact]
+    public void Delete_CleansBothSqliteAndJson()
+    {
+        string dir = TempDir();
+        var store = new PersonaStore(dir);
+        var persona = new Persona("赵六", Array.Empty<PersonaTrait>(), DateTime.Now, 5);
+        store.Save(persona);
+
+        Assert.NotNull(store.Load("赵六"));
+        Assert.NotNull(store.SqliteStorage.GetPersona("赵六"));
+
+        bool deleted = store.Delete("赵六");
+        Assert.True(deleted);
+
+        Assert.Null(store.Load("赵六"));
+        Assert.Null(store.SqliteStorage.GetPersona("赵六"));
+    }
 }

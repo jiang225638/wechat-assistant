@@ -227,7 +227,7 @@
                             VerticalAlignment="Center">
                             <TextBlock
                                 x:Name="HeaderSkillText"
-                                Text="🧬 女娲心智蒸馏"
+                                Text="❤️ 亲密关系与情感偏好"
                                 FontSize="11"
                                 FontWeight="SemiBold"
                                 Foreground="{StaticResource AccentCyan}" />

@@ -37,7 +37,7 @@ public sealed class SkillStoreTests : IDisposable
     {
         var skills = _store.GetAllSkills();
 
-        Assert.True(skills.Count >= 4);
+        Assert.True(skills.Count >= 3);
         Assert.Contains(skills, s => s.Id == DistillSkillPresets.DefaultSkillId);
         Assert.Contains(skills, s => s.Id == "workplace");
         Assert.Contains(skills, s => s.Id == "intimacy");
@@ -45,7 +45,7 @@ public sealed class SkillStoreTests : IDisposable
     }
 
     [Fact]
-    public void GetActiveSkillId_DefaultsToNuwa_AndPersistsUpdate()
+    public void GetActiveSkillId_DefaultsToDefaultSkill_AndPersistsUpdate()
     {
         Assert.Equal(DistillSkillPresets.DefaultSkillId, _store.GetActiveSkillId());
 
@@ -86,45 +86,50 @@ public sealed class SkillStoreTests : IDisposable
         Assert.True(deleted);
 
         var afterDelete = store2.GetSkill("custom_sales");
-        // 回退至默认女娲
+        // 回退至默认技能
         Assert.Equal(DistillSkillPresets.DefaultSkillId, afterDelete.Id);
     }
 
     [Fact]
     public void SaveCustomSkill_CannotOverwriteBuiltInSkill()
     {
-        var forgedNuwa = new DistillSkill(
-            Id: "nuwa",
-            Name: "伪造女娲",
+        var forgedWorkplace = new DistillSkill(
+            Id: "workplace",
+            Name: "伪造职场",
             Description: "篡改测试",
             Icon: "❌",
             SystemPrompt: "恶意提示词",
             IsBuiltIn: false
         );
 
-        Assert.Throws<InvalidOperationException>(() => _store.SaveCustomSkill(forgedNuwa));
+        Assert.Throws<InvalidOperationException>(() => _store.SaveCustomSkill(forgedWorkplace));
 
-        var skill = _store.GetSkill("nuwa");
-        Assert.Equal("女娲心智蒸馏", skill.Name);
+        var skill = _store.GetSkill("workplace");
+        Assert.Equal("职场与商业认知", skill.Name);
         Assert.True(skill.IsBuiltIn);
     }
 
     [Fact]
     public void DeleteCustomSkill_CannotDeleteBuiltInSkill()
     {
-        bool deleted = _store.DeleteCustomSkill("nuwa");
+        bool deleted = _store.DeleteCustomSkill("workplace");
         Assert.False(deleted);
 
-        var skill = _store.GetSkill("nuwa");
-        Assert.Equal(DistillSkillPresets.DefaultSkillId, skill.Id);
+        var skill = _store.GetSkill("workplace");
+        Assert.Equal("workplace", skill.Id);
     }
 
     [Fact]
     public void ScanWorkspaceSkills_DiscoversWorkspaceSkillPackages()
     {
+        string customDir = Path.Combine(_testDir, "test_workspace_skills");
+        string skillDir = Path.Combine(customDir, "pkg1");
+        Directory.CreateDirectory(skillDir);
+        File.WriteAllText(Path.Combine(skillDir, "SKILL.md"), "---\nname: 包1\ndescription: 包1的描述\n---\n提示词");
+        _store.SetBoundSkillsDirectory(customDir);
+
         var scanned = _store.ScanWorkspaceSkills();
         Assert.NotEmpty(scanned);
-        Assert.Contains(scanned, s => s.Id.Contains("td") || s.Id.Contains("chat"));
     }
 
     [Fact]
@@ -177,25 +182,85 @@ public sealed class SkillStoreTests : IDisposable
     [Fact]
     public void GetSkill_DoesNotMutateActiveSkill()
     {
-        _store.SetActiveSkillId("tdskill");
-        Assert.Equal("tdskill", _store.GetActiveSkillId());
+        _store.SetActiveSkillId("workplace");
+        Assert.Equal("workplace", _store.GetActiveSkillId());
 
         // 查询其他技能不应改变当前激活技能
-        var other = _store.GetSkill("tds-chat");
-        Assert.Equal("tdskill", _store.GetActiveSkillId());
+        var other = _store.GetSkill("logical");
+        Assert.Equal("workplace", _store.GetActiveSkillId());
     }
 
     [Fact]
     public void ScanWorkspaceSkills_PreservesDetailedDescriptionsAndDimensions()
     {
+        string customDir = Path.Combine(_testDir, "test_workspace_skills_dims");
+        string skillDir = Path.Combine(customDir, "pkg2");
+        Directory.CreateDirectory(skillDir);
+        File.WriteAllText(Path.Combine(skillDir, "SKILL.md"), "---\nname: 详尽画像分析视角\ndescription: 这是详细描述测试，长度超过二十个字符用来验证保留\ndimensions: [维度A, 维度B]\n---\n提示词");
+        _store.SetBoundSkillsDirectory(customDir);
+
         var scanned = _store.ScanWorkspaceSkills();
         Assert.NotEmpty(scanned);
 
-        var chatSkill = scanned.FirstOrDefault(s => s.Id.Contains("chat", StringComparison.OrdinalIgnoreCase));
-        if (chatSkill != null)
-        {
-            Assert.False(string.IsNullOrWhiteSpace(chatSkill.Description));
-            Assert.True(chatSkill.Description.Length > 20);
-        }
+        var first = scanned.First();
+        Assert.False(string.IsNullOrWhiteSpace(first.Description));
+        Assert.True(first.Description.Length > 20);
+    }
+
+    [Fact]
+    public void ScanAndImportFolder_RecursivelyDiscoversAndSavesSkills()
+    {
+        string importFolder = Path.Combine(_testDir, "test_imports");
+        string subDir1 = Path.Combine(importFolder, "negotiation");
+        string subDir2 = Path.Combine(importFolder, "conflict_resolution");
+        Directory.CreateDirectory(subDir1);
+        Directory.CreateDirectory(subDir2);
+
+        string md1 = "---\nname: 商务谈判\ndescription: 商业谈判专属技能\ndimensions: [议价底线, 利益权衡, 筹码控制]\n---\n这是谈判方法论正文...";
+        string md2 = "---\nname: 冲突化解\ndescription: 情绪与矛盾化解\ndimensions: [共情接纳, 事实澄清, 解决方案]\n---\n这是冲突化解正文...";
+
+        File.WriteAllText(Path.Combine(subDir1, "SKILL.md"), md1);
+        File.WriteAllText(Path.Combine(subDir2, "skill.md"), md2);
+
+        var imported = _store.ScanAndImportFolder(importFolder);
+
+        Assert.Equal(2, imported.Count);
+        Assert.Contains(imported, s => s.Name == "商务谈判" && s.Dimensions.Count == 3);
+        Assert.Contains(imported, s => s.Name == "冲突化解" && s.Dimensions.Count == 3);
+
+        // 验证已持久化至自定义技能库中
+        var loaded1 = _store.GetSkill("negotiation");
+        Assert.Equal("商务谈判", loaded1.Name);
+        var loaded2 = _store.GetSkill("conflict_resolution");
+        Assert.Equal("冲突化解", loaded2.Name);
+    }
+
+    [Fact]
+    public void BoundSkillsDirectory_And_PhysicalDeletion_PreventsRescan()
+    {
+        string customDir = Path.Combine(_testDir, "my_custom_skills");
+        string skillDir = Path.Combine(customDir, "tactics_skill");
+        Directory.CreateDirectory(skillDir);
+
+        string md = "---\nname: 实战战术\ndescription: 专属战术技能\ndimensions: [进攻, 防守]\n---\n战术正文...";
+        string skillPath = Path.Combine(skillDir, "SKILL.md");
+        File.WriteAllText(skillPath, md);
+
+        _store.SetBoundSkillsDirectory(customDir);
+        Assert.Equal(customDir, _store.GetBoundSkillsDirectory());
+
+        var all = _store.GetAllSkills();
+        Assert.Contains(all, s => s.Id == "tactics_skill");
+
+        // 删除自定义技能
+        bool deleted = _store.DeleteCustomSkill("tactics_skill");
+        Assert.True(deleted);
+
+        // 验证物理文件已被移除
+        Assert.False(File.Exists(skillPath));
+
+        // 重新扫描后绝不会再次出现
+        var allAfter = _store.GetAllSkills();
+        Assert.DoesNotContain(allAfter, s => s.Id == "tactics_skill");
     }
 }

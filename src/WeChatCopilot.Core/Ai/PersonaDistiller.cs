@@ -114,7 +114,7 @@ public static class PersonaDistiller
         DistillSkill? skill = null,
         bool freshDistill = true)
     {
-        skill ??= DistillSkillPresets.Nuwa;
+        skill ??= DistillSkillPresets.Intimacy;
         var sb = new StringBuilder();
         sb.AppendLine("目标联系人（对方）：" + contactName);
         if (!string.IsNullOrWhiteSpace(selfName))
@@ -165,7 +165,7 @@ public static class PersonaDistiller
         string? selfName = null,
         DistillSkill? skill = null)
     {
-        skill ??= DistillSkillPresets.Nuwa;
+        skill ??= DistillSkillPresets.Intimacy;
         var sb = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(contactName))
         {
@@ -200,7 +200,7 @@ public static class PersonaDistiller
         DistillSkill? skill = null,
         bool freshDistill = true)
     {
-        skill ??= DistillSkillPresets.Nuwa;
+        skill ??= DistillSkillPresets.Intimacy;
         var sb = new StringBuilder();
         sb.AppendLine("联系人：" + contactName);
         if (!string.IsNullOrWhiteSpace(selfName))
@@ -689,7 +689,7 @@ public static class PersonaDistiller
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(settings);
-        skill ??= DistillSkillPresets.Nuwa;
+        skill ??= DistillSkillPresets.Intimacy;
 
         if (history is null || history.Count == 0)
         {

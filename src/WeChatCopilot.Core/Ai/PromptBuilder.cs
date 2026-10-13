@@ -157,7 +157,7 @@ public static class PromptBuilder
     {
         int n = Math.Clamp(count, 1, 5);
         settings ??= new AiSettings();
-        skill ??= DistillSkillPresets.Nuwa;
+        skill ??= DistillSkillPresets.Intimacy;
 
         int effectiveContextCount = contextCount ?? (settings?.ContextMessageCount ?? 10);
         if (effectiveContextCount <= 0) effectiveContextCount = 10;

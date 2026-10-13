@@ -152,6 +152,84 @@
             </Setter>
         </Style>
 
+        <!--  现代流光动态跑马灯进度条样式 (无边框半透明窗口下 60fps 流光动画正常渲染)  -->
+        <Style x:Key="FluentIndeterminateProgressBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="2.5" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid x:Name="Root" ClipToBounds="True">
+                            <Rectangle Fill="{TemplateBinding Foreground}" Opacity="0.15" />
+                            <Border x:Name="GlowBar" Width="130" Height="{TemplateBinding Height}" HorizontalAlignment="Left" CornerRadius="1.2" Background="{TemplateBinding Foreground}">
+                                <Border.OpacityMask>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#00000000" Offset="0" />
+                                        <GradientStop Color="#FF000000" Offset="0.5" />
+                                        <GradientStop Color="#00000000" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.OpacityMask>
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="GlowTransform" X="-130" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsIndeterminate" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard x:Name="IndeterminateStory">
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="GlowTransform"
+                                                Storyboard.TargetProperty="X"
+                                                From="-130" To="480"
+                                                Duration="0:0:1.3" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <StopStoryboard BeginStoryboardName="IndeterminateStory" />
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代动态平滑旋转加载圆环样式  -->
+        <Style x:Key="SpinningArcStyle" TargetType="Path">
+            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <RotateTransform Angle="0" />
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Visibility" Value="Visible">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard x:Name="SpinStory">
+                            <Storyboard RepeatBehavior="Forever">
+                                <DoubleAnimation
+                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                    From="0" To="360"
+                                    Duration="0:0:0.85" />
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="SpinStory" />
+                    </Trigger.ExitActions>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!--  扁平圆角开关按钮样式  -->
         <Style x:Key="FluentToggleButton" TargetType="ToggleButton">
             <Setter Property="Background" Value="#25FFFFFF" />
@@ -1309,16 +1387,14 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <!--  顶部极窄线条循环滚动进度条 (高度 2px，仅在分析加载中显示)  -->
+                            <!--  顶部极窄线条循环滚动进度条 (仅在分析加载中显示)  -->
                             <ProgressBar
                                 x:Name="AiStatusProgress"
                                 Grid.Row="0"
-                                Height="2"
+                                Height="2.5"
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Top"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="{DynamicResource AccentBrush}"
+                                Style="{StaticResource FluentIndeterminateProgressBar}"
                                 IsIndeterminate="True"
                                 Visibility="Visible" />
 
@@ -1330,8 +1406,15 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
+                                <!-- 动态旋转加载圈 (仅在分析加载中显示) -->
+                                <Grid x:Name="AiStatusSpinner" Grid.Column="0" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                    <Ellipse Width="14" Height="14" Stroke="{DynamicResource AccentBrush}" StrokeThickness="2" Opacity="0.2" />
+                                    <Path Width="14" Height="14" Data="M 7,1 A 6,6 0 0 1 13,7" Style="{StaticResource SpinningArcStyle}" />
+                                </Grid>
+
                                 <TextBlock
                                     x:Name="AiStatusIcon"
+                                    Grid.Column="0"
                                     Margin="0,0,6,0"
                                     VerticalAlignment="Top"
                                     FontSize="12"
@@ -1918,7 +2001,7 @@
                         </Grid>
                     </Border>
 
-                    <!--  状态与历史信息横条（顶部极窄进度条循环滚动，下方文本自适应展开）  -->
+                    <!--  状态与历史信息横条（顶部发光流动进度条，下方包含动态旋转指示器与状态文本）  -->
                     <Border
                         x:Name="PersonaStatusCard"
                         Grid.Row="2"
@@ -1934,30 +2017,41 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <!--  顶部极窄线条循环滚动进度条 (高度 2px，仅在分析加载中循环滚动，置于卡片顶端边缘)  -->
+                            <!--  顶部动态发光流动进度条  -->
                             <ProgressBar
                                 x:Name="PersonaProgress"
                                 Grid.Row="0"
-                                Height="2"
+                                Height="2.5"
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Top"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Foreground="{DynamicResource AccentBrush}"
+                                Style="{StaticResource FluentIndeterminateProgressBar}"
                                 IsIndeterminate="True"
                                 Visibility="Collapsed" />
 
-                            <!--  状态文本：独享整行横向空间，支持多行自动换行  -->
-                            <TextBlock
-                                x:Name="PersonaStatusText"
-                                Grid.Row="1"
-                                Margin="10,6"
-                                VerticalAlignment="Center"
-                                FontSize="11"
-                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                LineHeight="16"
-                                Text="就绪：请先输入或同步好友，点击【✨ 一键蒸馏画像】"
-                                TextWrapping="Wrap" />
+                            <!--  状态内容区：包含动态旋转指示器与状态文本  -->
+                            <Grid Grid.Row="1" Margin="10,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 动态旋转加载圈 (蒸馏中/刷新中显示) -->
+                                <Grid x:Name="PersonaSpinner" Grid.Column="0" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                    <Ellipse Width="14" Height="14" Stroke="{DynamicResource AccentBrush}" StrokeThickness="2" Opacity="0.2" />
+                                    <Path Width="14" Height="14" Data="M 7,1 A 6,6 0 0 1 13,7" Style="{StaticResource SpinningArcStyle}" />
+                                </Grid>
+
+                                <!--  状态文本：独享整行横向空间，支持多行自动换行  -->
+                                <TextBlock
+                                    x:Name="PersonaStatusText"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    LineHeight="16"
+                                    Text="就绪：请先输入或同步好友，点击【✨ 一键蒸馏画像】"
+                                    TextWrapping="Wrap" />
+                            </Grid>
                         </Grid>
                     </Border>
 
@@ -1992,7 +2086,7 @@
                                     FontSize="12"
                                     Foreground="{DynamicResource TextSecondaryBrush}"
                                     LineHeight="18"
-                                    Text="点击【⚡ 拉取 TraceMemo】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 蒸馏/更新画像】，AI 将基于女娲 (Nuwa Skill) 心智蒸馏方法论，深度提炼心智模型、决策启发式、表达DNA等认知操作系统全景。"
+                                    Text="点击【⚡ 刷新历史】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 一键蒸馏画像】，AI 将基于所选专业 Skill 视角，深度提炼对方多维特质认知画像全景。"
                                     TextAlignment="Center"
                                     TextWrapping="Wrap" />
                             </StackPanel>
@@ -2216,9 +2310,9 @@
                                                                     FontSize="10"
                                                                     FontWeight="SemiBold"
                                                                     Foreground="#38BDF8"
-                                                                    Text="{Binding NuwaTag}"
+                                                                    Text="{Binding CategoryTag}"
                                                                     TextTrimming="CharacterEllipsis"
-                                                                    ToolTip="{Binding NuwaTag}" />
+                                                                    ToolTip="{Binding CategoryTag}" />
                                                             </Border>
                                                         </WrapPanel>
 
@@ -2538,42 +2632,88 @@
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <StackPanel>
-                                    <Grid>
-                                        <TextBlock
-                                            FontSize="13"
-                                            FontWeight="Bold"
-                                            Foreground="{DynamicResource TextPrimaryBrush}"
-                                            Text="🧬 技能中心 (Skill Studio)" />
-                                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                                            <Button
-                                                x:Name="SettingImportSkillButton"
-                                                Margin="0,0,6,0"
-                                                Padding="8,3"
-                                                Click="ImportSkillFileButton_Click"
-                                                Content="📁 导入SKILL.md"
-                                                FontSize="11"
-                                                Style="{StaticResource FluentButton}" />
-                                            <Button
-                                                x:Name="SettingNewSkillButton"
-                                                Padding="8,3"
-                                                Click="SettingNewSkillButton_Click"
-                                                Content="➕ 新增技能"
-                                                FontSize="11"
-                                                Style="{StaticResource FluentButton}" />
-                                        </StackPanel>
-                                    </Grid>
+                                    <!-- 标题行 -->
+                                    <TextBlock
+                                        Margin="0,0,0,8"
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        Text="🧬 技能中心 (Skill Studio)" />
+
+                                    <!-- 操作按钮工具栏 (独立排在下一行，避免窄窗口重叠) -->
+                                    <WrapPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                        <Button
+                                            x:Name="SettingScanFolderButton"
+                                            Margin="0,0,6,4"
+                                            Padding="10,4"
+                                            Click="SettingScanFolderButton_Click"
+                                            Content="📂 绑定技能文件夹"
+                                            FontSize="11"
+                                            ToolTip="选择技能库根文件夹，系统将自动绑定并递归扫描其中的所有 SKILL.md 技能"
+                                            Style="{StaticResource PrimaryAccentButton}" />
+                                        <Button
+                                            x:Name="SettingRescanFolderButton"
+                                            Margin="0,0,6,4"
+                                            Padding="8,4"
+                                            Click="SettingRescanFolderButton_Click"
+                                            Content="🔄 重新扫描"
+                                            FontSize="11"
+                                            ToolTip="重新扫描当前绑定的技能库文件夹"
+                                            Style="{StaticResource FluentButton}" />
+                                        <Button
+                                            x:Name="SettingOpenFolderButton"
+                                            Margin="0,0,0,4"
+                                            Padding="8,4"
+                                            Click="SettingOpenFolderButton_Click"
+                                            Content="📁 打开目录"
+                                            FontSize="11"
+                                            ToolTip="在文件资源管理器中打开当前绑定的技能目录"
+                                            Style="{StaticResource FluentButton}" />
+                                    </WrapPanel>
+
+                                    <!-- 绑定的技能目录路径提示卡片 -->
+                                    <Border
+                                        Margin="0,0,0,8"
+                                        Padding="10,6"
+                                        Background="{DynamicResource CardSubtleBgBrush}"
+                                        BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="10.5"
+                                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                                Text="绑定技能路径：" />
+                                            <TextBlock
+                                                x:Name="SettingBoundPathText"
+                                                Grid.Column="1"
+                                                Margin="4,0,0,0"
+                                                VerticalAlignment="Center"
+                                                FontSize="10.5"
+                                                FontWeight="SemiBold"
+                                                Foreground="{DynamicResource AccentBrush}"
+                                                Text="未绑定（使用默认工作区 .agents/skills）"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                                        </Grid>
+                                    </Border>
 
                                     <TextBlock
-                                        Margin="0,6,0,8"
+                                        Margin="0,0,0,8"
                                         FontSize="11"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
-                                        Text="管理画像蒸馏与聊天回复策略技能（支持女娲、兔导情景流、麦肯锡、职场商业及导入技能）。" />
+                                        Text="系统自动绑定并递归扫描选定文件夹下的所有 SKILL.md 技能文件，修改或增删文件夹内文件后点击【重新扫描】即可秒级生效。" />
 
                                     <!--  全局默认技能  -->
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
+                                             <ColumnDefinition Width="Auto" />
+                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock
                                             VerticalAlignment="Center"
@@ -2591,84 +2731,6 @@
                                             ToolTipService.InitialShowDelay="100"
                                             ToolTipService.ShowDuration="20000" />
                                     </Grid>
-
-                                    <!--  自定义技能快速添加卡片 (默认折叠)  -->
-                                    <Border
-                                        x:Name="SettingCustomSkillCard"
-                                        Margin="0,0,0,10"
-                                        Padding="10"
-                                        Background="{DynamicResource CardSubtleBgBrush}"
-                                        BorderBrush="#448B5CF6"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Visibility="Collapsed">
-                                        <StackPanel>
-                                            <Grid Margin="0,0,0,8">
-                                                <TextBlock
-                                                    FontSize="12"
-                                                    FontWeight="Bold"
-                                                    Foreground="#C4B5FD"
-                                                    Text="➕ 新增自定义认知蒸馏技能" />
-                                                <Button
-                                                    Padding="6,2"
-                                                    HorizontalAlignment="Right"
-                                                    Click="SettingCloseSkillEditor_Click"
-                                                    Content="✕ 取消"
-                                                    FontSize="10.5"
-                                                    Style="{StaticResource FluentButton}" />
-                                            </Grid>
-                                            <Grid Margin="0,0,0,6">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="50" />
-                                                    <ColumnDefinition Width="8" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox
-                                                    x:Name="SettingNewSkillIconBox"
-                                                    Height="28"
-                                                    HorizontalContentAlignment="Center"
-                                                    FontSize="12"
-                                                    Style="{StaticResource FluentTextBox}"
-                                                    Text="🏷️" />
-                                                <TextBox
-                                                    x:Name="SettingNewSkillNameBox"
-                                                    Grid.Column="2"
-                                                    Height="28"
-                                                    FontSize="11.5"
-                                                    Style="{StaticResource FluentTextBox}"
-                                                    ToolTip="输入技能名称（如：谈判破局流）" />
-                                            </Grid>
-                                            <TextBox
-                                                x:Name="SettingNewSkillDescBox"
-                                                Height="28"
-                                                Margin="0,0,0,6"
-                                                FontSize="11.5"
-                                                Style="{StaticResource FluentTextBox}"
-                                                ToolTip="输入技能简介" />
-                                            <TextBox
-                                                x:Name="SettingNewSkillDimensionsBox"
-                                                Height="28"
-                                                Margin="0,0,0,6"
-                                                FontSize="11.5"
-                                                Style="{StaticResource FluentTextBox}"
-                                                ToolTip="输入雷达图专属评估维度（建议 4~6 个，用逗号或空格隔开，如：框架强度, 需求感管理, 慕强机制, 窗口状态）" />
-                                            <TextBox
-                                                x:Name="SettingNewSkillPromptBox"
-                                                Height="65"
-                                                AcceptsReturn="True"
-                                                FontSize="11"
-                                                Style="{StaticResource FluentTextBox}"
-                                                TextWrapping="Wrap"
-                                                ToolTip="输入技能核心提示词 (SystemPrompt) 与作战心法" />
-                                            <Button
-                                                Height="28"
-                                                Margin="0,8,0,0"
-                                                HorizontalAlignment="Right"
-                                                Click="SettingSaveSkillButton_Click"
-                                                Content="💾 保存技能"
-                                                Style="{StaticResource PrimaryAccentButton}" />
-                                        </StackPanel>
-                                    </Border>
 
                                     <!--  已安装技能列表  -->
                                     <ItemsControl x:Name="SettingSkillList">

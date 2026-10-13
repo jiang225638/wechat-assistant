@@ -175,24 +175,22 @@ public class PromptBuilderTests
     }
 
     [Fact]
-    public void BuildUnifiedAdvice_WithTdSkill_InjectsTacticsAndTones()
+    public void BuildUnifiedAdvice_WithIntimacySkill_InjectsTacticsAndTones()
     {
         var settings = new AiSettings();
         var msgs = new[] { M(MessageRole.Incoming, "你平时周末都干嘛呀") };
 
         var req = PromptBuilder.BuildUnifiedAdvice(
-            settings, msgs, count: 3, skill: DistillSkillPresets.TdSkill, contactName: "心仪女生");
+            settings, msgs, count: 3, skill: DistillSkillPresets.Intimacy, contactName: "心仪女生");
 
-        // 系统提示词需包含兔导情景流的核心作战心法
-        Assert.Contains("兔导情景流", req.SystemPrompt);
-        Assert.Contains("一个中心两个基本点", req.SystemPrompt);
-        Assert.Contains("高位框架", req.SystemPrompt);
-        Assert.Contains("推拉对冲需求感", req.SystemPrompt);
-        Assert.Contains("公狗模式", req.SystemPrompt);
-        Assert.Contains("高位推拉", req.SystemPrompt);
+        // 系统提示词需包含亲密关系的核心沟通指南与推荐风格
+        Assert.Contains("亲密关系与情感沟通准则", req.SystemPrompt);
+        Assert.Contains("情绪先行，事实在后", req.SystemPrompt);
+        Assert.Contains("非暴力沟通", req.SystemPrompt);
+        Assert.Contains("深层共情", req.SystemPrompt);
 
         // 用户提示词需包含当前作战技能标识
-        Assert.Contains("当前指导作战技能：【🐰 兔导情景流 (tdskill)】", req.UserPrompt);
+        Assert.Contains("当前指导作战技能：【❤️ 亲密关系与情感偏好】", req.UserPrompt);
         Assert.Contains("当前对话对象：心仪女生", req.UserPrompt);
     }
 

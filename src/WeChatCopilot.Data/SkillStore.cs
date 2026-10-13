@@ -15,6 +15,7 @@ public sealed class SkillStore
     private readonly string _directory;
     private readonly string _skillsFilePath;
     private readonly string _activeSkillFilePath;
+    private readonly string _boundDirFilePath;
 
     public SkillStore(string? directory = null)
     {
@@ -25,6 +26,7 @@ public sealed class SkillStore
 
         _skillsFilePath = Path.Combine(_directory, "custom_skills.json");
         _activeSkillFilePath = Path.Combine(_directory, "active_skill.txt");
+        _boundDirFilePath = Path.Combine(_directory, "bound_skills_dir.txt");
     }
 
     /// <summary>获取当前所有可用技能（内置预设 + 本地工作区发现 + 用户自定义）。</summary>
@@ -52,7 +54,51 @@ public sealed class SkillStore
         return list;
     }
 
-    /// <summary>自动扫描工作区 .agents/skills 与 .agent/skills 目录中的扩展技能（如 tdskill 及其子技能 tds-chat）。</summary>
+    /// <summary>获取当前绑定的技能库文件夹路径（若未显式指定则自动回退至工作区默认目录）。</summary>
+    public string GetBoundSkillsDirectory()
+    {
+        try
+        {
+            if (File.Exists(_boundDirFilePath))
+            {
+                string dir = File.ReadAllText(_boundDirFilePath).Trim();
+                if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                {
+                    return dir;
+                }
+            }
+        }
+        catch
+        {
+            // 忽略读取异常
+        }
+
+        var roots = GetPotentialSkillRoots();
+        foreach (var r in roots)
+        {
+            if (Directory.Exists(r)) return r;
+        }
+
+        string defaultDir = Path.Combine(_directory, "skills");
+        try { Directory.CreateDirectory(defaultDir); } catch {}
+        return defaultDir;
+    }
+
+    /// <summary>持久化绑定技能库文件夹路径。</summary>
+    public void SetBoundSkillsDirectory(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            File.WriteAllText(_boundDirFilePath, path.Trim());
+        }
+        catch
+        {
+            // 忽略写入异常
+        }
+    }
+
+    /// <summary>自动扫描工作区与绑定目录中的扩展技能（如 local 技能及其子模块）。</summary>
     public IReadOnlyList<DistillSkill> ScanWorkspaceSkills()
     {
         var found = new List<DistillSkill>();
@@ -63,10 +109,24 @@ public sealed class SkillStore
             {
                 if (!Directory.Exists(root)) continue;
 
+                // 1. 检查根目录本身是否包含 SKILL.md
+                string rootSkill = Path.Combine(root, "SKILL.md");
+                if (!File.Exists(rootSkill)) rootSkill = Path.Combine(root, "skill.md");
+                if (File.Exists(rootSkill))
+                {
+                    var rootParsed = ParseSkillMd(Path.GetFileName(root), rootSkill);
+                    if (rootParsed != null && !found.Any(s => s.Id.Equals(rootParsed.Id, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        found.Add(rootParsed);
+                    }
+                }
+
+                // 2. 扫描子目录
                 foreach (var dir in Directory.GetDirectories(root))
                 {
                     string dirName = Path.GetFileName(dir);
                     string skillMd = Path.Combine(dir, "SKILL.md");
+                    if (!File.Exists(skillMd)) skillMd = Path.Combine(dir, "skill.md");
                     if (File.Exists(skillMd))
                     {
                         var parsed = ParseSkillMd(dirName, skillMd);
@@ -76,7 +136,7 @@ public sealed class SkillStore
                         }
                     }
 
-                    // 复合技能的子模块扫描 (如 references/tds-chat 等)
+                    // 复合技能的子模块扫描 (如 references/tong-jincheng 等)
                     string referencesDir = Path.Combine(dir, "references");
                     if (Directory.Exists(referencesDir))
                     {
@@ -84,6 +144,7 @@ public sealed class SkillStore
                         {
                             string subName = Path.GetFileName(subDir);
                             string subSkillMd = Path.Combine(subDir, "SKILL.md");
+                            if (!File.Exists(subSkillMd)) subSkillMd = Path.Combine(subDir, "skill.md");
                             if (File.Exists(subSkillMd))
                             {
                                 var subParsed = ParseSkillMd(subName, subSkillMd);
@@ -105,9 +166,27 @@ public sealed class SkillStore
         return found;
     }
 
-    private static IEnumerable<string> GetPotentialSkillRoots()
+    private IEnumerable<string> GetPotentialSkillRoots()
     {
         var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // 优先使用用户绑定的目录
+        try
+        {
+            if (File.Exists(_boundDirFilePath))
+            {
+                string bound = File.ReadAllText(_boundDirFilePath).Trim();
+                if (!string.IsNullOrWhiteSpace(bound) && Directory.Exists(bound))
+                {
+                    roots.Add(bound);
+                }
+            }
+        }
+        catch
+        {
+            // 忽略
+        }
+
         string current = Directory.GetCurrentDirectory();
         roots.Add(Path.Combine(current, ".agents", "skills"));
         roots.Add(Path.Combine(current, ".agent", "skills"));
@@ -197,7 +276,8 @@ public sealed class SkillStore
                 Icon: icon,
                 SystemPrompt: distillPrompt,
                 Dimensions: dimensions,
-                IsBuiltIn: false);
+                IsBuiltIn: false,
+                SourceFilePath: filePath);
         }
         catch
         {
@@ -292,17 +372,66 @@ public sealed class SkillStore
         return dims.Distinct(StringComparer.OrdinalIgnoreCase).Take(8).ToList();
     }
 
-    /// <summary>根据技能 ID 检索技能，若不存在则回退至默认女娲技能。</summary>
+    /// <summary>
+    /// 自动扫描并批量导入指定文件夹及其所有子目录下的 SKILL.md / skill.md 文件。
+    /// 自动解析并直接保存到自定义技能库中，返回本次成功导入并保存的技能列表。
+    /// </summary>
+    public IReadOnlyList<DistillSkill> ScanAndImportFolder(string folderPath)
+    {
+        var imported = new List<DistillSkill>();
+        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+        {
+            return imported;
+        }
+
+        try
+        {
+            var files = Directory.GetFiles(folderPath, "*.md", SearchOption.AllDirectories)
+                .Where(f =>
+                {
+                    string name = Path.GetFileName(f);
+                    return name.Equals("SKILL.md", StringComparison.OrdinalIgnoreCase) ||
+                           name.Equals("skill.md", StringComparison.OrdinalIgnoreCase);
+                })
+                .ToList();
+
+            foreach (var file in files)
+            {
+                var skill = ParseSkillMdFile(file);
+                if (skill != null)
+                {
+                    // 避免在同一次批量扫描中重复添加
+                    if (!imported.Any(s => s.Id.Equals(skill.Id, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        // 内置技能不覆盖
+                        if (!DistillSkillPresets.AllBuiltIn.Any(b => b.Id.Equals(skill.Id, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            SaveCustomSkill(skill);
+                            imported.Add(skill);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // 忽略外部访问或权限异常
+        }
+
+        return imported;
+    }
+
+    /// <summary>根据技能 ID 检索技能，若不存在则回退至默认技能。</summary>
     public DistillSkill GetSkill(string? id)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            return DistillSkillPresets.Nuwa;
+            return DistillSkillPresets.Intimacy;
         }
 
         var all = GetAllSkills();
         return all.FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
-               ?? DistillSkillPresets.Nuwa;
+               ?? DistillSkillPresets.Intimacy;
     }
 
     /// <summary>获取当前选中的技能 ID（缺省为 nuwa）。</summary>
@@ -367,7 +496,7 @@ public sealed class SkillStore
         File.WriteAllText(_skillsFilePath, JsonSerializer.Serialize(customList, s_jsonOptions));
     }
 
-    /// <summary>删除自定义技能（内置技能无法删除）。</summary>
+    /// <summary>删除自定义技能（内置技能无法删除；若关联本地物理文件则安全删除以防止重新扫描复现）。</summary>
     public bool DeleteCustomSkill(string id)
     {
         if (string.IsNullOrWhiteSpace(id) || DistillSkillPresets.AllBuiltIn.Any(b => b.Id.Equals(id, StringComparison.OrdinalIgnoreCase)))
@@ -375,15 +504,53 @@ public sealed class SkillStore
             return false;
         }
 
-        var customList = LoadCustomSkills().ToList();
-        int removed = customList.RemoveAll(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-        if (removed > 0)
+        bool removedAny = false;
+
+        // 1. 查找全部可用技能中匹配的项，检查是否有本地文件关联
+        var targetSkill = GetAllSkills().FirstOrDefault(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        if (targetSkill != null && !string.IsNullOrWhiteSpace(targetSkill.SourceFilePath))
         {
-            File.WriteAllText(_skillsFilePath, JsonSerializer.Serialize(customList, s_jsonOptions));
-            return true;
+            try
+            {
+                if (File.Exists(targetSkill.SourceFilePath))
+                {
+                    File.Delete(targetSkill.SourceFilePath);
+                    removedAny = true;
+                }
+
+                // 若该技能所在目录仅包含该技能文件或为空，安全清理父目录
+                string? parentDir = Path.GetDirectoryName(targetSkill.SourceFilePath);
+                if (!string.IsNullOrWhiteSpace(parentDir) && Directory.Exists(parentDir))
+                {
+                    var files = Directory.GetFileSystemEntries(parentDir);
+                    if (files.Length == 0)
+                    {
+                        Directory.Delete(parentDir, recursive: true);
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略文件物理删除权限异常
+            }
         }
 
-        return false;
+        // 2. 从自定义 JSON 列表中移除
+        var customList = LoadCustomSkills().ToList();
+        int removedCount = customList.RemoveAll(s => s.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        if (removedCount > 0)
+        {
+            File.WriteAllText(_skillsFilePath, JsonSerializer.Serialize(customList, s_jsonOptions));
+            removedAny = true;
+        }
+
+        // 3. 若当前激活的技能恰为被删除的技能，自动回退到默认技能
+        if (string.Equals(GetActiveSkillId(), id, StringComparison.OrdinalIgnoreCase))
+        {
+            SetActiveSkillId(DistillSkillPresets.DefaultSkillId);
+        }
+
+        return removedAny;
     }
 
     private IReadOnlyList<DistillSkill> LoadCustomSkills()

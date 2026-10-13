@@ -60,7 +60,8 @@ public partial class OverlayWindow : Window
     private readonly MessageSegmenter _segmenter = new();
     private readonly ConversationBuffer _conversation = new();
     private readonly List<HistoryMessage> _history = new();
-    private readonly PersonaStore _personaStore = new();
+    private readonly SqliteStorage _sqliteStorage = new();
+    private readonly PersonaStore _personaStore;
     private readonly SkillStore _skillStore = new();
     private readonly SettingsStore _settingsStore = new();
     private readonly ChatRegionOptions _cropOptions = new();
@@ -85,7 +86,7 @@ public partial class OverlayWindow : Window
     private string _historyContactName = string.Empty;
     private string? _mySelfNickname;
     private Persona? _currentLoadedPersona;
-    private DistillSkill _currentSkill = DistillSkillPresets.Nuwa;
+    private DistillSkill _currentSkill = DistillSkillPresets.Intimacy;
     private const int MaxRadarDimensions = 6;
     private bool _showAllRadarDimensions = false;
 
@@ -98,6 +99,8 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
+
+        _personaStore = new PersonaStore(null, _sqliteStorage);
 
         _tracker.TargetChanged += OnTargetChanged;
 
@@ -480,6 +483,10 @@ public partial class OverlayWindow : Window
                         _conversation.Ingest(recent);
                         RefreshChatView();
                         tmSynced = true;
+
+                        // 异步持久化至本地 SQLite 数据库
+                        _ = Task.Run(() => _sqliteStorage.SaveMessages(contact, history.Messages));
+
                         if (!silent)
                         {
                             StatusText.Text = $"已从 TraceMemo 精准同步最新 {recent.Count} 条记录 (零乱码)";
@@ -510,6 +517,13 @@ public partial class OverlayWindow : Window
                 var ocr = await _ocrEngine.RecognizeAsync(image);
                 var frame = _segmenter.Segment(ocr, image.Width);
                 int added = _conversation.Ingest(frame);
+
+                if (!string.IsNullOrEmpty(contact) && frame.Count > 0)
+                {
+                    // 屏幕 OCR 气泡无确切时间戳，传 null 使 msg_hash 基于内容幂等去重
+                    var ocrHistory = frame.Select(m => new HistoryMessage(m.Role, m.Text, null)).ToList();
+                    _ = Task.Run(() => _sqliteStorage.SaveMessages(contact, ocrHistory));
+                }
 
                 if (!silent || added > 0)
                 {
@@ -662,7 +676,7 @@ public partial class OverlayWindow : Window
         }
 
         int count = CountBox.SelectedIndex == 1 ? 5 : 3;
-        DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Nuwa;
+        DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Intimacy;
 
         GenerateButton.IsEnabled = false;
 
@@ -737,6 +751,7 @@ public partial class OverlayWindow : Window
         finally
         {
             GenerateButton.IsEnabled = true;
+            GenerateButton.Content = "🚀 智能分析回复建议";
         }
     }
 
@@ -812,20 +827,27 @@ public partial class OverlayWindow : Window
         if (isError)
         {
             AiStatusProgress.Visibility = Visibility.Collapsed;
+            AiStatusSpinner.Visibility = Visibility.Collapsed;
+            AiStatusIcon.Visibility = Visibility.Visible;
             AiStatusIcon.Text = "⚠️";
             AiStatusBanner.Background = new SolidColorBrush(Color.FromArgb(36, 239, 68, 68));
             AiStatusBanner.BorderBrush = new SolidColorBrush(Color.FromArgb(90, 239, 68, 68));
             AiStatusText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
             AiStatusDismissBtn.Visibility = Visibility.Visible;
+            GenerateButton.Content = "🚀 智能分析回复建议";
+            GenerateButton.IsEnabled = true;
         }
         else
         {
             AiStatusProgress.Visibility = Visibility.Visible;
-            AiStatusIcon.Text = "⚡";
+            AiStatusSpinner.Visibility = Visibility.Visible;
+            AiStatusIcon.Visibility = Visibility.Collapsed;
             AiStatusBanner.Background = new SolidColorBrush(Color.FromArgb(34, 59, 130, 246));
             AiStatusBanner.BorderBrush = new SolidColorBrush(Color.FromArgb(85, 59, 130, 246));
             AiStatusText.Foreground = (SolidColorBrush)FindResource("TextPrimaryBrush");
             AiStatusDismissBtn.Visibility = Visibility.Collapsed;
+            GenerateButton.Content = "⏳ 分析建议中...";
+            GenerateButton.IsEnabled = false;
         }
     }
 
@@ -1057,7 +1079,7 @@ public partial class OverlayWindow : Window
         string activeId = _skillStore.GetActiveSkillId();
         _currentSkill = allSkills.FirstOrDefault(s => string.Equals(s.Id, activeId, StringComparison.OrdinalIgnoreCase))
             ?? allSkills.FirstOrDefault()
-            ?? DistillSkillPresets.Nuwa;
+            ?? DistillSkillPresets.Intimacy;
 
         UpdateSkillBadge();
         RefreshSettingsSkillList();
@@ -1239,46 +1261,98 @@ public partial class OverlayWindow : Window
         };
     }
 
-    private void ImportSkillFileButton_Click(object sender, RoutedEventArgs e)
+    private void SettingScanFolderButton_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog
+        string? selectedPath = null;
+        try
         {
-            Filter = "智能体技能文件 (*.md)|*.md|所有文件 (*.*)|*.*",
-            Title = "导入本地 SKILL.md 技能文件"
-        };
-
-        if (dlg.ShowDialog() != true)
-        {
-            return;
+            var folderDlg = new Microsoft.Win32.OpenFolderDialog
+            {
+                Title = "选择技能库根文件夹（包含各技能 SKILL.md 子目录）",
+                Multiselect = false
+            };
+            if (folderDlg.ShowDialog() == true)
+            {
+                selectedPath = folderDlg.FolderName;
+            }
         }
+        catch
+        {
+            using var fbd = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "选择技能库根文件夹（包含各技能 SKILL.md 子目录）",
+                UseDescriptionForTitle = true
+            };
+            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                selectedPath = fbd.SelectedPath;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(selectedPath)) return;
 
         try
         {
-            var parsed = SkillStore.ParseSkillMdFile(dlg.FileName);
-            if (parsed is not null)
+            _skillStore.SetBoundSkillsDirectory(selectedPath);
+            var imported = _skillStore.ScanAndImportFolder(selectedPath);
+            MainTabControl.SelectedIndex = 3;
+            SwitchSettingSubTab(1);
+            InitSkillCombo();
+            RefreshSettingsSkillList();
+
+            if (imported.Count > 0)
             {
-                MainTabControl.SelectedIndex = 3;
-                SwitchSettingSubTab(1);
-
-                SettingCustomSkillCard.Visibility = Visibility.Visible;
-                SettingNewSkillNameBox.Text = parsed.Name;
-                SettingNewSkillIconBox.Text = parsed.Icon;
-                SettingNewSkillDescBox.Text = parsed.Description;
-                SettingNewSkillDimensionsBox.Text = parsed.Dimensions is { Count: > 0 }
-                    ? string.Join(", ", parsed.Dimensions)
-                    : string.Empty;
-                SettingNewSkillPromptBox.Text = parsed.SystemPrompt;
-
-                MessageBox.Show($"✅ 成功解析「{parsed.Icon} {parsed.Name}」，已填入技能编辑器，确认无误后点击「保存技能」即可生效。", "导入成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                string skillTitles = string.Join("\n", imported.Select(s => $"• {s.Icon} {s.Name} ({s.Id})"));
+                MessageBox.Show($"✅ 成功绑定技能目录并导入 {imported.Count} 个技能：\n\n{skillTitles}\n\n所有技能已立即生效并加入技能库！", "绑定成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show("未能从选定文件中解析出有效技能信息，请确认包含 SKILL.md 或有效 Markdown 格式。", "导入提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"✅ 已成功绑定技能目录：\n{selectedPath}\n\n该目录下目前未发现新增的有效 SKILL.md 文件。", "绑定提示", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show("导入技能文件失败：" + ex.Message, "导入错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show("绑定技能目录失败：" + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void SettingRescanFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string boundDir = _skillStore.GetBoundSkillsDirectory();
+            if (Directory.Exists(boundDir))
+            {
+                _skillStore.ScanAndImportFolder(boundDir);
+            }
+            InitSkillCombo();
+            RefreshSettingsSkillList();
+            MessageBox.Show("✅ 已完成技能目录重新扫描与状态同步！", "刷新成功", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("重新扫描失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void SettingOpenFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        string dir = _skillStore.GetBoundSkillsDirectory();
+        if (!Directory.Exists(dir))
+        {
+            try { Directory.CreateDirectory(dir); } catch { }
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("打开文件夹失败: " + ex.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -1292,46 +1366,72 @@ public partial class OverlayWindow : Window
         }
 
         var settings = new SettingsStore().Load();
-        if (string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
-        {
-            SetPersonaStatus("未配置 TraceMemo 地址，请在「AI 设置」中填写", isBusy: false);
-            return;
-        }
-
         FetchHistoryButton.IsEnabled = false;
+        FetchHistoryButton.Content = "⏳ 刷新中...";
         SetPersonaStatus($"正在连接 TraceMemo (6131) 并解析「{name}」历史记录...", isBusy: true);
 
         try
         {
-            using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
-            var res = await client.FetchHistoryAsync(name);
-
-            if (!res.Success)
+            bool tmSuccess = false;
+            if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
             {
-                SetPersonaStatus($"❌ TraceMemo 拉取失败：{res.Error}\n（请确认 TraceMemo 正在运行并已同步微信；也可使用「导入 CSV」）", isBusy: false);
-                return;
+                try
+                {
+                    using var client = new TraceMemoClient(settings.TraceMemoBaseUrl);
+                    var res = await client.FetchHistoryAsync(name);
+
+                    if (res.Success)
+                    {
+                        tmSuccess = true;
+                        _history.Clear();
+                        _history.AddRange(res.Messages);
+                        _historyContactName = name;
+
+                        // 同步持久化至本地 SQLite 数据库
+                        int newInserted = await Task.Run(() => _sqliteStorage.SaveMessages(name, res.Messages));
+                        int totalLocal = await Task.Run(() => _sqliteStorage.GetMessageCount(name));
+
+                        if (res.Messages.Count > 0)
+                        {
+                            SetPersonaStatus($"✅ 已成功从 TraceMemo 拉取「{name}」共 {res.Messages.Count} 条历史消息并存入本地 SQLite（本次入库 {newInserted} 条，本地累计 {totalLocal} 条）。可点击【✨ 一键蒸馏画像】！", isBusy: false);
+                        }
+                        else
+                        {
+                            SetPersonaStatus($"ℹ️ TraceMemo 中找到了联系人「{name}」，但该会话暂无聊天消息（本地累计 {totalLocal} 条）", isBusy: false);
+                        }
+                    }
+                }
+                catch
+                {
+                    tmSuccess = false;
+                }
             }
 
-            _history.Clear();
-            _history.AddRange(res.Messages);
-            _historyContactName = name;
-
-            if (res.Messages.Count > 0)
+            if (!tmSuccess)
             {
-                SetPersonaStatus($"✅ 已成功从 TraceMemo 拉取「{name}」共 {res.Messages.Count} 条历史消息。可点击【✨ 一键蒸馏画像】！", isBusy: false);
-            }
-            else
-            {
-                SetPersonaStatus($"ℹ️ TraceMemo 中找到了联系人「{name}」，但本地数据库暂无该会话的聊天消息", isBusy: false);
+                // TraceMemo 未运行或离线：自动回退从本地 SQLite 数据库秒级加载
+                var localMessages = await Task.Run(() => _sqliteStorage.GetMessages(name));
+                if (localMessages.Count > 0)
+                {
+                    _history.Clear();
+                    _history.AddRange(localMessages);
+                    _historyContactName = name;
+                    SetPersonaStatus($"⚠️ TraceMemo 未启动或连接失败，已自动从本地 SQLite 数据库秒级加载离线历史（共 {localMessages.Count} 条）。可直接点击【✨ 一键蒸馏画像】！", isBusy: false);
+                }
+                else
+                {
+                    SetPersonaStatus($"❌ TraceMemo 未启动且本地 SQLite 暂无「{name}」的历史记录。\n（请启动 TraceMemo 或使用「📥 导入 CSV」导入历史）", isBusy: false);
+                }
             }
         }
         catch (Exception ex)
         {
-            SetPersonaStatus("TraceMemo 拉取异常：" + ex.Message, isBusy: false);
+            SetPersonaStatus("历史刷新异常：" + ex.Message, isBusy: false);
         }
         finally
         {
             FetchHistoryButton.IsEnabled = true;
+            FetchHistoryButton.Content = "⚡ 刷新历史";
         }
     }
 
@@ -1344,11 +1444,11 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        // 1. 若当前历史为空，或联系人发生变动，自动直连 TraceMemo 读取最新记录
+        // 1. 若当前历史为空，或联系人发生变动，自动直连 TraceMemo 读取最新记录，离线时自动回退本地 SQLite
         if (_history.Count == 0 || !string.Equals(_historyContactName, name, StringComparison.OrdinalIgnoreCase))
         {
             var settings = new SettingsStore().Load();
-            SetPersonaStatus($"未检测到「{name}」缓存历史，正在连接 TraceMemo 自动拉取...", isBusy: true);
+            SetPersonaStatus($"未检测到「{name}」缓存历史，正在拉取历史记录...", isBusy: true);
 
             if (!string.IsNullOrWhiteSpace(settings.TraceMemoBaseUrl))
             {
@@ -1361,6 +1461,7 @@ public partial class OverlayWindow : Window
                         _history.Clear();
                         _history.AddRange(fetchRes.Messages);
                         _historyContactName = name;
+                        _ = Task.Run(() => _sqliteStorage.SaveMessages(name, fetchRes.Messages));
                     }
                 }
                 catch
@@ -1371,12 +1472,24 @@ public partial class OverlayWindow : Window
 
             if (_history.Count == 0)
             {
-                SetPersonaStatus($"历史记录为空：未能从 TraceMemo 获取到「{name}」的记录。可点击【⚡ 刷新历史】重试或使用【📥 导入CSV】。", isBusy: false);
+                var cached = await Task.Run(() => _sqliteStorage.GetMessages(name));
+                if (cached.Count > 0)
+                {
+                    _history.Clear();
+                    _history.AddRange(cached);
+                    _historyContactName = name;
+                }
+            }
+
+            if (_history.Count == 0)
+            {
+                SetPersonaStatus($"历史记录为空：TraceMemo 未启动且本地数据库无「{name}」的记录。可点击【⚡ 刷新历史】重试或使用【📥 导入CSV】。", isBusy: false);
                 return;
             }
         }
 
         DistillButton.IsEnabled = false;
+        DistillButton.Content = "⏳ 蒸馏中...";
         SetPersonaStatus($"🧬 正在调用【{_currentSkill.Icon} {_currentSkill.Name}】蒸馏视角，分析 {name} 的 {_history.Count} 条历史...", isBusy: true);
 
         try
@@ -1417,6 +1530,7 @@ public partial class OverlayWindow : Window
         finally
         {
             DistillButton.IsEnabled = true;
+            DistillButton.Content = "✨ 一键蒸馏画像";
         }
     }
 
@@ -1440,7 +1554,11 @@ public partial class OverlayWindow : Window
             _history.Clear();
             _history.AddRange(messages);
             _historyContactName = ContactBox.Text.Trim();
-            SetPersonaStatus($"✅ 成功导入 CSV 历史 {messages.Count} 条，可点击【✨ 一键蒸馏画像】。", isBusy: false);
+            if (!string.IsNullOrEmpty(_historyContactName) && messages.Count > 0)
+            {
+                _ = Task.Run(() => _sqliteStorage.SaveMessages(_historyContactName, messages));
+            }
+            SetPersonaStatus($"✅ 成功导入 CSV 历史 {messages.Count} 条并存入本地 SQLite，可点击【✨ 一键蒸馏画像】。", isBusy: false);
         }
         catch (Exception ex)
         {
@@ -1456,21 +1574,14 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        string path = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "WeChatCopilot", "personas", name + ".json");
-
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-        }
+        _personaStore.Delete(name);
 
         _currentLoadedPersona = null;
         PersonaScroll.Visibility = Visibility.Collapsed;
         PersonaEmptyCard.Visibility = Visibility.Visible;
         PersonaEmptyTitle.Text = $"已清除「{name}」的画像";
         RefreshSavedPersonasCombo();
-        SetPersonaStatus($"已删除「{name}」的本地画像文件。", isBusy: false);
+        SetPersonaStatus($"已删除「{name}」的本地画像文件与数据库记录。", isBusy: false);
     }
 
     private void CheckAndLoadPersona(string name)
@@ -1644,7 +1755,7 @@ public partial class OverlayWindow : Window
     private void DrawRadarChart(IReadOnlyList<PersonaTrait>? traits, DistillSkill? skill = null)
     {
         RadarCanvas.Children.Clear();
-        skill ??= _currentSkill ?? DistillSkillPresets.Nuwa;
+        skill ??= _currentSkill ?? DistillSkillPresets.Intimacy;
 
         double cx = RadarCanvas.Width / 2.0;
         double cy = RadarCanvas.Height / 2.0;
@@ -1858,6 +1969,7 @@ public partial class OverlayWindow : Window
     {
         PersonaStatusText.Text = text;
         PersonaProgress.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+        PersonaSpinner.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
         if (text.StartsWith("❌") || text.Contains("失败") || text.Contains("异常"))
         {
             PersonaStatusText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
@@ -1869,6 +1981,12 @@ public partial class OverlayWindow : Window
             PersonaStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
             PersonaStatusCard.Background = new SolidColorBrush(Color.FromArgb(30, 16, 185, 129));
             PersonaStatusCard.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 16, 185, 129));
+        }
+        else if (isBusy)
+        {
+            PersonaStatusText.Foreground = (Brush)FindResource("TextPrimaryBrush");
+            PersonaStatusCard.Background = new SolidColorBrush(Color.FromArgb(34, 59, 130, 246));
+            PersonaStatusCard.BorderBrush = new SolidColorBrush(Color.FromArgb(85, 59, 130, 246));
         }
         else
         {
@@ -2326,6 +2444,10 @@ public partial class OverlayWindow : Window
             }
 
             SettingSkillList.ItemsSource = items;
+            if (SettingBoundPathText != null)
+            {
+                SettingBoundPathText.Text = _skillStore.GetBoundSkillsDirectory();
+            }
             UpdateSkillBadge();
         }
         finally
@@ -2626,74 +2748,20 @@ public partial class OverlayWindow : Window
         ShowSettingTestResult(true, "保存成功", "AI 设置与密钥已加密保存至本地。", 0);
     }
 
-    private void SettingNewSkillButton_Click(object sender, RoutedEventArgs e)
-    {
-        SettingCustomSkillCard.Visibility = Visibility.Visible;
-        SettingNewSkillNameBox.Text = string.Empty;
-        SettingNewSkillIconBox.Text = "🏷️";
-        SettingNewSkillDescBox.Text = string.Empty;
-        SettingNewSkillDimensionsBox.Text = string.Empty;
-        SettingNewSkillPromptBox.Text = string.Empty;
-    }
-
-    private void SettingCloseSkillEditor_Click(object sender, RoutedEventArgs e)
-    {
-        SettingCustomSkillCard.Visibility = Visibility.Collapsed;
-    }
-
-    private void SettingSaveSkillButton_Click(object sender, RoutedEventArgs e)
-    {
-        string name = SettingNewSkillNameBox.Text.Trim();
-        string icon = SettingNewSkillIconBox.Text.Trim();
-        string desc = SettingNewSkillDescBox.Text.Trim();
-        string prompt = SettingNewSkillPromptBox.Text.Trim();
-        string dimensionsText = SettingNewSkillDimensionsBox.Text.Trim();
-
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            MessageBox.Show("请输入技能名称。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(prompt))
-        {
-            MessageBox.Show("请输入技能核心提示词 (Prompt)。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(icon))
-        {
-            icon = "🏷️";
-        }
-        if (string.IsNullOrWhiteSpace(desc))
-        {
-            desc = name;
-        }
-
-        var dimensions = dimensionsText
-            .Split(new[] { ',', '，', '、', ';', '；', '/', '／', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(d => !string.IsNullOrWhiteSpace(d))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        string id = "custom_" + Guid.NewGuid().ToString("N")[..8];
-        var newSkill = new DistillSkill(id, name, desc, icon, prompt, dimensions, false);
-        _skillStore.SaveCustomSkill(newSkill);
-        _skillStore.SetActiveSkillId(id);
-
-        InitSkillCombo();
-        RefreshSettingsSkillList();
-        SettingCustomSkillCard.Visibility = Visibility.Collapsed;
-    }
-
     private void DeleteCustomSkillFromSettings_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string skillId)
         {
-            var res = MessageBox.Show("确定要删除该自定义技能吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var res = MessageBox.Show("确定要删除该技能吗？若为本地绑定的技能文件，将同步从磁盘目录中安全删除，防止重新加载。", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (res == MessageBoxResult.Yes)
             {
-                _skillStore.DeleteCustomSkill(skillId);
+                bool deleted = _skillStore.DeleteCustomSkill(skillId);
                 InitSkillCombo();
                 RefreshSettingsSkillList();
+                if (deleted)
+                {
+                    MessageBox.Show("✅ 技能已成功删除并同步清理！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
     }
