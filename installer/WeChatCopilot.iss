@@ -4,7 +4,9 @@
 
 #define MyAppName "微信副驾 (WeChat Copilot)"
 #define MyAppShortName "WeChatCopilot"
+#ifndef MyAppVersion
 #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "WeChat Copilot"
 #define MyAppExeName "WeChatCopilot.exe"
 #define MySourceDir "..\publish\win-x64"

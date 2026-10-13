@@ -67,6 +67,7 @@ public partial class AdviceAnalyticsWindow : Window
         // 提取动态评估维度
         _dynamicDims = ResolveDynamicDimensions();
 
+        ThemeManager.ApplyCurrentTheme(this);
         Loaded += AdviceAnalyticsWindow_Loaded;
     }
 
@@ -512,15 +513,32 @@ public partial class AdviceAnalyticsWindow : Window
         double midX = padL + plotW / 2.0;
         double midY = padT + plotH / 2.0;
 
-        // 1. 四象限背景微色调色块
+        bool isLight = ThemeManager.IsLightMode;
+
+        // 1. 四象限背景微色调色块与高对比度文字
         // Q1 (右上): 🌟 黄金破局 (推进高，安全高)
-        DrawQuadrantBox(midX, padT, plotW / 2.0, plotH / 2.0, Color.FromArgb(16, 16, 185, 129), "🌟 黄金破局");
+        DrawQuadrantBox(midX, padT, plotW / 2.0, plotH / 2.0,
+            isLight ? Color.FromArgb(28, 16, 185, 129) : Color.FromArgb(20, 16, 185, 129),
+            "🌟 黄金破局",
+            isLight ? Color.FromRgb(4, 120, 87) : Color.FromRgb(52, 211, 153));
+
         // Q2 (左上): ⚡ 高能突刺 (推进高，安全低)
-        DrawQuadrantBox(padL, padT, plotW / 2.0, plotH / 2.0, Color.FromArgb(16, 245, 158, 11), "⚡ 高能突刺");
+        DrawQuadrantBox(padL, padT, plotW / 2.0, plotH / 2.0,
+            isLight ? Color.FromArgb(28, 245, 158, 11) : Color.FromArgb(20, 245, 158, 11),
+            "⚡ 高能突刺",
+            isLight ? Color.FromRgb(180, 83, 9) : Color.FromRgb(251, 191, 36));
+
         // Q3 (左下): ⚠️ 谨慎踩雷 (推进低，安全低)
-        DrawQuadrantBox(padL, midY, plotW / 2.0, plotH / 2.0, Color.FromArgb(16, 244, 63, 94), "⚠️ 谨慎踩雷");
-        // Q4 (右下): 🛡️ 稳健托底 (推进低，安全高)
-        DrawQuadrantBox(midX, midY, plotW / 2.0, plotH / 2.0, Color.FromArgb(16, 56, 189, 248), "🛡️ 稳健防守");
+        DrawQuadrantBox(padL, midY, plotW / 2.0, plotH / 2.0,
+            isLight ? Color.FromArgb(28, 244, 63, 94) : Color.FromArgb(20, 244, 63, 94),
+            "⚠️ 谨慎踩雷",
+            isLight ? Color.FromRgb(190, 18, 60) : Color.FromRgb(251, 113, 133));
+
+        // Q4 (右下): 🛡️ 稳健防守 (推进低，安全高)
+        DrawQuadrantBox(midX, midY, plotW / 2.0, plotH / 2.0,
+            isLight ? Color.FromArgb(28, 56, 189, 248) : Color.FromArgb(20, 56, 189, 248),
+            "🛡️ 稳健防守",
+            isLight ? Color.FromRgb(3, 105, 161) : Color.FromRgb(56, 189, 248));
 
         // 2. 双轴中心十字线 (X=50, Y=50)
         var vLine = new Line
@@ -632,7 +650,7 @@ public partial class AdviceAnalyticsWindow : Window
         }
     }
 
-    private void DrawQuadrantBox(double x, double y, double w, double h, Color tint, string label)
+    private void DrawQuadrantBox(double x, double y, double w, double h, Color tint, string label, Color labelColor)
     {
         var rect = new Rectangle
         {
@@ -648,8 +666,8 @@ public partial class AdviceAnalyticsWindow : Window
         {
             Text = label,
             FontSize = 9.5,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Color.FromArgb(140, 200, 210, 225))
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(labelColor)
         };
         Canvas.SetLeft(txt, x + 6);
         Canvas.SetTop(txt, y + 5);

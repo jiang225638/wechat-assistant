@@ -70,6 +70,16 @@
         <SolidColorBrush x:Key="IntentFlowBorderBrush" Color="#38BDF8" />
         <SolidColorBrush x:Key="IntentFlowTextBrush" Color="#E0F2FE" />
 
+        <!--  对话气泡画刷 (支持 ThemeManager 动态热重载)  -->
+        <SolidColorBrush x:Key="ChatIncomingBgBrush" Color="#27273A" />
+        <SolidColorBrush x:Key="ChatIncomingBorderBrush" Color="#3D3D58" />
+        <SolidColorBrush x:Key="ChatIncomingBadgeBrush" Color="#93C5FD" />
+        <SolidColorBrush x:Key="ChatIncomingTextBrush" Color="#F3F4F6" />
+        <SolidColorBrush x:Key="ChatOutgoingBgBrush" Color="#1B4332" />
+        <SolidColorBrush x:Key="ChatOutgoingBorderBrush" Color="#2D6A4F" />
+        <SolidColorBrush x:Key="ChatOutgoingBadgeBrush" Color="#6EE7B7" />
+        <SolidColorBrush x:Key="ChatOutgoingTextBrush" Color="#F3F4F6" />
+
         <!--  扁平圆角按钮样式  -->
         <Style x:Key="FluentButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}" />
@@ -183,10 +193,13 @@
         <Style x:Key="FluentTextBox" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource InputBgBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,5" />
             <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -205,8 +218,327 @@
                                 VerticalScrollBarVisibility="Hidden" />
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代密码输入框样式  -->
+        <Style x:Key="FluentPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border
+                            x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            SnapsToDevicePixels="True">
+                            <ScrollViewer
+                                x:Name="PART_ContentHost"
+                                Margin="0"
+                                Focusable="False"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代下拉列表项样式  -->
+        <Style x:Key="FluentComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border
+                            x:Name="Bd"
+                            Margin="1,1"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5"
+                            SnapsToDevicePixels="True">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubBorderCheckedBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource SubBorderCheckedTextBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代下拉框切换按钮  -->
+        <Style x:Key="FluentComboBoxToggleButton" TargetType="ToggleButton">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="ClickMode" Value="Press" />
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            x:Name="templateRoot"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            SnapsToDevicePixels="True">
+                            <Path
+                                x:Name="arrow"
+                                Margin="0,0,8,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Data="M 0 0 L 4 4 L 8 0"
+                                Stroke="{DynamicResource TextSecondaryBrush}"
+                                StrokeThickness="1.5"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round"
+                                IsHitTestVisible="False" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="arrow" Property="Data" Value="M 0 4 L 4 0 L 8 4" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="templateRoot" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代下拉框样式  -->
+        <Style x:Key="FluentComboBox" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Padding" Value="8,4,24,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MaxDropDownHeight" Value="280" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                            <ToggleButton
+                                x:Name="toggleButton"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                Style="{StaticResource FluentComboBoxToggleButton}" />
+                            <ContentPresenter
+                                x:Name="contentPresenter"
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                TextElement.Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <Popup
+                                x:Name="PART_Popup"
+                                AllowsTransparency="True"
+                                Focusable="False"
+                                IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                Placement="Bottom"
+                                PopupAnimation="Slide">
+                                <Border
+                                    x:Name="dropDownBorder"
+                                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    Margin="0,3,0,6"
+                                    Padding="4"
+                                    Background="{DynamicResource CardBgBrush}"
+                                    BorderBrush="{DynamicResource BorderLightBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    SnapsToDevicePixels="True">
+                                    <Border.Effect>
+                                        <DropShadowEffect
+                                            BlurRadius="12"
+                                            Direction="270"
+                                            Opacity="0.25"
+                                            ShadowDepth="3"
+                                            Color="#000000" />
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="True">
+                                        <ItemsPresenter
+                                            x:Name="ItemsPresenter"
+                                            KeyboardNavigation.DirectionalNavigation="Contained"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="templateRoot" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="toggleButton" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代悬浮提示 ToolTip 样式  -->
+        <Style x:Key="FluentToolTip" TargetType="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderLightBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="HasDropShadow" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" Opacity="0.25" ShadowDepth="3" Color="#000000" />
+                            </Border.Effect>
+                            <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--  现代复选框 CheckBox 样式  -->
+        <Style x:Key="FluentCheckBox" TargetType="CheckBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border
+                                x:Name="checkBorder"
+                                Width="16"
+                                Height="16"
+                                Margin="0,0,6,0"
+                                Background="{DynamicResource InputBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                SnapsToDevicePixels="True">
+                                <Path
+                                    x:Name="checkMark"
+                                    Width="10"
+                                    Height="8"
+                                    Data="M 1 4 L 4 7 L 9 1"
+                                    Stroke="{DynamicResource AccentBrush}"
+                                    StrokeThickness="1.8"
+                                    StrokeStartLineCap="Round"
+                                    StrokeEndLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="checkMark" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="checkBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="checkBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -258,22 +590,25 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!--  全局隐式控件样式覆盖，确保深浅主题下全部控件自动适配且高对比度  -->
+        <Style TargetType="Button" BasedOn="{StaticResource FluentButton}" />
+        <Style TargetType="ToggleButton" BasedOn="{StaticResource FluentToggleButton}" />
+        <Style TargetType="TextBox" BasedOn="{StaticResource FluentTextBox}" />
+        <Style TargetType="PasswordBox" BasedOn="{StaticResource FluentPasswordBox}" />
+        <Style TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}" />
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource FluentComboBoxItem}" />
+        <Style TargetType="ToolTip" BasedOn="{StaticResource FluentToolTip}" />
+        <Style TargetType="CheckBox" BasedOn="{StaticResource FluentCheckBox}" />
     </Window.Resources>
 
     <!--  外层卡片边框  -->
     <Border
         Padding="14"
         Background="{DynamicResource WindowBgBrush}"
-        BorderBrush="{DynamicResource BorderLightBrush}"
-        BorderThickness="1"
+        BorderBrush="Transparent"
+        BorderThickness="0"
         CornerRadius="14">
-        <Border.Effect>
-            <DropShadowEffect
-                BlurRadius="24"
-                Opacity="0.45"
-                ShadowDepth="4"
-                Color="#000000" />
-        </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
@@ -631,23 +966,53 @@
                                                 MaxWidth="340"
                                                 Padding="10,8"
                                                 HorizontalAlignment="{Binding BubbleAlignment}"
-                                                Background="{Binding BubbleBackground}"
-                                                BorderBrush="{Binding BubbleBorder}"
                                                 BorderThickness="1"
                                                 CornerRadius="10">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource ChatIncomingBgBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource ChatIncomingBorderBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsIncoming}" Value="False">
+                                                                <Setter Property="Background" Value="{DynamicResource ChatOutgoingBgBrush}" />
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource ChatOutgoingBorderBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
                                                 <StackPanel>
                                                     <TextBlock
                                                         Margin="0,0,0,4"
                                                         FontSize="10"
                                                         FontWeight="Bold"
-                                                        Foreground="{Binding BadgeForeground}"
-                                                        Text="{Binding SenderLabel}" />
+                                                        Text="{Binding SenderLabel}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource ChatIncomingBadgeBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsIncoming}" Value="False">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource ChatOutgoingBadgeBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
                                                     <TextBlock
                                                         FontSize="12.5"
-                                                        Foreground="{DynamicResource TextPrimaryBrush}"
                                                         LineHeight="18"
                                                         Text="{Binding Text}"
-                                                        TextWrapping="Wrap" />
+                                                        TextWrapping="Wrap">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Foreground" Value="{DynamicResource ChatIncomingTextBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsIncoming}" Value="False">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource ChatOutgoingTextBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -1055,32 +1420,36 @@
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <StackPanel>
-                                        <!--  标头  -->
+                                        <!--  标头 (两行自适应，杜绝重叠遮挡)  -->
                                         <Grid Margin="0,0,0,8">
-                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                                <TextBlock
-                                                    Margin="0,0,6,0"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="13"
-                                                    Text="🔍" />
-                                                <TextBlock
-                                                    VerticalAlignment="Center"
-                                                    FontSize="12"
-                                                    FontWeight="Bold"
-                                                    Foreground="#93C5FD"
-                                                    Text="对方最新发言与意图剖析" />
-                                            </StackPanel>
-                                            <StackPanel
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center"
-                                                Orientation="Horizontal">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 第一行：卡片主标题与放大看板功能按钮 -->
+                                            <Grid Grid.Row="0">
+                                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                                    <TextBlock
+                                                        Margin="0,0,6,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="13"
+                                                        Text="🔍" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        FontSize="12.5"
+                                                        FontWeight="Bold"
+                                                        Foreground="{DynamicResource IntentFlowTextBrush}"
+                                                        Text="对方最新发言与意图剖析" />
+                                                </StackPanel>
                                                 <Button
                                                     x:Name="OpenAdviceAnalyticsHeaderButton"
-                                                    Margin="0,0,6,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
                                                     Height="22"
-                                                    Padding="6,0"
-                                                    Background="#2538BDF8"
-                                                    BorderBrush="#6638BDF8"
+                                                    Padding="7,0"
+                                                    Background="{DynamicResource IntentFlowBgBrush}"
+                                                    BorderBrush="{DynamicResource IntentFlowBorderBrush}"
                                                     BorderThickness="1"
                                                     Cursor="Hand"
                                                     Click="OpenAdviceAnalyticsButton_Click"
@@ -1096,17 +1465,25 @@
                                                                 Padding="{TemplateBinding Padding}">
                                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                                     <TextBlock Text="🔍" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center" />
-                                                                    <TextBlock Text="放大看板" FontSize="10.5" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="放大看板" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource IntentFlowTextBrush}" VerticalAlignment="Center" />
                                                                 </StackPanel>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter TargetName="b" Property="Background" Value="#4038BDF8" />
+                                                                    <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
                                                         </ControlTemplate>
                                                     </Button.Template>
                                                 </Button>
+                                            </Grid>
+
+                                            <!-- 第二行：关联认知方法论与原话来源标签 -->
+                                            <StackPanel
+                                                Grid.Row="1"
+                                                Margin="0,6,0,0"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center">
                                                 <Border
                                                     x:Name="AiAppliedSkillBadge"
                                                     Margin="0,0,6,0"
@@ -1118,17 +1495,21 @@
                                                     <TextBlock
                                                         x:Name="AiAppliedSkillText"
                                                         FontSize="10"
-                                                        Foreground="#C4B5FD"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{DynamicResource PurpleBrush}"
                                                         Text="🧬 女娲心智" />
                                                 </Border>
                                                 <Border
                                                     Padding="6,2"
-                                                    Background="#333B82F6"
+                                                    Background="#203B82F6"
+                                                    BorderBrush="#403B82F6"
+                                                    BorderThickness="1"
                                                     CornerRadius="4">
                                                     <TextBlock
                                                         x:Name="SubtextTargetAuthor"
                                                         FontSize="10"
-                                                        Foreground="#60A5FA"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{DynamicResource AccentBrush}"
                                                         Text="对方原话" />
                                                 </Border>
                                             </StackPanel>

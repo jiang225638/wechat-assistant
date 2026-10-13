@@ -23,7 +23,7 @@ if (-not (Test-Path $distDir)) {
 # 2. Publish self-contained folder for Setup installer
 Write-Host "`n[1/3] Publishing self-contained win-x64 app..." -ForegroundColor Yellow
 $appProj = Join-Path $rootDir "src\WeChatCopilot.App\WeChatCopilot.App.csproj"
-& dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" -o $publishDir
+& dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" "-p:Version=$Version" -o $publishDir
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed!"
@@ -54,9 +54,9 @@ if (-not $iscc) {
 
 if ($iscc) {
     $issFile = Join-Path $rootDir "installer\WeChatCopilot.iss"
-    & $iscc "/DMyAppVersion=$Version" $issFile
+    & $iscc "/DMyAppVersion=$Version" "/FWeChatCopilot_Setup_v$Version" $issFile
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Inno Setup compilation failed."
+        throw "Inno Setup compilation failed with exit code $LASTEXITCODE!"
     } else {
         Write-Host "Inno Setup installer created successfully!" -ForegroundColor Green
     }
@@ -67,7 +67,7 @@ if ($iscc) {
 # 4. Optional: build standalone portable single-file exe
 if ($IncludeSingleFile) {
     Write-Host "`n[3/3] Building portable single-file executable..." -ForegroundColor Yellow
-    & dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true" "-p:EnableCompressionInSingleFile=true" -o $singleFileDir
+    & dotnet publish $appProj -c $Configuration -r "win-x64" "--self-contained" "true" "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true" "-p:EnableCompressionInSingleFile=true" "-p:Version=$Version" -o $singleFileDir
 
     if (Test-Path "$singleFileDir\WeChatCopilot.exe") {
         $portableTarget = Join-Path $distDir "WeChatCopilot_Portable_v$Version.exe"

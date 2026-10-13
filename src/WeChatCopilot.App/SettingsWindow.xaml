@@ -6,43 +6,43 @@
         SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#FF181824">
+        Background="{DynamicResource WindowBgBrush}">
     <Border Padding="18,16,18,18">
         <StackPanel>
-            <TextBlock Text="接口基址（OpenAI 兼容，含 /v1）" Foreground="#FFE0E0E0" FontSize="12" />
+            <TextBlock Text="接口基址（OpenAI 兼容，含 /v1）" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
             <TextBox x:Name="EndpointBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
-            <TextBlock Text="模型名" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <TextBlock Text="模型名" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" Margin="0,10,0,0" />
             <TextBox x:Name="ModelBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <StackPanel>
-                    <TextBlock Text="温度 (0-1)" Foreground="#FFE0E0E0" FontSize="12" />
+                    <TextBlock Text="温度 (0-1)" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
                     <TextBox x:Name="TempBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
                 </StackPanel>
                 <StackPanel Margin="16,0,0,0">
-                    <TextBlock Text="请求超时 (秒)" Foreground="#FFE0E0E0" FontSize="12" />
+                    <TextBlock Text="请求超时 (秒)" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" />
                     <TextBox x:Name="TimeoutBox" Width="90" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
                 </StackPanel>
             </StackPanel>
 
-            <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <TextBlock Text="API Key（仅本机 DPAPI 加密保存，不回显明文到磁盘）" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" Margin="0,10,0,0" />
             <PasswordBox x:Name="KeyBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
-            <TextBlock Text="TraceMemo Local API 基址（冷链路画像，如 http://127.0.0.1:8080）" Foreground="#FFE0E0E0" FontSize="12" Margin="0,10,0,0" />
+            <TextBlock Text="TraceMemo Local API 基址（冷链路画像，如 http://127.0.0.1:8080）" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12" Margin="0,10,0,0" />
             <TextBox x:Name="TraceMemoBox" Margin="0,4,0,0" FontSize="12" Height="32" VerticalContentAlignment="Center" />
 
             <!-- 测试结果卡片 -->
             <Border x:Name="TestResultBorder" Visibility="Collapsed" Margin="0,14,0,0"
-                    Background="#222234" BorderBrush="#3A3A52" BorderThickness="1" CornerRadius="6" Padding="12,10">
+                    Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock x:Name="TestStatusIcon" Text="✅" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
                         <TextBlock x:Name="TestStatusTitle" Text="测试成功" FontSize="12" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
-                        <TextBlock x:Name="TestLatencyText" Text="(耗时 320ms)" FontSize="11" Foreground="#9CA3AF" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock x:Name="TestLatencyText" Text="(耗时 320ms)" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBox x:Name="TestDetailBox" Margin="0,8,0,0" FontSize="11" Foreground="#E5E7EB" Background="#181824"
-                             BorderBrush="#33FFFFFF" BorderThickness="1" Padding="8,6"
+                    <TextBox x:Name="TestDetailBox" Margin="0,8,0,0" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Background="{DynamicResource CardSubtleBgBrush}"
+                             BorderBrush="{DynamicResource BorderLightBrush}" BorderThickness="1" Padding="8,6"
                              IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120"
                              VerticalScrollBarVisibility="Auto" />
                 </StackPanel>

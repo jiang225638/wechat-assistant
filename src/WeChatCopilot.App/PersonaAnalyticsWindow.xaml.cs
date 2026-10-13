@@ -34,6 +34,7 @@ public partial class PersonaAnalyticsWindow : Window
         _history = history ?? Array.Empty<HistoryMessage>();
         _traits = PersonaDistiller.DeduplicateByDimension(persona.Traits, _history);
 
+        ThemeManager.ApplyCurrentTheme(this);
         Loaded += PersonaAnalyticsWindow_Loaded;
     }
 
@@ -183,16 +184,17 @@ public partial class PersonaAnalyticsWindow : Window
                 dimName = dimName[..mid] + "\n" + dimName[mid..];
             }
 
+            bool isLight = ThemeManager.IsLightMode;
             var tb = new TextBlock
             {
                 Text = $"{dimName}\n{_traits[i].ScoreInt}分",
                 FontSize = 10.5,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = _traits[i].Score >= 75
-                    ? new SolidColorBrush(Color.FromRgb(167, 243, 208))
+                    ? new SolidColorBrush(isLight ? Color.FromRgb(5, 150, 105) : Color.FromRgb(167, 243, 208))
                     : _traits[i].Score < 40
-                        ? new SolidColorBrush(Color.FromRgb(254, 205, 211))
-                        : new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+                        ? new SolidColorBrush(isLight ? Color.FromRgb(225, 29, 72) : Color.FromRgb(254, 205, 211))
+                        : new SolidColorBrush(isLight ? Color.FromRgb(30, 41, 59) : Color.FromRgb(226, 232, 240)),
                 TextAlignment = TextAlignment.Center
             };
             tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -223,11 +225,11 @@ public partial class PersonaAnalyticsWindow : Window
             {
                 Text = t.Dimension,
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 ToolTip = t.Dimension
             };
+            dimTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
             Grid.SetColumn(dimTb, 0);
             rowGrid.Children.Add(dimTb);
 
@@ -235,10 +237,10 @@ public partial class PersonaAnalyticsWindow : Window
             var trackBorder = new Border
             {
                 Height = 14,
-                Background = new SolidColorBrush(Color.FromRgb(26, 32, 44)),
                 CornerRadius = new CornerRadius(3),
                 VerticalAlignment = VerticalAlignment.Center
             };
+            trackBorder.SetResourceReference(Border.BackgroundProperty, "CardSubtleBg");
 
             var barFill = new Border
             {
@@ -291,10 +293,10 @@ public partial class PersonaAnalyticsWindow : Window
                 Text = $"{t.ScoreInt}分",
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center
             };
+            scoreTb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
             Grid.SetColumn(scoreTb, 2);
             rowGrid.Children.Add(scoreTb);
 
@@ -423,12 +425,13 @@ public partial class PersonaAnalyticsWindow : Window
             LineChartCanvas.Children.Add(dot);
 
             // 分数文本
+            bool isLight = ThemeManager.IsLightMode;
             var scoreTb = new TextBlock
             {
                 Text = $"{_traits[i].ScoreInt}",
                 FontSize = 9.5,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White
+                Foreground = isLight ? new SolidColorBrush(Color.FromRgb(15, 23, 42)) : Brushes.White
             };
             scoreTb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             Canvas.SetLeft(scoreTb, pt.X - scoreTb.DesiredSize.Width / 2.0);
@@ -441,7 +444,7 @@ public partial class PersonaAnalyticsWindow : Window
             {
                 Text = xLabel,
                 FontSize = 9,
-                Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+                Foreground = new SolidColorBrush(isLight ? Color.FromRgb(71, 85, 105) : Color.FromRgb(148, 163, 184)),
                 ToolTip = _traits[i].Dimension
             };
             dimTb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

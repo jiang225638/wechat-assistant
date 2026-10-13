@@ -142,10 +142,25 @@ public partial class OverlayWindow : Window
         Closed += OnClosed;
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        if (PresentationSource.FromVisual(this) is HwndSource source && source.CompositionTarget != null)
+        {
+            source.CompositionTarget.BackgroundColor = Colors.Transparent;
+        }
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _hwnd = new WindowInteropHelper(this).EnsureHandle();
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+
+        if (PresentationSource.FromVisual(this) is HwndSource source && source.CompositionTarget != null)
+        {
+            source.CompositionTarget.BackgroundColor = Colors.Transparent;
+        }
+        Background = Brushes.Transparent;
 
         var savedSettings = _settingsStore.Load();
         if (savedSettings.WindowWidth >= MinWidth && savedSettings.WindowWidth <= MaxWidth)
@@ -1084,13 +1099,13 @@ public partial class OverlayWindow : Window
     {
         var border = new Border
         {
-            Background = new SolidColorBrush(Color.FromRgb(24, 27, 38)), // 深色高级卡片底色 #181B26
-            BorderBrush = new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), // 青色高光边框 #38BDF8
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 10, 12, 10),
             MaxWidth = 360
         };
+        border.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+        border.SetResourceReference(Border.BorderBrushProperty, "BorderLightBrush");
 
         var sp = new StackPanel();
 
@@ -1128,9 +1143,9 @@ public partial class OverlayWindow : Window
             Text = $"{skill.Icon} {skill.Name}",
             FontWeight = FontWeights.Bold,
             FontSize = 12.5,
-            Foreground = Brushes.White,
             VerticalAlignment = VerticalAlignment.Center
         };
+        titleBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
         headerDock.Children.Add(titleBlock);
         sp.Children.Add(headerDock);
 
@@ -1138,9 +1153,9 @@ public partial class OverlayWindow : Window
         var divider = new Rectangle
         {
             Height = 1,
-            Fill = new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)),
             Margin = new Thickness(0, 2, 0, 8)
         };
+        divider.SetResourceReference(Shape.FillProperty, "BorderLightBrush");
         sp.Children.Add(divider);
 
         // 2. 技能详细定位与介绍说明
@@ -1152,11 +1167,11 @@ public partial class OverlayWindow : Window
         {
             Text = desc,
             FontSize = 11,
-            Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
             TextWrapping = TextWrapping.Wrap,
             LineHeight = 16.5,
             Margin = new Thickness(0, 0, 0, 8)
         };
+        descBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
         sp.Children.Add(descBlock);
 
         // 3. 核心评估维度
@@ -1166,11 +1181,11 @@ public partial class OverlayWindow : Window
             {
                 Text = $"• 核心评估维度：{string.Join(" · ", skill.Dimensions)}",
                 FontSize = 10.5,
-                Foreground = new SolidColorBrush(Color.FromRgb(167, 243, 208)),
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 15,
                 Margin = new Thickness(0, 0, 0, 4)
             };
+            dimBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             sp.Children.Add(dimBlock);
         }
 
@@ -1181,10 +1196,10 @@ public partial class OverlayWindow : Window
             {
                 Text = $"• 破局实战风格：{string.Join(" / ", skill.SuggestedTones)}",
                 FontSize = 10.5,
-                Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138)),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 4)
             };
+            toneBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             sp.Children.Add(toneBlock);
         }
         else if (!string.IsNullOrWhiteSpace(skill.AdviceGuideline))
@@ -1194,10 +1209,10 @@ public partial class OverlayWindow : Window
             {
                 Text = $"• 破局策略：{firstLine}",
                 FontSize = 10.5,
-                Foreground = new SolidColorBrush(Color.FromRgb(253, 230, 138)),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 4)
             };
+            guideBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
             sp.Children.Add(guideBlock);
         }
 
@@ -1206,9 +1221,9 @@ public partial class OverlayWindow : Window
         {
             Text = "💡 选择此技能后，一键蒸馏画像与实战建议将自动代入此方法论视角",
             FontSize = 9.5,
-            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
             Margin = new Thickness(0, 4, 0, 0)
         };
+        hintBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
         sp.Children.Add(hintBlock);
 
         border.Child = sp;
@@ -1560,6 +1575,14 @@ public partial class OverlayWindow : Window
         {
             Owner = this
         };
+        try
+        {
+            var s = _settingsStore.Load();
+            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Dark");
+        }
+        catch
+        {
+        }
         win.Show();
     }
 
@@ -1849,9 +1872,9 @@ public partial class OverlayWindow : Window
         }
         else
         {
-            PersonaStatusText.Foreground = (SolidColorBrush)FindResource("TextSecondaryBrush");
-            PersonaStatusCard.Background = new SolidColorBrush(Color.FromRgb(0x1F, 0x24, 0x33));
-            PersonaStatusCard.BorderBrush = (SolidColorBrush)FindResource("BorderSubtleBrush");
+            PersonaStatusText.Foreground = (Brush)FindResource("TextSecondaryBrush");
+            PersonaStatusCard.Background = (Brush)FindResource("CardSubtleBgBrush");
+            PersonaStatusCard.BorderBrush = (Brush)FindResource("BorderSubtleBrush");
         }
     }
 

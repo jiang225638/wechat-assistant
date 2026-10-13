@@ -8,7 +8,7 @@
     Height="740"
     MinWidth="880"
     MinHeight="600"
-    Background="#0F121C"
+    Background="{DynamicResource WindowBg}"
     WindowStyle="None"
     AllowsTransparency="False"
     ResizeMode="CanResize"
@@ -39,13 +39,13 @@
         <SolidColorBrush x:Key="TextPrimary" Color="#F8FAFC" />
         <SolidColorBrush x:Key="TextSecondary" Color="#94A3B8" />
 
-        <!--  通用按钮样式  -->
+        <!--  通用按钮样式 (顶部复制/导出按钮)  -->
         <Style x:Key="TopActionButton" TargetType="Button">
             <Setter Property="Height" Value="32" />
             <Setter Property="Padding" Value="12,0" />
-            <Setter Property="Foreground" Value="#E2E8F0" />
-            <Setter Property="Background" Value="#222938" />
-            <Setter Property="BorderBrush" Value="#38435C" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Background" Value="{DynamicResource CardSubtleBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="11.5" />
             <Setter Property="Cursor" Value="Hand" />
@@ -63,11 +63,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="btnBorder" Property="Background" Value="#2E374D" />
-                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="#60A5FA" />
+                                <Setter TargetName="btnBorder" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                <Setter TargetName="btnBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="btnBorder" Property="Background" Value="#1E2535" />
+                                <Setter TargetName="btnBorder" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -80,8 +80,8 @@
             x:Key="PrimaryAccentButton"
             BasedOn="{StaticResource TopActionButton}"
             TargetType="Button">
-            <Setter Property="Background" Value="#2563EB" />
-            <Setter Property="BorderBrush" Value="#3B82F6" />
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
             <Setter Property="Foreground" Value="#FFFFFF" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
@@ -90,7 +90,7 @@
         <Style TargetType="TabItem">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="Padding" Value="14,8" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -110,17 +110,17 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="tabBorder" Property="Background" Value="#1E2536" />
-                                <Setter TargetName="tabBorder" Property="BorderBrush" Value="#38BDF8" />
-                                <Setter Property="Foreground" Value="#38BDF8" />
+                                <Setter TargetName="tabBorder" Property="Background" Value="{DynamicResource SubBorderCheckedBrush}" />
+                                <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource SubBorderCheckedTextBrush}" />
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="IsMouseOver" Value="True" />
                                     <Condition Property="IsSelected" Value="False" />
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="tabBorder" Property="Background" Value="#161B26" />
-                                <Setter Property="Foreground" Value="#E2E8F0" />
+                                <Setter TargetName="tabBorder" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -133,7 +133,7 @@
             <Setter Property="Width" Value="34" />
             <Setter Property="Height" Value="28" />
             <Setter Property="Background" Value="Transparent" />
-            <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Cursor" Value="Hand" />
@@ -146,7 +146,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="b" Property="Background" Value="#2A3448" />
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="b" Property="Background" Value="#1E2536" />
@@ -192,8 +192,8 @@
         <Border
             Grid.Row="0"
             x:Name="HeaderBorder"
-            Background="{StaticResource CardSubtleBg}"
-            BorderBrush="{StaticResource BorderColor}"
+            Background="{DynamicResource CardSubtleBg}"
+            BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="0,0,0,1"
             Padding="16,10"
             MouseLeftButtonDown="Header_MouseLeftButtonDown">
@@ -214,7 +214,7 @@
                             Text="联系人全景画像看板"
                             FontSize="15"
                             FontWeight="Bold"
-                            Foreground="{StaticResource TextPrimary}"
+                            Foreground="{DynamicResource TextPrimary}"
                             VerticalAlignment="Center" />
                         <Border
                             x:Name="HeaderSkillBadge"
@@ -243,13 +243,13 @@
                             x:Name="MetaSourceCount"
                             Text="💬 基于 186 条历史真实消息"
                             FontSize="11"
-                            Foreground="{StaticResource TextSecondary}"
+                            Foreground="{DynamicResource TextSecondary}"
                             Margin="0,0,14,0" />
                         <TextBlock
                             x:Name="MetaUpdatedTime"
                             Text="⏱ 更新时间: 2026-10-10 14:54"
                             FontSize="11"
-                            Foreground="{StaticResource TextSecondary}"
+                            Foreground="{DynamicResource TextSecondary}"
                             Margin="0,0,14,0" />
                         <TextBlock
                             x:Name="MetaDimensionCount"
@@ -282,7 +282,7 @@
                         ToolTip="将画像分析报告导出保存为本地文件" />
 
                     <!-- 分割线 -->
-                    <Rectangle Width="1" Height="20" Fill="{StaticResource BorderColor}" Margin="0,0,14,0" VerticalAlignment="Center" />
+                    <Rectangle Width="1" Height="20" Fill="{DynamicResource BorderColor}" Margin="0,0,14,0" VerticalAlignment="Center" />
 
                     <!-- 窗口控制按钮组 (像建议中的放大看板一样) -->
                     <Button
@@ -339,8 +339,8 @@
                             Grid.Column="0"
                             Margin="0,0,10,0"
                             Padding="14"
-                            Background="{StaticResource CardBg}"
-                            BorderBrush="{StaticResource BorderColor}"
+                            Background="{DynamicResource CardBg}"
+                            BorderBrush="{DynamicResource BorderColor}"
                             BorderThickness="1"
                             CornerRadius="10">
                             <Grid>
@@ -356,11 +356,11 @@
                                         Text="🎯 全景多维认知雷达图谱"
                                         FontSize="14"
                                         FontWeight="Bold"
-                                        Foreground="{StaticResource TextPrimary}" />
+                                        Foreground="{DynamicResource TextPrimary}" />
                                     <TextBlock
                                         Text="高精度全维度呈现，中心辐射各特质量化分，无任何截断或省略"
                                         FontSize="11"
-                                        Foreground="{StaticResource TextSecondary}"
+                                        Foreground="{DynamicResource TextSecondary}"
                                         Margin="0,2,0,0" />
                                 </StackPanel>
 
@@ -388,7 +388,7 @@
                                     <TextBlock
                                         Text="量化得分 (10~100)"
                                         FontSize="10.5"
-                                        Foreground="{StaticResource TextSecondary}"
+                                        Foreground="{DynamicResource TextSecondary}"
                                         Margin="0,0,14,0" />
                                     <Border
                                         Width="10"
@@ -399,7 +399,7 @@
                                     <TextBlock
                                         Text="中性基准线 (50分)"
                                         FontSize="10.5"
-                                        Foreground="{StaticResource TextSecondary}" />
+                                        Foreground="{DynamicResource TextSecondary}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -418,8 +418,8 @@
                                 Grid.Row="0"
                                 Margin="0,0,0,8"
                                 Padding="14,12"
-                                Background="{StaticResource CardBg}"
-                                BorderBrush="{StaticResource BorderColor}"
+                                Background="{DynamicResource CardBg}"
+                                BorderBrush="{DynamicResource BorderColor}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <Grid>
@@ -433,11 +433,11 @@
                                             Text="📊 各维度量化得分对比柱状图"
                                             FontSize="13.5"
                                             FontWeight="Bold"
-                                            Foreground="{StaticResource TextPrimary}" />
+                                            Foreground="{DynamicResource TextPrimary}" />
                                         <TextBlock
                                             Text="直观对比各特质得分梯度，快速识别其高位优势区与防御敏感区"
                                             FontSize="10.5"
-                                            Foreground="{StaticResource TextSecondary}"
+                                            Foreground="{DynamicResource TextSecondary}"
                                             Margin="0,2,0,8" />
                                     </StackPanel>
 
@@ -455,8 +455,8 @@
                             <Border
                                 Grid.Row="1"
                                 Padding="14,12"
-                                Background="{StaticResource CardBg}"
-                                BorderBrush="{StaticResource BorderColor}"
+                                Background="{DynamicResource CardBg}"
+                                BorderBrush="{DynamicResource BorderColor}"
                                 BorderThickness="1"
                                 CornerRadius="10">
                                 <Grid>
@@ -470,11 +470,11 @@
                                             Text="📈 特质波动与梯度走势折线图"
                                             FontSize="13.5"
                                             FontWeight="Bold"
-                                            Foreground="{StaticResource TextPrimary}" />
+                                            Foreground="{DynamicResource TextPrimary}" />
                                         <TextBlock
                                             Text="维度间心理张力起伏曲线，虚线为全体维度加权均分"
                                             FontSize="10.5"
-                                            Foreground="{StaticResource TextSecondary}"
+                                            Foreground="{DynamicResource TextSecondary}"
                                             Margin="0,2,0,4" />
                                     </StackPanel>
 
@@ -504,13 +504,13 @@
                             Grid.Column="0"
                             Margin="0,0,8,0"
                             Padding="12,10"
-                            Background="{StaticResource CardBg}"
+                            Background="{DynamicResource CardBg}"
                             BorderBrush="#3310B981"
                             BorderThickness="1"
                             CornerRadius="8">
                             <StackPanel>
                                 <TextBlock Text="🏆 显著核心特质 (最高)" FontSize="10.5" Foreground="{StaticResource AccentGreen}" />
-                                <TextBlock x:Name="StatTopDimText" Text="框架与自主性" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatTopDimText" Text="框架与自主性" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
                                 <TextBlock x:Name="StatTopScoreText" Text="86分 (高位表现)" FontSize="11" Foreground="{StaticResource AccentGreen}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
@@ -520,13 +520,13 @@
                             Grid.Column="1"
                             Margin="0,0,8,0"
                             Padding="12,10"
-                            Background="{StaticResource CardBg}"
+                            Background="{DynamicResource CardBg}"
                             BorderBrush="#33F43F5E"
                             BorderThickness="1"
                             CornerRadius="8">
                             <StackPanel>
                                 <TextBlock Text="🛡️ 最低/潜在雷区维度" FontSize="10.5" Foreground="{StaticResource AccentRose}" />
-                                <TextBlock x:Name="StatLowDimText" Text="低位框架信号" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatLowDimText" Text="低位框架信号" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
                                 <TextBlock x:Name="StatLowScoreText" Text="18分 (心理防备)" FontSize="11" Foreground="{StaticResource AccentRose}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
@@ -536,14 +536,14 @@
                             Grid.Column="2"
                             Margin="0,0,8,0"
                             Padding="12,10"
-                            Background="{StaticResource CardBg}"
+                            Background="{DynamicResource CardBg}"
                             BorderBrush="#33F59E0B"
                             BorderThickness="1"
                             CornerRadius="8">
                             <StackPanel>
                                 <TextBlock Text="⚡ 特质极值落差张力" FontSize="10.5" Foreground="{StaticResource AccentAmber}" />
-                                <TextBlock x:Name="StatSpreadText" Text="68分 (高度鲜明)" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock Text="性格反差鲜明，策略针对性强" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0" />
+                                <TextBlock x:Name="StatSpreadText" Text="68分 (高度鲜明)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock Text="性格反差鲜明，策略针对性强" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
 
@@ -551,14 +551,14 @@
                         <Border
                             Grid.Column="3"
                             Padding="12,10"
-                            Background="{StaticResource CardBg}"
+                            Background="{DynamicResource CardBg}"
                             BorderBrush="#3338BDF8"
                             BorderThickness="1"
                             CornerRadius="8">
                             <StackPanel>
                                 <TextBlock Text="🎯 平均得分与数据可信度" FontSize="10.5" Foreground="{StaticResource AccentCyan}" />
-                                <TextBlock x:Name="StatAvgScoreText" Text="71.0分" FontSize="13" FontWeight="Bold" Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock x:Name="StatAvgConfidenceText" Text="可信度: 0.88 (高样本量支撑)" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0" />
+                                <TextBlock x:Name="StatAvgScoreText" Text="71.0分" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatAvgConfidenceText" Text="可信度: 0.88 (高样本量支撑)" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -570,8 +570,8 @@
                 <Border
                     Margin="0,10,0,0"
                     Padding="16"
-                    Background="{StaticResource CardBg}"
-                    BorderBrush="{StaticResource BorderColor}"
+                    Background="{DynamicResource CardBg}"
+                    BorderBrush="{DynamicResource BorderColor}"
                     BorderThickness="1"
                     CornerRadius="10">
                     <Grid>
@@ -585,11 +585,11 @@
                                 Text="📑 观察层与推断层全量锚定清单"
                                 FontSize="14"
                                 FontWeight="Bold"
-                                Foreground="{StaticResource TextPrimary}" />
+                                Foreground="{DynamicResource TextPrimary}" />
                             <TextBlock
                                 Text="每一项推断均严密锚定对方亲口原话证据，拒绝凭空捏造；可信度与量化分经算法归一化校准"
                                 FontSize="11"
-                                Foreground="{StaticResource TextSecondary}"
+                                Foreground="{DynamicResource TextSecondary}"
                                 Margin="0,2,0,0" />
                         </StackPanel>
 
@@ -603,8 +603,8 @@
                                         <Border
                                             Margin="0,0,0,10"
                                             Padding="14,12"
-                                            Background="#181F2E"
-                                            BorderBrush="#25FFFFFF"
+                                            Background="{DynamicResource CardBg}"
+                                            BorderBrush="{DynamicResource BorderColor}"
                                             BorderThickness="1"
                                             CornerRadius="8">
                                             <Grid>
@@ -626,13 +626,13 @@
                                                             Text="{Binding Dimension}"
                                                             FontSize="14"
                                                             FontWeight="Bold"
-                                                            Foreground="#60A5FA"
+                                                            Foreground="{DynamicResource AccentBrush}"
                                                             VerticalAlignment="Center" />
                                                         <Border
                                                             Margin="8,0,0,0"
                                                             Padding="6,2"
-                                                            Background="#2010B981"
-                                                            BorderBrush="#4410B981"
+                                                            Background="{DynamicResource PillGoalBgBrush}"
+                                                            BorderBrush="{DynamicResource PillGoalBorderBrush}"
                                                             BorderThickness="1"
                                                             CornerRadius="4"
                                                             VerticalAlignment="Center">
@@ -640,20 +640,20 @@
                                                                 Text="{Binding ScoreText}"
                                                                 FontSize="11"
                                                                 FontWeight="Bold"
-                                                                Foreground="#10B981" />
+                                                                Foreground="{DynamicResource PillGoalLabelBrush}" />
                                                         </Border>
                                                         <Border
                                                             Margin="6,0,0,0"
                                                             Padding="6,2"
-                                                            Background="#2038BDF8"
-                                                            BorderBrush="#4438BDF8"
+                                                            Background="{DynamicResource IntentFlowBgBrush}"
+                                                            BorderBrush="{DynamicResource IntentFlowBorderBrush}"
                                                             BorderThickness="1"
                                                             CornerRadius="4"
                                                             VerticalAlignment="Center">
                                                             <TextBlock
                                                                 Text="{Binding ConfidencePercentText, StringFormat='可信度: {0}'}"
                                                                 FontSize="10.5"
-                                                                Foreground="#38BDF8" />
+                                                                Foreground="{DynamicResource IntentFlowTextBrush}" />
                                                         </Border>
                                                     </StackPanel>
 
@@ -677,8 +677,8 @@
                                                     Grid.Row="1"
                                                     Margin="0,0,0,8"
                                                     Padding="10,8"
-                                                    Background="#131824"
-                                                    BorderBrush="#1E293B"
+                                                    Background="{DynamicResource CardSubtleBg}"
+                                                    BorderBrush="{DynamicResource BorderColor}"
                                                     BorderThickness="1"
                                                     CornerRadius="6">
                                                     <StackPanel>
@@ -686,12 +686,12 @@
                                                             Text="🧠 心智特质推断："
                                                             FontSize="11"
                                                             FontWeight="SemiBold"
-                                                            Foreground="#94A3B8"
+                                                            Foreground="{DynamicResource TextSecondary}"
                                                             Margin="0,0,0,4" />
                                                         <TextBlock
                                                             Text="{Binding Attribute}"
                                                             FontSize="12"
-                                                            Foreground="#F1F5F9"
+                                                            Foreground="{DynamicResource TextPrimary}"
                                                             TextWrapping="Wrap"
                                                             LineHeight="18" />
                                                     </StackPanel>
@@ -701,8 +701,8 @@
                                                 <Border
                                                     Grid.Row="2"
                                                     Padding="10,8"
-                                                    Background="#1E1A29"
-                                                    BorderBrush="#3B2D54"
+                                                    Background="{DynamicResource IntentSubtextBgBrush}"
+                                                    BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
                                                     BorderThickness="1"
                                                     CornerRadius="6"
                                                     Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
@@ -712,16 +712,16 @@
                                                                 Text="💬 亲口原话证据（观察层）："
                                                                 FontSize="11"
                                                                 FontWeight="SemiBold"
-                                                                Foreground="#C084FC" />
+                                                                Foreground="{DynamicResource PurpleBrush}" />
                                                             <TextBlock
                                                                 Text="{Binding EvidenceSummary}"
                                                                 FontSize="10.5"
-                                                                Foreground="#94A3B8" />
+                                                                Foreground="{DynamicResource TextSecondary}" />
                                                         </StackPanel>
                                                         <TextBlock
                                                             Text="{Binding EvidenceText}"
                                                             FontSize="11.5"
-                                                            Foreground="#E9D5FF"
+                                                            Foreground="{DynamicResource IntentSubtextTextBrush}"
                                                             FontStyle="Italic"
                                                             TextWrapping="Wrap"
                                                             LineHeight="17" />
@@ -742,8 +742,8 @@
                 <Border
                     Margin="0,10,0,0"
                     Padding="18,16"
-                    Background="{StaticResource CardBg}"
-                    BorderBrush="{StaticResource BorderColor}"
+                    Background="{DynamicResource CardBg}"
+                    BorderBrush="{DynamicResource BorderColor}"
                     BorderThickness="1"
                     CornerRadius="10">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -752,21 +752,21 @@
                                 Text="⚡ 实战沟通破局战术与避坑指南报告"
                                 FontSize="16"
                                 FontWeight="Bold"
-                                Foreground="{StaticResource TextPrimary}"
+                                Foreground="{DynamicResource TextPrimary}"
                                 Margin="0,0,0,4" />
                             <TextBlock
                                 x:Name="StrategySubTitle"
                                 Text="结合当前认知体系与多维特质分布，生成的定制化沟通实战破局处方"
                                 FontSize="11"
-                                Foreground="{StaticResource TextSecondary}"
+                                Foreground="{DynamicResource TextSecondary}"
                                 Margin="0,0,0,16" />
 
                             <!--  模块 1：核心心智模式画像总评  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
-                                Background="#1A2030"
-                                BorderBrush="#2A3854"
+                                Background="{DynamicResource IntentFlowBgBrush}"
+                                BorderBrush="{DynamicResource IntentFlowBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="8">
                                 <StackPanel>
@@ -774,13 +774,13 @@
                                         Text="🎯 核心心智操作系统概貌剖析"
                                         FontSize="13.5"
                                         FontWeight="Bold"
-                                        Foreground="#38BDF8"
+                                        Foreground="{DynamicResource IntentFlowTextBrush}"
                                         Margin="0,0,0,6" />
                                     <TextBlock
                                         x:Name="StrategyMindsetOverviewText"
                                         Text="加载中..."
                                         FontSize="12"
-                                        Foreground="#E2E8F0"
+                                        Foreground="{DynamicResource TextPrimary}"
                                         TextWrapping="Wrap"
                                         LineHeight="20" />
                                 </StackPanel>
@@ -790,8 +790,8 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
-                                Background="#142625"
-                                BorderBrush="#1C453B"
+                                Background="{DynamicResource IntentStrategyBgBrush}"
+                                BorderBrush="{DynamicResource IntentStrategyBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="8">
                                 <StackPanel>
@@ -799,13 +799,13 @@
                                         Text="✨ 高频共鸣点与顺势借力沟通策略"
                                         FontSize="13.5"
                                         FontWeight="Bold"
-                                        Foreground="#34D399"
+                                        Foreground="{DynamicResource IntentStrategyTextBrush}"
                                         Margin="0,0,0,6" />
                                     <TextBlock
                                         x:Name="StrategyLeveragePointsText"
                                         Text="加载中..."
                                         FontSize="12"
-                                        Foreground="#E2E8F0"
+                                        Foreground="{DynamicResource TextPrimary}"
                                         TextWrapping="Wrap"
                                         LineHeight="20" />
                                 </StackPanel>
@@ -815,8 +815,8 @@
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
-                                Background="#2A1822"
-                                BorderBrush="#4A2032"
+                                Background="{DynamicResource CardSubtleBg}"
+                                BorderBrush="{DynamicResource PillIntentBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="8">
                                 <StackPanel>
@@ -824,13 +824,13 @@
                                         Text="🚫 绝对沟通禁忌与防御反模式规避雷区"
                                         FontSize="13.5"
                                         FontWeight="Bold"
-                                        Foreground="#FB7185"
+                                        Foreground="{DynamicResource PillIntentLabelBrush}"
                                         Margin="0,0,0,6" />
                                     <TextBlock
                                         x:Name="StrategyTaboosText"
                                         Text="加载中..."
                                         FontSize="12"
-                                        Foreground="#E2E8F0"
+                                        Foreground="{DynamicResource TextPrimary}"
                                         TextWrapping="Wrap"
                                         LineHeight="20" />
                                 </StackPanel>
@@ -839,8 +839,8 @@
                             <!--  模块 4：针对性破局处方与话术风格建议  -->
                             <Border
                                 Padding="14"
-                                Background="#231A33"
-                                BorderBrush="#452C6E"
+                                Background="{DynamicResource IntentSubtextBgBrush}"
+                                BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="8">
                                 <StackPanel>
@@ -848,13 +848,13 @@
                                         Text="💡 破局实战行动处方与沟通调性指南"
                                         FontSize="13.5"
                                         FontWeight="Bold"
-                                        Foreground="#C084FC"
+                                        Foreground="{DynamicResource PurpleBrush}"
                                         Margin="0,0,0,6" />
                                     <TextBlock
                                         x:Name="StrategyPrescriptionText"
                                         Text="加载中..."
                                         FontSize="12"
-                                        Foreground="#E2E8F0"
+                                        Foreground="{DynamicResource TextPrimary}"
                                         TextWrapping="Wrap"
                                         LineHeight="20" />
                                 </StackPanel>

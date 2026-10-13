@@ -19,7 +19,7 @@
             CaptionHeight="0"
             ResizeBorderThickness="6"
             GlassFrameThickness="-1"
-            CornerRadius="0"
+            CornerRadius="12"
             UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
@@ -55,6 +55,20 @@
         <SolidColorBrush x:Key="IntentFlowBgBrush" Color="#1B2B3E" />
         <SolidColorBrush x:Key="IntentFlowBorderBrush" Color="#38BDF8" />
         <SolidColorBrush x:Key="IntentFlowTextBrush" Color="#E0F2FE" />
+
+        <!-- 顶部指标胶囊画刷 -->
+        <SolidColorBrush x:Key="PillGoalBgBrush" Color="#2210B981" />
+        <SolidColorBrush x:Key="PillGoalBorderBrush" Color="#5510B981" />
+        <SolidColorBrush x:Key="PillGoalLabelBrush" Color="#34D399" />
+        <SolidColorBrush x:Key="PillGoalTextBrush" Color="#6EE7B7" />
+        <SolidColorBrush x:Key="PillSkillBgBrush" Color="#228B5CF6" />
+        <SolidColorBrush x:Key="PillSkillBorderBrush" Color="#558B5CF6" />
+        <SolidColorBrush x:Key="PillSkillLabelBrush" Color="#A78BFA" />
+        <SolidColorBrush x:Key="PillSkillTextBrush" Color="#DDD6FE" />
+        <SolidColorBrush x:Key="PillIntentBgBrush" Color="#22F59E0B" />
+        <SolidColorBrush x:Key="PillIntentBorderBrush" Color="#55F59E0B" />
+        <SolidColorBrush x:Key="PillIntentLabelBrush" Color="#FBBF24" />
+        <SolidColorBrush x:Key="PillIntentTextBrush" Color="#FDE68A" />
 
         <!-- 窗口控制按钮样式 -->
         <Style x:Key="WindowCtrlButton" TargetType="Button">
@@ -194,26 +208,26 @@
                     </Border>
 
                     <!-- 终极战略目的 -->
-                    <Border Background="#2210B981" BorderBrush="#5510B981" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                    <Border Background="{DynamicResource PillGoalBgBrush}" BorderBrush="{DynamicResource PillGoalBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🚩 战略目的: " FontSize="11" Foreground="#34D399" />
-                            <TextBlock x:Name="HeaderGoalText" Text="推进深度交流与共识达成" FontSize="11" FontWeight="Bold" Foreground="#6EE7B7" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="🚩 战略目的: " FontSize="11" Foreground="{DynamicResource PillGoalLabelBrush}" />
+                            <TextBlock x:Name="HeaderGoalText" Text="推进深度交流与共识达成" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource PillGoalTextBrush}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Border>
 
                     <!-- 作战体系 Skill -->
-                    <Border Background="#228B5CF6" BorderBrush="#558B5CF6" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
+                    <Border Background="{DynamicResource PillSkillBgBrush}" BorderBrush="{DynamicResource PillSkillBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⚔️ 技能体系: " FontSize="11" Foreground="#A78BFA" />
-                            <TextBlock x:Name="HeaderSkillText" Text="🧬 女娲心智" FontSize="11" FontWeight="SemiBold" Foreground="#DDD6FE" />
+                            <TextBlock Text="⚔️ 技能体系: " FontSize="11" Foreground="{DynamicResource PillSkillLabelBrush}" />
+                            <TextBlock x:Name="HeaderSkillText" Text="🧬 女娲心智" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PillSkillTextBrush}" />
                         </StackPanel>
                     </Border>
 
                     <!-- 回复意图 -->
-                    <Border x:Name="HeaderIntentBorder" Background="#22F59E0B" BorderBrush="#55F59E0B" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                    <Border x:Name="HeaderIntentBorder" Background="{DynamicResource PillIntentBgBrush}" BorderBrush="{DynamicResource PillIntentBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🎯 意图导向: " FontSize="11" Foreground="#FBBF24" />
-                            <TextBlock x:Name="HeaderIntentText" Text="自然顺承与价值推进" FontSize="11" FontWeight="SemiBold" Foreground="#FDE68A" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="🎯 意图导向: " FontSize="11" Foreground="{DynamicResource PillIntentLabelBrush}" />
+                            <TextBlock x:Name="HeaderIntentText" Text="自然顺承与价值推进" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PillIntentTextBrush}" MaxWidth="180" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

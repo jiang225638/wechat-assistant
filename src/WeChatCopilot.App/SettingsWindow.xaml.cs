@@ -26,6 +26,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        ThemeManager.ApplyCurrentTheme(this);
 
         AiSettings s = _store.Load();
         EndpointBox.Text = s.Endpoint;
@@ -74,7 +75,7 @@ public partial class SettingsWindow : Window
         if (!endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
             !endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            ShowTestResult(false, "接口地址格式错误", "接口基址必须以 http:// 或 https:// 开头（例如 https://yostoken.top/v1）。", 0);
+            ShowTestResult(false, "接口地址格式错误", "接口基址必须以 http:// 或 https:// 开头（例如 https://openai.com/v1）。", 0);
             return;
         }
 
