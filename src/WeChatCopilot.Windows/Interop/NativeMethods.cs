@@ -7,9 +7,11 @@ namespace WeChatCopilot.Windows.Interop;
 internal static class NativeMethods
 {
     public const uint SWP_NOSIZE = 0x0001;
-    public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_NOMOVE = 0x0002;
     public const uint SWP_NOZORDER = 0x0004;
+    public const uint SWP_NOACTIVATE = 0x0010;
 
+    public static readonly nint HWND_TOP = new(0);
     public static readonly nint HWND_TOPMOST = new(-1);
     public static readonly nint HWND_NOTOPMOST = new(-2);
 
@@ -47,6 +49,9 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool IsIconic(nint hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern nint GetForegroundWindow();
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -107,7 +107,8 @@ public partial class OverlayWindow : Window
         _relocateTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _relocateTimer.Tick += (_, _) =>
         {
-            if (!_pinned && _tracker.GetCurrent() is null)
+            var cur = _tracker.GetCurrent();
+            if (!_pinned && (cur is null || !cur.IsVisible))
             {
                 TryLocate();
             }
@@ -330,8 +331,14 @@ public partial class OverlayWindow : Window
         PinButton.Content = _pinned ? "🔓 已固定" : "📌 吸附中";
         HeaderTitlePanel.Cursor = _pinned ? Cursors.SizeAll : Cursors.Arrow;
 
-        if (!_pinned)
+        if (_pinned)
         {
+            Topmost = true;
+            WindowPositioner.MoveToTopmost(_hwnd, (int)Left, (int)Top);
+        }
+        else
+        {
+            Topmost = false;
             TryLocate();
         }
     }
@@ -2013,6 +2020,10 @@ public partial class OverlayWindow : Window
             StatusText.Text = "未找到微信窗口（请确认 Weixin.exe 已运行）";
             StatusDot.Fill = new SolidColorBrush(Color.FromRgb(239, 68, 68));
             BoundsText.Text = "等待微信主窗口启动并可见...";
+            if (!_pinned && IsVisible)
+            {
+                Hide();
+            }
             return;
         }
 
@@ -2029,6 +2040,11 @@ public partial class OverlayWindow : Window
             {
                 StatusText.Text = "微信窗口已最小化或失去连接...";
                 StatusDot.Fill = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+                if (!_pinned && IsVisible)
+                {
+                    Hide();
+                }
+                TryLocate();
                 return;
             }
 
@@ -2079,6 +2095,10 @@ public partial class OverlayWindow : Window
 
         if (_pinned)
         {
+            if (!Topmost)
+            {
+                Topmost = true;
+            }
             return;
         }
 
@@ -2087,7 +2107,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        if (info.IsMinimized)
+        if (info.IsMinimized || !info.IsVisible)
         {
             if (IsVisible)
             {
@@ -2102,11 +2122,17 @@ public partial class OverlayWindow : Window
             Show();
         }
 
+        if (Topmost)
+        {
+            Topmost = false;
+        }
+
         var overlay = new OverlaySize((int)ActualWidth, (int)ActualHeight);
         var (x, y) = OverlayLayout.ComputeSnapPosition(
             info.Bounds, overlay, SnapSide.Right, gap: 0, alignTop: true);
 
-        WindowPositioner.MoveToTopmost(_hwnd, x, y);
+        // 智能同层级跟随：副驾自身聚焦时维持 Z 轴，未聚焦时紧随微信同一层级，绝不在其他程序前置顶
+        WindowPositioner.MoveCompanion(_hwnd, info.Handle, x, y);
     }
 
     private static string CleanContactName(string? title)

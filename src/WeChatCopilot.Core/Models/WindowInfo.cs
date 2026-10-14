@@ -7,4 +7,5 @@ public sealed record WindowInfo(
     string ClassName,
     WindowBounds Bounds,
     bool IsMinimized,
-    bool IsVisible);
+    bool IsVisible,
+    bool IsForeground = false);

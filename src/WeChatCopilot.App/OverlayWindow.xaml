@@ -14,9 +14,10 @@
     Background="Transparent"
     Left="120"
     ResizeMode="CanResize"
+    ShowActivated="False"
     ShowInTaskbar="True"
     Top="120"
-    Topmost="True"
+    Topmost="False"
     WindowStartupLocation="Manual"
     WindowStyle="None">
 

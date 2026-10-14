@@ -7,12 +7,12 @@
 ![Language](https://img.shields.io/badge/C%23-14-239120?logo=csharp)
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
-![Tests](https://img.shields.io/badge/Tests-170%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-175%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
 **为微信 PC 端量身打造的贴边悬浮式 AI 智能沟通副驾**  
-无感贴边跟随 · 自由拖拽缩放 · 明暗双主题 · SQLite本地持久化 · 技能文件夹绑定 · 话语力量全景博弈大看板
+无感贴边跟随 · 自由拖拽缩放 · 同层级智能沉浮 · 明暗双主题 · SQLite本地持久化 · 技能文件夹绑定 · 话语力量全景博弈大看板
 
 [核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
 
@@ -35,11 +35,12 @@
 
 ## ✨ 核心特性
 
-### 1. 📌 智能贴边吸附、平滑跟随与自由缩放拖拽 (Overlay, Tracking & Resizing)
+### 1. 📌 智能贴边吸附、同层级沉浮与自由缩放拖拽 (Companion Layer & Resizing)
 - **微信窗口自适应定位**：支持微信主窗口（`WeChatMainWndForPC`）与独立单聊窗口（`ChatWnd`），自动吸附贴边。
-- **平滑无抖跟随**：实时感知微信窗口移动、缩放与跨多显示器拖拽，毫秒级平滑跟随；支持一键“固定/解锁”自由拖拽。
+- **智能生命周期感知（协同隐藏与唤醒）**：全面感知微信最小化（`-`）与点击右上角 `X` 隐藏至系统托盘（`SW_HIDE`）；微信收起时副驾同步隐藏，用户从托盘或任务栏唤出微信时毫秒级自动恢复重现。
+- **智能前台感知与动态 Z-Order（同层级沉浮）**：告别霸道全局置顶！副驾在跟随模式下与微信保持同一 Z 轴层级（紧随微信之后且不抢输入焦点）。当切到全屏浏览器、VS Code 或 Office 时，副驾随微信同步沉降至后台，绝不遮挡其他工作；切回微信时毫秒级协同回到前台；点击“🔓 已固定”可维持全局置顶与任意拖拽。
+- **平滑无抖跟随**：实时感知微信窗口移动、缩放与跨多显示器拖拽，毫秒级平滑跟随。
 - **边框自由缩放调节**：鼠标移动到悬浮窗边框或四角时，自动显示双向/四向调整光标，支持 8 个方向自由拉伸放大缩小，窗口尺寸防抖持久化记忆。
-- **智能生命周期感知**：微信最小化或隐藏时自动收起，恢复激活时平滑重现。
 
 ### 2. 🎨 Fluent 明暗双主题动态热重载 (Dark & Light Themes)
 - **深浅主题无缝切换**：在设置中支持**深色模式 (Fluent Dark)**、**浅色模式 (Fluent Light)** 与**跟随系统 (System)** 动态热切换，无需重启即刻刷新全窗口调色板。

@@ -64,12 +64,36 @@ public sealed class PollingWindowTracker : IWindowTracker
         bool minimized = NativeMethods.IsIconic(t.Handle);
         bool visible = NativeMethods.IsWindowVisible(t.Handle);
 
-        _target = t with { Bounds = bounds, IsMinimized = minimized, IsVisible = visible };
+        nint fg = NativeMethods.GetForegroundWindow();
+        bool foreground = false;
+        if (fg != nint.Zero && visible && !minimized)
+        {
+            if (fg == t.Handle)
+            {
+                foreground = true;
+            }
+            else
+            {
+                NativeMethods.GetWindowThreadProcessId(t.Handle, out uint targetPid);
+                NativeMethods.GetWindowThreadProcessId(fg, out uint fgPid);
+                uint currentPid = (uint)Environment.ProcessId;
+                foreground = (fgPid != 0 && (fgPid == targetPid || fgPid == currentPid));
+            }
+        }
+
+        _target = t with
+        {
+            Bounds = bounds,
+            IsMinimized = minimized,
+            IsVisible = visible,
+            IsForeground = foreground
+        };
 
         if (_last is not null
             && _last.Bounds == bounds
             && _last.IsMinimized == minimized
-            && _last.IsVisible == visible)
+            && _last.IsVisible == visible
+            && _last.IsForeground == foreground)
         {
             return; // 无变化，避免无谓的 UI 更新
         }
