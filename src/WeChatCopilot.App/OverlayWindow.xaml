@@ -780,9 +780,9 @@
                             Click="QuitButton_Click"
                             Content="✕"
                             FontSize="11"
-                            Foreground="#FF8888"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
                             Style="{StaticResource FluentButton}"
-                            ToolTip="退出程序" />
+                            ToolTip="最小化到系统托盘后台运行（双击托盘图标或按 Ctrl+Alt+W 唤醒）" />
                     </StackPanel>
                 </Grid>
 
@@ -872,9 +872,9 @@
                 <TabControl.Resources>
                     <Style TargetType="TabItem">
                         <Setter Property="Foreground" Value="{DynamicResource TabItemTextBrush}" />
-                        <Setter Property="FontSize" Value="12" />
+                        <Setter Property="FontSize" Value="11.5" />
                         <Setter Property="FontWeight" Value="SemiBold" />
-                        <Setter Property="Padding" Value="4,7" />
+                        <Setter Property="Padding" Value="2,6" />
                         <Setter Property="Cursor" Value="Hand" />
                         <Setter Property="HorizontalContentAlignment" Value="Center" />
                         <Setter Property="Template">
@@ -926,6 +926,10 @@
                     x:Name="TabPersona"
                     Header="👤 画像"
                     ToolTip="联系人认知画像与特质蒸馏" />
+                <TabItem
+                    x:Name="TabQa"
+                    Header="🤖 AI问答"
+                    ToolTip="与AI实时对话，融合本地画像与聊天记录智能解答" />
                 <TabItem
                     x:Name="TabSettings"
                     Header="⚙️ 设置"
@@ -2385,7 +2389,477 @@
                     </Grid>
                 </Grid>
 
-                <!--  VIEW 3: 设置 TAB 内容 (集成 AI模型、技能中心、系统偏好与使用指南 4 大子分类)  -->
+                <!--  VIEW 3: AI问答 TAB 内容 (Antigravity 风格全景对话军师)  -->
+                <Grid x:Name="ViewQa" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <!--  顶部：当前关联联系人画像与历史上下文指示栏  -->
+                        <RowDefinition Height="*" />
+                        <!--  中部：Antigravity 沉浸式多轮问答瀑布流  -->
+                        <RowDefinition Height="Auto" />
+                        <!--  底部：快捷探针胶囊 + Antigravity 风格统一输入控制区  -->
+                    </Grid.RowDefinitions>
+
+                    <!--  顶部：上下文感知指示条  -->
+                    <Border
+                        Grid.Row="0"
+                        Margin="0,0,0,8"
+                        Padding="10,6"
+                        Background="{DynamicResource CardSubtleBgBrush}"
+                        BorderBrush="{DynamicResource BorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 左侧：关联联系人、画像徽章、历史记录徽章 -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="👤" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBlock
+                                    x:Name="QaTargetContactText"
+                                    Text="当前联系人"
+                                    FontWeight="SemiBold"
+                                    FontSize="11.5"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                    VerticalAlignment="Center"
+                                    MaxWidth="90"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <!-- 画像特质徽章 -->
+                                <Border
+                                    Margin="6,0,0,0"
+                                    Padding="6,2"
+                                    Background="{DynamicResource IntentFlowBgBrush}"
+                                    BorderBrush="{DynamicResource IntentFlowBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="QaPersonaBadgeText"
+                                        Text="画像: 加载中..."
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource IntentFlowTextBrush}"
+                                        VerticalAlignment="Center" />
+                                </Border>
+
+                                <!-- 聊天记录徽章 -->
+                                <Border
+                                    Margin="6,0,0,0"
+                                    Padding="6,2"
+                                    Background="{DynamicResource IntentStrategyBgBrush}"
+                                    BorderBrush="{DynamicResource IntentStrategyBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="QaHistoryBadgeText"
+                                        Text="记录: 加载中..."
+                                        FontSize="10.5"
+                                        Foreground="{DynamicResource IntentStrategyTextBrush}"
+                                        VerticalAlignment="Center" />
+                                </Border>
+                            </StackPanel>
+
+                            <!-- 右侧：历史会话侧边栏开关按钮 -->
+                            <Button
+                                Grid.Column="1"
+                                x:Name="QaToggleHistoryBtn"
+                                Click="QaToggleHistoryBtn_Click"
+                                Style="{StaticResource FluentButton}"
+                                Height="24"
+                                Padding="8,0,8,0"
+                                FontSize="11"
+                                Content="🕒 历史会话"
+                                ToolTip="打开历史会话记录侧边栏，支持自由切换、新建和删除会话"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!--  中部：对话瀑布流 ScrollViewer  -->
+                    <ScrollViewer
+                        Grid.Row="1"
+                        x:Name="QaMessagesScrollViewer"
+                        VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Disabled"
+                        Margin="0,0,0,8">
+                        <StackPanel x:Name="QaMessagesPanel" Margin="0,0,4,0">
+
+                            <!-- 初始欢迎导引卡片 (Antigravity 风格) -->
+                            <Border
+                                x:Name="QaWelcomeCard"
+                                Margin="0,4,0,10"
+                                Padding="14,14"
+                                Background="{DynamicResource CardBgBrush}"
+                                BorderBrush="{DynamicResource BorderLightBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="🤖" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Text="AI 对话军师 · Antigravity 智能研判"
+                                            FontSize="13"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Text="随时向军师提问！军师将深度融合本地提取的「多维心智特质」与「真实聊天记录」，为你提供犀利洞察、卡点剖析与实战拿来即用的高情商回复方案。"
+                                        FontSize="11.5"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        TextWrapping="Wrap"
+                                        LineHeight="18"
+                                        Margin="0,0,0,12" />
+
+                                    <TextBlock
+                                        Text="✨ 推荐快速研判指令（点击直接提问）："
+                                        FontSize="11"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource AccentBrush}"
+                                        Margin="0,0,0,8" />
+
+                                    <!-- 快捷提问卡片列表 -->
+                                    <Button
+                                        Style="{StaticResource FluentButton}"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,6"
+                                        Margin="0,0,0,6"
+                                        Click="QaPromptPill_Click"
+                                        Tag="请结合对方画像特质与最近发言，帮我深度洞察对方没说出口的潜台词和当下真实心理想法？">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔍 洞察对方最新发言背后的潜台词与真实想法" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Style="{StaticResource FluentButton}"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,6"
+                                        Margin="0,0,0,6"
+                                        Click="QaPromptPill_Click"
+                                        Tag="结合对方心智特质与近期聊天，提供3个不同风格（幽默推拉/真诚共鸣/高位利他）的高情商示范回复，并简要点拨底层逻辑。">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="💬 针对当前情境，给出3个教科书级高情商回复示范" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Style="{StaticResource FluentButton}"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,6"
+                                        Margin="0,0,0,6"
+                                        Click="QaPromptPill_Click"
+                                        Tag="深度研判我和对方目前的沟通互动走势，指出当前最大的隐患、雷区或关系卡点是什么？">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="⚠️ 深度诊断当前关系互动中的核心卡点与隐患雷区" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Style="{StaticResource FluentButton}"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,6"
+                                        Margin="0,0,0,6"
+                                        Click="QaPromptPill_Click"
+                                        Tag="根据对方言行表现与心智画像，客观评估对方目前对我的态度、好感度与信任层级，现在处于哪个阶段？">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="❤️ 研判对方当前对我所处的好感度与心理防御层级" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <Button
+                                        Style="{StaticResource FluentButton}"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,6"
+                                        Click="QaPromptPill_Click"
+                                        Tag="在不给对方施加压力、保持松弛自然的前提下，帮我构思一个下一步打破僵局或推进邀约的具体策略。">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🎯 构思一个自然松弛、不尴尬推进下一步的破局策略" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- AI 推理中加载提示面板 -->
+                            <Border
+                                x:Name="QaThinkingPanel"
+                                Visibility="Collapsed"
+                                Margin="0,4,0,8"
+                                Padding="12,10"
+                                Background="{DynamicResource CardSubtleBgBrush}"
+                                BorderBrush="{DynamicResource AccentBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Style="{StaticResource SpinningArcStyle}" Width="14" Height="14" Margin="0,0,8,0" Data="M 7,0 A 7,7 0 0,1 14,7" />
+                                        <TextBlock
+                                            Text="军师正在融合本地画像特质与真实聊天记录深入研判推演..."
+                                            FontSize="11.5"
+                                            Foreground="{DynamicResource AccentBrush}"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Button
+                                        Grid.Column="1"
+                                        x:Name="QaStopButton"
+                                        Click="QaStopButton_Click"
+                                        Style="{StaticResource FluentButton}"
+                                        Height="22"
+                                        Padding="8,0"
+                                        FontSize="10.5"
+                                        Content="⏹ 停止"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!--  底部：快捷胶囊 + Antigravity 风格统一输入卡片  -->
+                    <StackPanel Grid.Row="2">
+                        <!-- 快捷胶囊横向流 (支持滚轮横向滚动，紧凑排布无截断) -->
+                        <ScrollViewer
+                            x:Name="QaPillsScrollViewer"
+                            HorizontalScrollBarVisibility="Hidden"
+                            VerticalScrollBarVisibility="Disabled"
+                            PreviewMouseWheel="QaPillsScrollViewer_PreviewMouseWheel"
+                            Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal">
+                                <Button
+                                    Style="{StaticResource FluentButton}"
+                                    Height="23"
+                                    Padding="7,0,7,0"
+                                    Margin="0,0,4,0"
+                                    FontSize="11"
+                                    Content="🔍 潜台词"
+                                    Click="QaPromptPill_Click"
+                                    Tag="请结合对方画像与最近发言，帮我深度洞察对方没说出口的潜台词和当下真实想法？"
+                                    ToolTip="结合画像与近期发言深度洞察潜台词" />
+                                <Button
+                                    Style="{StaticResource FluentButton}"
+                                    Height="23"
+                                    Padding="7,0,7,0"
+                                    Margin="0,0,4,0"
+                                    FontSize="11"
+                                    Content="💬 高情商"
+                                    Click="QaPromptPill_Click"
+                                    Tag="结合对方心智特质，针对最新发言提供3个高情商示范回复，并简析底层逻辑。"
+                                    ToolTip="针对最新发言提供3套高情商示范回复" />
+                                <Button
+                                    Style="{StaticResource FluentButton}"
+                                    Height="23"
+                                    Padding="7,0,7,0"
+                                    Margin="0,0,4,0"
+                                    FontSize="11"
+                                    Content="⚠️ 找卡点"
+                                    Click="QaPromptPill_Click"
+                                    Tag="研判当前沟通互动走势，指出最大的隐患、雷区或关系卡点是什么？"
+                                    ToolTip="深度研判关系互动中的核心卡点与隐患" />
+                                <Button
+                                    Style="{StaticResource FluentButton}"
+                                    Height="23"
+                                    Padding="7,0,7,0"
+                                    Margin="0,0,4,0"
+                                    FontSize="11"
+                                    Content="❤️ 测好感"
+                                    Click="QaPromptPill_Click"
+                                    Tag="根据言行表现与画像，评估对方目前对我的态度与好感度处于哪个层级？"
+                                    ToolTip="评估对方对我的态度与好感度层级" />
+                                <Button
+                                    Style="{StaticResource FluentButton}"
+                                    Height="23"
+                                    Padding="7,0,7,0"
+                                    FontSize="11"
+                                    Content="🎯 促推进"
+                                    Click="QaPromptPill_Click"
+                                    Tag="帮我构思一个下一步自然松弛、打破僵局推进互动的行动策略。"
+                                    ToolTip="构思自然打破僵局或推进邀约的策略" />
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- 输入框与工具操作统一卡片 (Antigravity 风格：多行高视野输入框在上，融合开关与发送按钮同列在下) -->
+                        <Border
+                            Background="{DynamicResource InputBgBrush}"
+                            BorderBrush="{DynamicResource BorderLightBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,8,10,8">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- 上方：高视野多行文本输入框 -->
+                                <Grid Grid.Row="0">
+                                    <TextBox
+                                        x:Name="QaInputBox"
+                                        AcceptsReturn="True"
+                                        TextWrapping="Wrap"
+                                        VerticalScrollBarVisibility="Auto"
+                                        MinHeight="62"
+                                        MaxHeight="120"
+                                        BorderThickness="0"
+                                        Background="Transparent"
+                                        Foreground="{DynamicResource TextPrimaryBrush}"
+                                        CaretBrush="{DynamicResource TextPrimaryBrush}"
+                                        FontSize="12.5"
+                                        VerticalContentAlignment="Top"
+                                        Padding="0,0,0,4"
+                                        KeyDown="QaInputBox_KeyDown"
+                                        TextChanged="QaInputBox_TextChanged"
+                                        ToolTip="向 AI 对话军师提问（Enter 发送，Shift+Enter 换行）" />
+
+                                    <TextBlock
+                                        x:Name="QaInputPlaceholder"
+                                        Text="向 AI 对话军师提问...（Enter 发送，Shift+Enter 换行）"
+                                        Foreground="{DynamicResource TextSecondaryBrush}"
+                                        Opacity="0.45"
+                                        FontSize="12"
+                                        Margin="2,2,0,0"
+                                        IsHitTestVisible="False"
+                                        VerticalAlignment="Top" />
+                                </Grid>
+
+                                <!-- 下方：操作工具行（融合开关在左，发送按钮在右，合并为同一行，Antigravity 风格） -->
+                                <Grid Grid.Row="1" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 左侧：融合本地画像 + 融合聊天记录 -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox
+                                            x:Name="QaIncludePersonaCheck"
+                                            IsChecked="True"
+                                            Content="👤 融合本地画像"
+                                            Foreground="{DynamicResource TextSecondaryBrush}"
+                                            FontSize="11"
+                                            Margin="0,0,10,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="勾选后，AI 回答时将自动结合该联系人的量化特质画像与核心机制" />
+                                        <CheckBox
+                                            x:Name="QaIncludeHistoryCheck"
+                                            IsChecked="True"
+                                            Content="💬 融合聊天记录"
+                                            Foreground="{DynamicResource TextSecondaryBrush}"
+                                            FontSize="11"
+                                            VerticalAlignment="Center"
+                                            ToolTip="勾选后，AI 回答时将自动调取近期真实聊天上下文作为研判依据" />
+                                    </StackPanel>
+
+                                    <!-- 右侧：发送按钮 -->
+                                    <Button
+                                        Grid.Column="1"
+                                        x:Name="QaSendButton"
+                                        Click="QaSendButton_Click"
+                                        Style="{StaticResource PrimaryAccentButton}"
+                                        Height="28"
+                                        Padding="14,0,14,0"
+                                        Content="发送 ➤"
+                                        ToolTip="发送提问给军师 (Enter 发送，Shift+Enter 换行)"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!--  历史会话侧边栏遮罩与抽屉 (Antigravity 风格，支持新增、切换与删除)  -->
+                    <Grid
+                        x:Name="QaHistorySidebarOverlay"
+                        Grid.Row="0"
+                        Grid.RowSpan="3"
+                        Visibility="Collapsed"
+                        Panel.ZIndex="100">
+
+                        <!-- 半透明背景点击遮罩 (点击空白关闭抽屉) -->
+                        <Border Background="#88000000" MouseDown="QaSidebarBackdrop_MouseDown" />
+
+                        <!-- 右侧滑出面板 (270px 宽度) -->
+                        <Border
+                            HorizontalAlignment="Right"
+                            Width="270"
+                            Background="{DynamicResource WindowBgBrush}"
+                            BorderBrush="{DynamicResource BorderLightBrush}"
+                            BorderThickness="1,0,0,0">
+                            <Grid Margin="12,10,12,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />  <!-- 顶部标题与关闭按钮 -->
+                                    <RowDefinition Height="Auto" />  <!-- + 新建会话按钮 -->
+                                    <RowDefinition Height="*" />     <!-- 历史会话滚动列表 -->
+                                </Grid.RowDefinitions>
+
+                                <!-- 顶部标题行 -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🕒" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock
+                                            Text="历史会话记录"
+                                            FontSize="12.5"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource TextPrimaryBrush}"
+                                            VerticalAlignment="Center" />
+                                        <TextBlock
+                                            x:Name="QaSessionCountText"
+                                            Text="(0)"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource TextSecondaryBrush}"
+                                            Margin="4,0,0,0"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Button
+                                        Grid.Column="1"
+                                        x:Name="QaCloseSidebarBtn"
+                                        Click="QaCloseSidebarBtn_Click"
+                                        Style="{StaticResource FluentButton}"
+                                        Height="22"
+                                        Width="24"
+                                        Padding="0"
+                                        FontSize="11"
+                                        Content="✕"
+                                        ToolTip="关闭侧边栏"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+
+                                <!-- + 新建会话强调按钮 -->
+                                <Button
+                                    Grid.Row="1"
+                                    x:Name="QaSidebarNewSessionBtn"
+                                    Click="QaSidebarNewSessionBtn_Click"
+                                    Style="{StaticResource PrimaryAccentButton}"
+                                    Height="30"
+                                    Margin="0,0,0,10"
+                                    Content="➕ 新建会话"
+                                    ToolTip="创建新一轮独立的 AI 研判对话" />
+
+                                <!-- 历史会话列表 -->
+                                <ScrollViewer
+                                    Grid.Row="2"
+                                    VerticalScrollBarVisibility="Auto"
+                                    HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel x:Name="QaSessionListPanel" Margin="0,0,2,0">
+                                        <!-- 动态生成各会话卡片 -->
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!--  VIEW 4: 设置 TAB 内容 (集成 AI模型、技能中心、系统偏好与使用指南 4 大子分类)  -->
                 <Grid x:Name="ViewSettings" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

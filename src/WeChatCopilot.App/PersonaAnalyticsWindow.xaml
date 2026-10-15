@@ -178,6 +178,178 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!--  现代下拉框切换按钮样式  -->
+        <Style x:Key="FluentComboBoxToggleButton" TargetType="ToggleButton">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="ClickMode" Value="Press" />
+            <Setter Property="Background" Value="{DynamicResource CardBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            x:Name="templateRoot"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            SnapsToDevicePixels="True">
+                            <Path
+                                x:Name="arrow"
+                                Margin="0,0,10,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Data="M 0 0 L 4 4 L 8 0"
+                                Stroke="{DynamicResource TextSecondary}"
+                                StrokeThickness="1.5"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round"
+                                IsHitTestVisible="False" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource AccentCyan}" />
+                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource TextPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource AccentCyan}" />
+                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource AccentCyan}" />
+                                <Setter TargetName="arrow" Property="Data" Value="M 0 4 L 4 0 L 8 4" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="templateRoot" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 现代下拉框选项项样式 -->
+        <Style x:Key="FluentComboBoxItem" TargetType="ComboBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border
+                            x:Name="Bd"
+                            Margin="1,1"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5"
+                            SnapsToDevicePixels="True">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubBorderCheckedBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource SubBorderCheckedTextBrush}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 现代下拉框主样式 -->
+        <Style x:Key="FluentComboBox" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="{DynamicResource CardBg}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,0,28,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MaxDropDownHeight" Value="280" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource FluentComboBoxItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                            <ToggleButton
+                                x:Name="toggleButton"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                Style="{StaticResource FluentComboBoxToggleButton}" />
+                            <ContentPresenter
+                                x:Name="contentPresenter"
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                TextElement.Foreground="{DynamicResource TextPrimary}" />
+                            <Popup
+                                x:Name="PART_Popup"
+                                AllowsTransparency="True"
+                                Focusable="False"
+                                IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                Placement="Bottom"
+                                PopupAnimation="Slide">
+                                <Border
+                                    x:Name="dropDownBorder"
+                                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    Margin="0,3,0,6"
+                                    Padding="4"
+                                    Background="{DynamicResource CardBg}"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    SnapsToDevicePixels="True">
+                                    <Border.Effect>
+                                        <DropShadowEffect
+                                            BlurRadius="12"
+                                            Direction="270"
+                                            Opacity="0.3"
+                                            ShadowDepth="3"
+                                            Color="#000000" />
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="True">
+                                        <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox" BasedOn="{StaticResource FluentComboBox}" />
+        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource FluentComboBoxItem}" />
     </Window.Resources>
 
     <Grid x:Name="RootGrid">
@@ -321,12 +493,87 @@
             <TabItem Header="📊 多维可视化图表看板 (雷达图 / 柱状图 / 折线图)">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
+                        <!-- Row 0: 核心动态特质与张力概览卡片行 (置顶呈现) -->
                         <RowDefinition Height="Auto" />
+                        <!-- Row 1: 图表可视化全景展示区 (雷达图 + 柱状图 + 折线图) -->
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <!--  上部：左侧大雷达图 + 右侧柱状图与折线图  -->
-                    <Grid Grid.Row="0">
+                    <!--  上部：核心动态特质与张力概览卡片行 (置顶)  -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  卡片 1：第一主导维度  -->
+                        <Border
+                            Grid.Column="0"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{DynamicResource CardBg}"
+                            BorderBrush="#3310B981"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock x:Name="StatCard1Header" Text="🌟 第一主导维度" FontSize="11" Foreground="{StaticResource AccentGreen}" />
+                                <TextBlock x:Name="StatTopDimText" Text="关键认知" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="StatTopScoreText" Text="96分 (显著高位)" FontSize="11" Foreground="{StaticResource AccentGreen}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 2：协同支柱维度  -->
+                        <Border
+                            Grid.Column="1"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{DynamicResource CardBg}"
+                            BorderBrush="#3338BDF8"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock x:Name="StatCard2Header" Text="✨ 协同支柱维度" FontSize="11" Foreground="{StaticResource AccentCyan}" />
+                                <TextBlock x:Name="StatCard2DimText" Text="间接传递方式" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="StatCard2ScoreText" Text="91分 (高位表现)" FontSize="11" Foreground="{StaticResource AccentCyan}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 3：防备敏感/洼地维度  -->
+                        <Border
+                            Grid.Column="2"
+                            Margin="0,0,8,0"
+                            Padding="12,10"
+                            Background="{DynamicResource CardBg}"
+                            BorderBrush="#33F43F5E"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock x:Name="StatCard3Header" Text="🛡️ 心理敏感/洼地维度" FontSize="11" Foreground="{StaticResource AccentRose}" />
+                                <TextBlock x:Name="StatLowDimText" Text="低位框架" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="StatLowScoreText" Text="22分 (防备防线)" FontSize="11" Foreground="{StaticResource AccentRose}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!--  卡片 4：心智极差与综合可信度  -->
+                        <Border
+                            Grid.Column="3"
+                            Padding="12,10"
+                            Background="{DynamicResource CardBg}"
+                            BorderBrush="#33F59E0B"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel>
+                                <TextBlock x:Name="StatCard4Header" Text="⚡ 心智张力极差与均分" FontSize="11" Foreground="{StaticResource AccentAmber}" />
+                                <TextBlock x:Name="StatSpreadText" Text="74分极差 (均分 69.5)" FontSize="13.5" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
+                                <TextBlock x:Name="StatAvgConfidenceText" Text="可信度: 0.90 (高可信样本)" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!--  下部：左侧大雷达图 + 右侧柱状图与折线图  -->
+                    <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
                             <!--  左栏：全景雷达图  -->
                             <ColumnDefinition Width="1.05*" />
@@ -408,9 +655,9 @@
                         <Grid Grid.Column="1">
                             <Grid.RowDefinitions>
                                 <!--  柱状图卡片  -->
-                                <RowDefinition Height="1.1*" />
+                                <RowDefinition Height="1*" />
                                 <!--  折线图卡片  -->
-                                <RowDefinition Height="0.9*" />
+                                <RowDefinition Height="1*" />
                             </Grid.RowDefinitions>
 
                             <!--  右上方：各维度量化对比柱状图 (Horizontal Bar Chart)  -->
@@ -441,12 +688,12 @@
                                             Margin="0,2,0,8" />
                                     </StackPanel>
 
-                                    <!--  柱状图列表容器  -->
+                                    <!--  柱状图列表容器 (垂直居中填充，杜绝底部大片空白)  -->
                                     <ScrollViewer
                                         Grid.Row="1"
                                         VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Disabled">
-                                        <StackPanel x:Name="BarChartContainer" />
+                                        <StackPanel x:Name="BarChartContainer" VerticalAlignment="Center" />
                                     </ScrollViewer>
                                 </Grid>
                             </Border>
@@ -482,85 +729,12 @@
                                         x:Name="LineChartCanvas"
                                         Grid.Row="1"
                                         Width="480"
-                                        Height="115"
+                                        Height="125"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
                                 </Grid>
                             </Border>
                         </Grid>
-                    </Grid>
-
-                    <!--  下部：核心统计摘要指标卡片行  -->
-                    <Grid Grid.Row="1" Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!--  卡片 1：最高得分维度  -->
-                        <Border
-                            Grid.Column="0"
-                            Margin="0,0,8,0"
-                            Padding="12,10"
-                            Background="{DynamicResource CardBg}"
-                            BorderBrush="#3310B981"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock Text="🏆 显著核心特质 (最高)" FontSize="10.5" Foreground="{StaticResource AccentGreen}" />
-                                <TextBlock x:Name="StatTopDimText" Text="框架与自主性" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock x:Name="StatTopScoreText" Text="86分 (高位表现)" FontSize="11" Foreground="{StaticResource AccentGreen}" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Border>
-
-                        <!--  卡片 2：最低敏感维度  -->
-                        <Border
-                            Grid.Column="1"
-                            Margin="0,0,8,0"
-                            Padding="12,10"
-                            Background="{DynamicResource CardBg}"
-                            BorderBrush="#33F43F5E"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock Text="🛡️ 最低/潜在雷区维度" FontSize="10.5" Foreground="{StaticResource AccentRose}" />
-                                <TextBlock x:Name="StatLowDimText" Text="低位框架信号" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock x:Name="StatLowScoreText" Text="18分 (心理防备)" FontSize="11" Foreground="{StaticResource AccentRose}" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Border>
-
-                        <!--  卡片 3：心理张力落差  -->
-                        <Border
-                            Grid.Column="2"
-                            Margin="0,0,8,0"
-                            Padding="12,10"
-                            Background="{DynamicResource CardBg}"
-                            BorderBrush="#33F59E0B"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock Text="⚡ 特质极值落差张力" FontSize="10.5" Foreground="{StaticResource AccentAmber}" />
-                                <TextBlock x:Name="StatSpreadText" Text="68分 (高度鲜明)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock Text="性格反差鲜明，策略针对性强" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Border>
-
-                        <!--  卡片 4：均分与可信度  -->
-                        <Border
-                            Grid.Column="3"
-                            Padding="12,10"
-                            Background="{DynamicResource CardBg}"
-                            BorderBrush="#3338BDF8"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock Text="🎯 平均得分与数据可信度" FontSize="10.5" Foreground="{StaticResource AccentCyan}" />
-                                <TextBlock x:Name="StatAvgScoreText" Text="71.0分" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0" />
-                                <TextBlock x:Name="StatAvgConfidenceText" Text="可信度: 0.88 (高样本量支撑)" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0" />
-                            </StackPanel>
-                        </Border>
                     </Grid>
                 </Grid>
             </TabItem>
@@ -587,7 +761,7 @@
                                 FontWeight="Bold"
                                 Foreground="{DynamicResource TextPrimary}" />
                             <TextBlock
-                                Text="每一项推断均严密锚定对方亲口原话证据，拒绝凭空捏造；可信度与量化分经算法归一化校准"
+                                Text="左侧深度推断心智模式，右侧严密锚定亲口原话证据；左右对照，一目了然"
                                 FontSize="11"
                                 Foreground="{DynamicResource TextSecondary}"
                                 Margin="0,2,0,0" />
@@ -609,13 +783,14 @@
                                             CornerRadius="8">
                                             <Grid>
                                                 <Grid.RowDefinitions>
+                                                    <!-- 头部：维度名称与得分置信度 -->
                                                     <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
+                                                    <!-- 主体：左右对照结构 -->
                                                     <RowDefinition Height="Auto" />
                                                 </Grid.RowDefinitions>
 
-                                                <!--  卡片头部：维度名称 + 得分徽章 + 置信度 + 专业标签  -->
-                                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                                <!-- 卡片头部：维度名称 + 得分徽章 + 置信度 + 标签 -->
+                                                <Grid Grid.Row="0" Margin="0,0,0,10">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="Auto" />
@@ -624,13 +799,13 @@
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock
                                                             Text="{Binding Dimension}"
-                                                            FontSize="14"
+                                                            FontSize="14.5"
                                                             FontWeight="Bold"
                                                             Foreground="{DynamicResource AccentBrush}"
                                                             VerticalAlignment="Center" />
                                                         <Border
                                                             Margin="8,0,0,0"
-                                                            Padding="6,2"
+                                                            Padding="7,2"
                                                             Background="{DynamicResource PillGoalBgBrush}"
                                                             BorderBrush="{DynamicResource PillGoalBorderBrush}"
                                                             BorderThickness="1"
@@ -657,7 +832,7 @@
                                                         </Border>
                                                     </StackPanel>
 
-                                                    <!--  右侧：特质风格标签徽章  -->
+                                                    <!-- 右侧：特质风格标签徽章 -->
                                                     <Border
                                                         Grid.Column="1"
                                                         Padding="8,2"
@@ -672,61 +847,91 @@
                                                     </Border>
                                                 </Grid>
 
-                                                <!--  推断层：详细特质描述剖析  -->
-                                                <Border
-                                                    Grid.Row="1"
-                                                    Margin="0,0,0,8"
-                                                    Padding="10,8"
-                                                    Background="{DynamicResource CardSubtleBg}"
-                                                    BorderBrush="{DynamicResource BorderColor}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="6">
-                                                    <StackPanel>
-                                                        <TextBlock
-                                                            Text="🧠 心智特质推断："
-                                                            FontSize="11"
-                                                            FontWeight="SemiBold"
-                                                            Foreground="{DynamicResource TextSecondary}"
-                                                            Margin="0,0,0,4" />
-                                                        <TextBlock
-                                                            Text="{Binding Attribute}"
-                                                            FontSize="12"
-                                                            Foreground="{DynamicResource TextPrimary}"
-                                                            TextWrapping="Wrap"
-                                                            LineHeight="18" />
-                                                    </StackPanel>
-                                                </Border>
+                                                <!-- 左右对照区域：左侧【推断层】 vs 右侧【观察层证据】 -->
+                                                <Grid Grid.Row="1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <!-- 左列：推断层 -->
+                                                        <ColumnDefinition Width="1*" />
+                                                        <!-- 中间间距 -->
+                                                        <ColumnDefinition Width="12" />
+                                                        <!-- 右列：观察层原话证据 -->
+                                                        <ColumnDefinition Width="1.15*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                <!--  观察层：对方口述的原始证据原话引用  -->
-                                                <Border
-                                                    Grid.Row="2"
-                                                    Padding="10,8"
-                                                    Background="{DynamicResource IntentSubtextBgBrush}"
-                                                    BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="6"
-                                                    Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
-                                                    <StackPanel>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                    <!-- 左边：🧠 深度心智特质推断 (推断层) -->
+                                                    <Border
+                                                        Grid.Column="0"
+                                                        Padding="12,10"
+                                                        Background="{DynamicResource CardSubtleBg}"
+                                                        BorderBrush="{DynamicResource BorderColor}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                            </Grid.RowDefinitions>
                                                             <TextBlock
-                                                                Text="💬 亲口原话证据（观察层）："
-                                                                FontSize="11"
+                                                                Grid.Row="0"
+                                                                Text="🧠 深度心智特质推断（推断层）"
+                                                                FontSize="11.5"
                                                                 FontWeight="SemiBold"
-                                                                Foreground="{DynamicResource PurpleBrush}" />
+                                                                Foreground="{DynamicResource TextSecondary}"
+                                                                Margin="0,0,0,6" />
                                                             <TextBlock
-                                                                Text="{Binding EvidenceSummary}"
-                                                                FontSize="10.5"
-                                                                Foreground="{DynamicResource TextSecondary}" />
-                                                        </StackPanel>
-                                                        <TextBlock
-                                                            Text="{Binding EvidenceText}"
-                                                            FontSize="11.5"
-                                                            Foreground="{DynamicResource IntentSubtextTextBrush}"
-                                                            FontStyle="Italic"
-                                                            TextWrapping="Wrap"
-                                                            LineHeight="17" />
-                                                    </StackPanel>
-                                                </Border>
+                                                                Grid.Row="1"
+                                                                Text="{Binding Attribute}"
+                                                                FontSize="12.5"
+                                                                Foreground="{DynamicResource TextPrimary}"
+                                                                TextWrapping="Wrap"
+                                                                LineHeight="20"
+                                                                VerticalAlignment="Top" />
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- 右边：💬 亲口原话佐证 (观察层 · 真实记录) -->
+                                                    <Border
+                                                        Grid.Column="2"
+                                                        Padding="12,10"
+                                                        Background="{DynamicResource IntentSubtextBgBrush}"
+                                                        BorderBrush="{DynamicResource IntentSubtextBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto" />
+                                                                <RowDefinition Height="*" />
+                                                            </Grid.RowDefinitions>
+                                                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock
+                                                                    Text="💬 亲口原话佐证（观察层 · 事实依据）"
+                                                                    FontSize="11.5"
+                                                                    FontWeight="SemiBold"
+                                                                    Foreground="{DynamicResource PurpleBrush}"
+                                                                    VerticalAlignment="Center" />
+                                                                <TextBlock
+                                                                    Grid.Column="1"
+                                                                    Text="{Binding EvidenceSummary}"
+                                                                    FontSize="10.5"
+                                                                    Foreground="{DynamicResource TextSecondary}"
+                                                                    VerticalAlignment="Center" />
+                                                            </Grid>
+                                                            <TextBlock
+                                                                Grid.Row="1"
+                                                                Text="{Binding EvidenceDisplayText}"
+                                                                FontSize="12"
+                                                                Foreground="{DynamicResource IntentSubtextTextBrush}"
+                                                                FontStyle="Italic"
+                                                                TextWrapping="Wrap"
+                                                                LineHeight="19"
+                                                                VerticalAlignment="Top" />
+                                                        </Grid>
+                                                    </Border>
+                                                </Grid>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -759,9 +964,189 @@
                                 Text="结合当前认知体系与多维特质分布，生成的定制化沟通实战破局处方"
                                 FontSize="11"
                                 Foreground="{DynamicResource TextSecondary}"
-                                Margin="0,0,0,16" />
+                                Margin="0,0,0,14" />
 
-                            <!--  模块 1：核心心智模式画像总评  -->
+                            <!--  关系定位与 AI 专家深度解读控制栏  -->
+                            <Border
+                                Margin="0,0,0,14"
+                                Padding="12,10"
+                                Background="{DynamicResource CardSubtleBg}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <!-- 0: 关系标签与下拉选择框 (自适应内容尺寸) -->
+                                        <ColumnDefinition Width="Auto" />
+                                        <!-- 1: 智能研判胶囊标签 (弹性占用剩余空间，超出自动以省略号截断并显示完整 ToolTip，右侧预留 16px 绝对安全间距) -->
+                                        <ColumnDefinition Width="*" />
+                                        <!-- 2: AI 专家深度破局解读按钮 (右侧靠齐，杜绝任何重叠) -->
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- 左侧：关系定位与身份视角（自由输入框，支持用户自行添加任意关系） -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock
+                                            Text="🎯 关系定位与分析视角："
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="{DynamicResource TextSecondary}"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,8,0" />
+                                        <Border
+                                            Background="{DynamicResource CardBg}"
+                                            BorderBrush="{DynamicResource BorderColor}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Height="34"
+                                            Width="230">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox
+                                                    x:Name="RelationshipIdentityInput"
+                                                    Grid.Column="0"
+                                                    BorderThickness="0"
+                                                    Background="Transparent"
+                                                    Foreground="{DynamicResource TextPrimary}"
+                                                    FontSize="12"
+                                                    VerticalContentAlignment="Center"
+                                                    Padding="10,0,4,0"
+                                                    KeyDown="RelationshipIdentityInput_KeyDown"
+                                                    LostFocus="RelationshipIdentityInput_LostFocus"
+                                                    ToolTip="自由输入你与对方的关系（如：心仪伴侣、相亲对象、合作伙伴、直属领导、暗恋对象...），按回车立即生效" />
+                                                <!-- 下拉快捷填充预设菜单按钮 -->
+                                                <Menu Grid.Column="1" Background="Transparent" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                    <MenuItem
+                                                        Header="▾"
+                                                        Padding="6,4"
+                                                        FontSize="11"
+                                                        Foreground="{DynamicResource TextSecondary}"
+                                                        ToolTip="点击选择常用关系快速填入">
+                                                        <MenuItem Header="❤️ 亲密交往对象 (心仪伴侣)" Click="RelationshipPreset_Click" Tag="亲密交往对象 (心仪伴侣)" />
+                                                        <MenuItem Header="💌 相亲交往对象 (相亲发展)" Click="RelationshipPreset_Click" Tag="相亲交往对象 (相亲发展)" />
+                                                        <MenuItem Header="👑 职场管理对象 (直属领导)" Click="RelationshipPreset_Click" Tag="职场管理对象 (直属领导)" />
+                                                        <MenuItem Header="💼 职场协作对象 (平级同事)" Click="RelationshipPreset_Click" Tag="职场协作对象 (平级同事)" />
+                                                        <MenuItem Header="🤝 商业合作对象 (关键客户)" Click="RelationshipPreset_Click" Tag="商业合作对象 (关键客户)" />
+                                                        <MenuItem Header="☕ 社交交往对象 (日常朋友)" Click="RelationshipPreset_Click" Tag="社交交往对象 (日常朋友)" />
+                                                        <MenuItem Header="✨ 深度合作伙伴 (合伙创业)" Click="RelationshipPreset_Click" Tag="深度合作伙伴 (合伙创业)" />
+                                                    </MenuItem>
+                                                </Menu>
+                                            </Grid>
+                                        </Border>
+                                        <Button
+                                            x:Name="ApplyRelationshipBtn"
+                                            Click="ApplyRelationshipBtn_Click"
+                                            Style="{StaticResource TopActionButton}"
+                                            Height="32"
+                                            Padding="10,0"
+                                            Margin="8,0,0,0"
+                                            Content="应用视角"
+                                            ToolTip="根据输入框中的关系，重新生成全景分析视角与破局战术"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- 中间：智能研判结果胶囊标签 (独立占用 Column 1，右侧预留 16px 隔离，绝不溢出到右侧按钮) -->
+                                    <Border
+                                        Grid.Column="1"
+                                        Margin="12,0,16,0"
+                                        Padding="10,6"
+                                        Background="{DynamicResource IntentFlowBgBrush}"
+                                        BorderBrush="{DynamicResource IntentFlowBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left">
+                                        <TextBlock
+                                            x:Name="RelationshipDetectionHintText"
+                                            Text="🤖 已结合技能模型与画像特质自动锁定"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource IntentFlowTextBrush}"
+                                            TextTrimming="CharacterEllipsis"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <!-- 右侧：AI 专家深度破局解读按钮 (独立占用 Column 2，绝对不会被左侧遮挡) -->
+                                    <Button
+                                        Grid.Column="2"
+                                        x:Name="AiConsultationBtn"
+                                        Click="AiConsultationBtn_Click"
+                                        Style="{StaticResource PrimaryAccentButton}"
+                                        Height="34"
+                                        Padding="16,0"
+                                        Content="✨ AI 专家深度破局解读"
+                                        ToolTip="结合全部真实历史与当前提取出的核心维度，以资深专家视角生成通俗犀利的实操破局锦囊"
+                                        VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+
+                            <!--  AI 专家深度破局解读生成中提示面板  -->
+                            <Border
+                                x:Name="AiConsultationLoadingPanel"
+                                Visibility="Collapsed"
+                                Margin="0,0,0,14"
+                                Padding="14"
+                                Background="{DynamicResource CardSubtleBg}"
+                                BorderBrush="{DynamicResource AccentCyan}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="⏳" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock
+                                        Text="正在以资深专家视角，深度研判真实聊天记录并提炼人情破局锦囊，请稍候..."
+                                        FontSize="12"
+                                        Foreground="{DynamicResource AccentCyan}"
+                                        VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  AI 专家独家临场军师锦囊卡片（生成后展示）  -->
+                            <Border
+                                x:Name="AiConsultationResultCard"
+                                Visibility="Collapsed"
+                                Margin="0,0,0,14"
+                                Padding="16"
+                                Background="{DynamicResource CardSubtleBg}"
+                                BorderBrush="{DynamicResource AccentPurple}"
+                                BorderThickness="1.5"
+                                CornerRadius="8">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            x:Name="AiConsultationHeaderTitle"
+                                            Text="✨ 资深心理与沟通专家 · 独家临场破局军师锦囊"
+                                            FontSize="14"
+                                            FontWeight="Bold"
+                                            Foreground="{DynamicResource AccentPurple}"
+                                            VerticalAlignment="Center" />
+                                        <Button
+                                            Grid.Column="1"
+                                            x:Name="CopyConsultationBtn"
+                                            Click="CopyConsultationBtn_Click"
+                                            Style="{StaticResource TopActionButton}"
+                                            Height="26"
+                                            Padding="10,0"
+                                            Content="📋 复制专家锦囊"
+                                            VerticalAlignment="Center" />
+                                    </Grid>
+                                    <TextBlock
+                                        x:Name="AiConsultationResultText"
+                                        Text=""
+                                        FontSize="12.5"
+                                        Foreground="{DynamicResource TextPrimary}"
+                                        TextWrapping="Wrap"
+                                        LineHeight="22" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  模块 1：核心心理/诉求概貌总评  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
@@ -771,7 +1156,8 @@
                                 CornerRadius="8">
                                 <StackPanel>
                                     <TextBlock
-                                        Text="🎯 核心心智操作系统概貌剖析"
+                                        x:Name="StrategyCard1Title"
+                                        Text="🎯 核心主导特质 · 心理机制与诉求底色"
                                         FontSize="13.5"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource IntentFlowTextBrush}"
@@ -786,7 +1172,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <!--  模块 2：高效沟通顺势借力点  -->
+                            <!--  模块 2：高效共鸣与顺势借力契机  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
@@ -796,7 +1182,8 @@
                                 CornerRadius="8">
                                 <StackPanel>
                                     <TextBlock
-                                        Text="✨ 高频共鸣点与顺势借力沟通策略"
+                                        x:Name="StrategyCard2Title"
+                                        Text="✨ 顺势借力抓手 · 同频共鸣法则"
                                         FontSize="13.5"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource IntentStrategyTextBrush}"
@@ -811,7 +1198,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <!--  模块 3：绝对防御反模式与沟通禁忌雷区  -->
+                            <!--  模块 3：绝对沟通雷区与避坑警示  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="14"
@@ -821,7 +1208,8 @@
                                 CornerRadius="8">
                                 <StackPanel>
                                     <TextBlock
-                                        Text="🚫 绝对沟通禁忌与防御反模式规避雷区"
+                                        x:Name="StrategyCard3Title"
+                                        Text="🚫 心理防备敏感区 · 沟通雷区与避坑红线"
                                         FontSize="13.5"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource PillIntentLabelBrush}"
@@ -836,7 +1224,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <!--  模块 4：针对性破局处方与话术风格建议  -->
+                            <!--  模块 4：针对性破局实战处方与话术示范  -->
                             <Border
                                 Padding="14"
                                 Background="{DynamicResource IntentSubtextBgBrush}"
@@ -845,7 +1233,8 @@
                                 CornerRadius="8">
                                 <StackPanel>
                                     <TextBlock
-                                        Text="💡 破局实战行动处方与沟通调性指南"
+                                        x:Name="StrategyCard4Title"
+                                        Text="💬 实战临场示范 · 针对性高情商示范话术"
                                         FontSize="13.5"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource PurpleBrush}"

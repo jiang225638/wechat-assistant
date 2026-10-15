@@ -55,6 +55,12 @@ public sealed record PersonaTrait(
             ? string.Empty
             : string.Join("\n", Evidence.Select(q => "“" + q + "”"));
 
+    /// <summary>左右对照展示用的友好证据文本：有证据时显示原话，无证据时显示推断说明。</summary>
+    public string EvidenceDisplayText =>
+        HasEvidence
+            ? EvidenceText
+            : "暂无长句直引原话，基于历史对话频率、交互节奏及上下文特征综合归纳。";
+
     /// <summary>
     /// 多技能认知识别标签（支持女娲、兔导情景流、职场商业、亲密关系、麦肯锡等）：
     /// 自动根据所属技能维度与特质描述动态生成专业高亮徽章。

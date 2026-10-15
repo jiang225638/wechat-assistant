@@ -1,12 +1,17 @@
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Microsoft.Win32;
+using WeChatCopilot.AI;
 using WeChatCopilot.Core.Ai;
 using WeChatCopilot.Core.Models;
+using WeChatCopilot.Data;
+using WeChatCopilot.Data.Security;
 
 namespace WeChatCopilot.App;
 
@@ -21,6 +26,9 @@ public partial class PersonaAnalyticsWindow : Window
     private readonly DistillSkill _skill;
     private readonly IReadOnlyList<HistoryMessage> _history;
     private readonly IReadOnlyList<PersonaTrait> _traits;
+    private readonly SettingsStore _settingsStore = new();
+    private readonly Dictionary<string, string> _consultationCache = new(StringComparer.OrdinalIgnoreCase);
+    private string _currentScene = "Colleague";
 
     public PersonaAnalyticsWindow(
         Persona persona,
@@ -40,6 +48,7 @@ public partial class PersonaAnalyticsWindow : Window
 
     private void PersonaAnalyticsWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        InitRelationshipIdentity();
         LoadData();
     }
 
@@ -212,10 +221,12 @@ public partial class PersonaAnalyticsWindow : Window
         BarChartContainer.Children.Clear();
 
         var sorted = _traits.OrderByDescending(t => t.Score).ToList();
+        double rowMarginV = sorted.Count <= 6 ? 6 : 4;
+
         foreach (var t in sorted)
         {
-            var rowGrid = new Grid { Margin = new Thickness(0, 0, 0, 7) };
-            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+            var rowGrid = new Grid { Margin = new Thickness(0, rowMarginV, 0, rowMarginV) };
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(45) });
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(68) });
@@ -233,21 +244,25 @@ public partial class PersonaAnalyticsWindow : Window
             Grid.SetColumn(dimTb, 0);
             rowGrid.Children.Add(dimTb);
 
-            // 2. 柱状条轨道与彩色进度
+            // 2. 柱状条轨道与响应式自适应比例填充 (通过双列 Star Grid 随宽度自适应铺满，杜绝右侧留白)
             var trackBorder = new Border
             {
-                Height = 14,
-                CornerRadius = new CornerRadius(3),
-                VerticalAlignment = VerticalAlignment.Center
+                Height = 15,
+                CornerRadius = new CornerRadius(3.5),
+                VerticalAlignment = VerticalAlignment.Center,
+                ClipToBounds = true
             };
             trackBorder.SetResourceReference(Border.BackgroundProperty, "CardSubtleBg");
 
+            var barGrid = new Grid();
+            double clampedScore = Math.Clamp(t.Score, 5, 100);
+            barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(clampedScore, GridUnitType.Star) });
+            barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - clampedScore, GridUnitType.Star) });
+
             var barFill = new Border
             {
-                Height = 14,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                CornerRadius = new CornerRadius(3),
-                Width = Math.Clamp(t.Score, 5, 100) * 2.3 // 比例缩放宽度
+                Height = 15,
+                CornerRadius = new CornerRadius(3.5)
             };
 
             if (t.Score >= 75)
@@ -283,7 +298,10 @@ public partial class PersonaAnalyticsWindow : Window
                     new Point(1, 0));
             }
 
-            trackBorder.Child = barFill;
+            Grid.SetColumn(barFill, 0);
+            barGrid.Children.Add(barFill);
+            trackBorder.Child = barGrid;
+
             Grid.SetColumn(trackBorder, 1);
             rowGrid.Children.Add(trackBorder);
 
@@ -460,78 +478,640 @@ public partial class PersonaAnalyticsWindow : Window
     {
         if (_traits.Count == 0) return;
 
-        var top = _traits.OrderByDescending(t => t.Score).First();
-        var low = _traits.OrderBy(t => t.Score).First();
-        double spread = top.Score - low.Score;
+        var sorted = _traits.OrderByDescending(t => t.Score).ToList();
+        var top1 = sorted.First();
+        var top2 = sorted.Count > 1 ? sorted[1] : top1;
+        var low1 = sorted.Last();
+        double spread = top1.Score - low1.Score;
         double avgScore = _traits.Average(t => t.Score);
         double avgConf = _traits.Average(t => t.Confidence);
 
-        StatTopDimText.Text = top.Dimension;
-        StatTopScoreText.Text = $"{top.ScoreInt}分 (显著优势)";
+        // 卡片 1：第一主导维度 (动态绑定提取出的最高维度名称)
+        StatCard1Header.Text = $"🌟 第一主导维度 · 【{top1.Dimension}】";
+        StatTopDimText.Text = top1.Dimension;
+        StatTopScoreText.Text = $"{top1.ScoreInt}分 (显著优势 · 核心支柱)";
 
-        StatLowDimText.Text = low.Dimension;
-        StatLowScoreText.Text = $"{low.ScoreInt}分 (心理防备区)";
+        // 卡片 2：协同支柱维度 (动态绑定提取出的次高维度名称)
+        StatCard2Header.Text = $"✨ 协同支柱维度 · 【{top2.Dimension}】";
+        StatCard2DimText.Text = top2.Dimension;
+        StatCard2ScoreText.Text = $"{top2.ScoreInt}分 (强劲支撑 · 稳态表现)";
 
-        StatSpreadText.Text = $"{spread:0}分落差";
-        StatAvgScoreText.Text = $"{avgScore:0.0}分";
-        StatAvgConfidenceText.Text = $"加权可信度: {avgConf:0.00}";
+        // 卡片 3：防备敏感/洼地维度 (动态绑定提取出的最低防御维度名称)
+        StatCard3Header.Text = $"🛡️ 心理敏感/洼地维度 · 【{low1.Dimension}】";
+        StatLowDimText.Text = low1.Dimension;
+        StatLowScoreText.Text = $"{low1.ScoreInt}分 (防备防线 · 潜在雷区)";
+
+        // 卡片 4：心智极差与均分
+        StatCard4Header.Text = $"⚡ 心智张力极差与加权均分";
+        StatSpreadText.Text = $"{spread:0}分极差 (均分: {avgScore:0.0}分)";
+        StatAvgConfidenceText.Text = $"样本可信度: {avgConf:0.00} (高可信样本)";
     }
 
-    // ===================== Tab 3: 实战沟通破局战略报告 =====================
+    // ===================== Tab 3: 交往身份研判与动态实战破局战术 =====================
+
+    private string _customRelationship = "";
+
+    private void InitRelationshipIdentity()
+    {
+        _currentScene = DetectRelationshipIdentity(out string matchReason);
+        _customRelationship = GetSceneDisplayName(_currentScene);
+        if (RelationshipIdentityInput != null)
+        {
+            RelationshipIdentityInput.Text = _customRelationship;
+        }
+        if (RelationshipDetectionHintText != null)
+        {
+            RelationshipDetectionHintText.Text = $"🤖 {matchReason}";
+            RelationshipDetectionHintText.ToolTip = $"系统已根据技能「{_skill.Name}」与特质画像，自动研判交往身份为【{_customRelationship}】。\n下方实战沟通指南与破局锦囊已全景围绕此视角展开。支持在输入框内自由输入或按回车切换。";
+        }
+    }
+
+    private string DetectRelationshipIdentity(out string matchReason)
+    {
+        int scoreIntimacy = 0;
+        int scoreLeader = 0;
+        int scoreColleague = 0;
+        int scoreClient = 0;
+        int scoreFriend = 0;
+
+        string skillContext = $"{_skill.Id} {_skill.Name} {_skill.Description}".ToLowerInvariant();
+        string goalContext = (_persona.UltimateGoal ?? "").ToLowerInvariant();
+
+        // 1. 技能模型特征判断
+        if (skillContext.Contains("tds-relationship") || skillContext.Contains("she-love-me") ||
+            skillContext.Contains("恋爱") || skillContext.Contains("情感") || skillContext.Contains("追求") ||
+            skillContext.Contains("伴侣") || skillContext.Contains("约会") || skillContext.Contains("亲密") ||
+            skillContext.Contains("挽回") || skillContext.Contains("脱单") || skillContext.Contains("心动") ||
+            skillContext.Contains("表白") || skillContext.Contains("吸引"))
+        {
+            scoreIntimacy += 12;
+        }
+        if (skillContext.Contains("向上") || skillContext.Contains("领导") || skillContext.Contains("汇报") ||
+            skillContext.Contains("老板") || skillContext.Contains("管理"))
+        {
+            scoreLeader += 12;
+        }
+        if (skillContext.Contains("商务") || skillContext.Contains("客户") || skillContext.Contains("销售") ||
+            skillContext.Contains("谈判") || skillContext.Contains("成单") || skillContext.Contains("大客户"))
+        {
+            scoreClient += 12;
+        }
+        if (skillContext.Contains("朋友") || skillContext.Contains("社交") || skillContext.Contains("聚会") ||
+            skillContext.Contains("闲聊"))
+        {
+            scoreFriend += 12;
+        }
+
+        // 2. 终极目的 (UltimateGoal) 判断
+        if (goalContext.Contains("挽回") || goalContext.Contains("追求") || goalContext.Contains("恋爱") ||
+            goalContext.Contains("脱单") || goalContext.Contains("前任") || goalContext.Contains("女友") ||
+            goalContext.Contains("男友") || goalContext.Contains("喜欢") || goalContext.Contains("心仪") ||
+            goalContext.Contains("暧昧") || goalContext.Contains("好感"))
+        {
+            scoreIntimacy += 10;
+        }
+        if (goalContext.Contains("晋升") || goalContext.Contains("加薪") || goalContext.Contains("领导满意") ||
+            goalContext.Contains("向上汇报"))
+        {
+            scoreLeader += 10;
+        }
+        if (goalContext.Contains("签约") || goalContext.Contains("回款") || goalContext.Contains("客户") ||
+            goalContext.Contains("成交"))
+        {
+            scoreClient += 10;
+        }
+
+        // 3. 画像实际提取的维度与心智推断词频特征
+        string detectedKeyword = "";
+        foreach (var t in _traits)
+        {
+            string tText = $"{t.Dimension} {t.Attribute}".ToLowerInvariant();
+            if (tText.Contains("框架") || tText.Contains("需求感") || tText.Contains("依恋") ||
+                tText.Contains("亲密") || tText.Contains("情绪价值") || tText.Contains("安全感") ||
+                tText.Contains("废物测试") || tText.Contains("吸引") || tText.Contains("断联") ||
+                tText.Contains("关键认知") || tText.Contains("传递方式") || tText.Contains("恋爱"))
+            {
+                scoreIntimacy += 3;
+                if (string.IsNullOrEmpty(detectedKeyword)) detectedKeyword = t.Dimension;
+            }
+            if (tText.Contains("权威") || tText.Contains("汇报") || tText.Contains("下属") ||
+                tText.Contains("考评") || tText.Contains("指标") || tText.Contains("掌控感"))
+            {
+                scoreLeader += 3;
+                if (string.IsNullOrEmpty(detectedKeyword)) detectedKeyword = t.Dimension;
+            }
+            if (tText.Contains("采购") || tText.Contains("预算") || tText.Contains("甲方") ||
+                tText.Contains("报价") || tText.Contains("方案确认") || tText.Contains("商业利益"))
+            {
+                scoreClient += 3;
+                if (string.IsNullOrEmpty(detectedKeyword)) detectedKeyword = t.Dimension;
+            }
+            if (tText.Contains("协同") || tText.Contains("跨部门") || tText.Contains("排期") ||
+                tText.Contains("分工") || tText.Contains("交付标准") || tText.Contains("平级"))
+            {
+                scoreColleague += 3;
+                if (string.IsNullOrEmpty(detectedKeyword)) detectedKeyword = t.Dimension;
+            }
+            if (tText.Contains("爱好") || tText.Contains("聚会") || tText.Contains("闲聊") ||
+                tText.Contains("随性") || tText.Contains("游玩") || tText.Contains("交情"))
+            {
+                scoreFriend += 3;
+                if (string.IsNullOrEmpty(detectedKeyword)) detectedKeyword = t.Dimension;
+            }
+        }
+
+        var scores = new (string Key, int Score, string Name)[]
+        {
+            ("Intimacy", scoreIntimacy, "亲密交往对象 (心仪伴侣)"),
+            ("Leader", scoreLeader, "职场管理对象 (直属领导)"),
+            ("Client", scoreClient, "商业合作对象 (关键客户)"),
+            ("Colleague", scoreColleague, "职场协作对象 (平级同事)"),
+            ("Friend", scoreFriend, "社交交往对象 (日常朋友)")
+        };
+
+        var best = scores.OrderByDescending(s => s.Score).First();
+        if (best.Score == 0)
+        {
+            matchReason = "看板默认设定为职场协作对象，可自由输入或下拉快捷选择";
+            return "Colleague";
+        }
+
+        string traitHint = !string.IsNullOrEmpty(detectedKeyword) ? $"及【{detectedKeyword}】" : "";
+        matchReason = $"已结合技能「{_skill.Name}」{traitHint}智能研判";
+        return best.Key;
+    }
+
+    private string GetSceneDisplayName(string scene) => scene switch
+    {
+        "Leader" => "👑 职场管理对象 (直属领导)",
+        "Colleague" => "💼 职场协作对象 (平级同事)",
+        "Client" => "🤝 商业合作对象 (关键客户)",
+        "Intimacy" => "❤️ 亲密交往对象 (心仪伴侣)",
+        "Friend" => "☕ 社交交往对象 (日常朋友)",
+        _ => "💼 职场协作对象 (平级同事)"
+    };
+
+    private void RelationshipIdentityInput_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ApplyCustomRelationship(RelationshipIdentityInput.Text);
+            e.Handled = true;
+        }
+    }
+
+    private void RelationshipIdentityInput_LostFocus(object sender, RoutedEventArgs e)
+    {
+        ApplyCustomRelationship(RelationshipIdentityInput.Text);
+    }
+
+    private void RelationshipPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem item && item.Tag is string tag)
+        {
+            RelationshipIdentityInput.Text = tag;
+            ApplyCustomRelationship(tag);
+        }
+    }
+
+    private void ApplyRelationshipBtn_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyCustomRelationship(RelationshipIdentityInput.Text);
+    }
+
+    private void ApplyCustomRelationship(string? text)
+    {
+        string trimmed = (text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            trimmed = GetSceneDisplayName(_currentScene);
+            if (RelationshipIdentityInput != null) RelationshipIdentityInput.Text = trimmed;
+        }
+
+        _customRelationship = trimmed;
+        _currentScene = MapRelationshipToSceneKey(trimmed);
+
+        if (RelationshipDetectionHintText != null)
+        {
+            RelationshipDetectionHintText.Text = $"🎯 当前视角：{_customRelationship}";
+            RelationshipDetectionHintText.ToolTip = $"已锁定当前交往身份视角为【{_customRelationship}】";
+        }
+
+        PopulateStrategyPlaybook();
+
+        if (_consultationCache.TryGetValue(_customRelationship, out string? cached) && !string.IsNullOrWhiteSpace(cached))
+        {
+            AiConsultationResultText.Text = cached;
+            AiConsultationHeaderTitle.Text = $"✨ {_customRelationship} · 资深专家独家临场破局军师锦囊";
+            AiConsultationResultCard.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            AiConsultationResultCard.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private string MapRelationshipToSceneKey(string text)
+    {
+        string t = text.ToLowerInvariant();
+        if (t.Contains("心仪") || t.Contains("伴侣") || t.Contains("恋") || t.Contains("爱") ||
+            t.Contains("情") || t.Contains("相亲") || t.Contains("前任") || t.Contains("追") ||
+            t.Contains("女友") || t.Contains("男友") || t.Contains("暗恋") || t.Contains("脱单") ||
+            t.Contains("暧昧"))
+        {
+            return "Intimacy";
+        }
+        if (t.Contains("领导") || t.Contains("老板") || t.Contains("上级") || t.Contains("主管") ||
+            t.Contains("总监") || t.Contains("boss"))
+        {
+            return "Leader";
+        }
+        if (t.Contains("客户") || t.Contains("甲方") || t.Contains("商务") || t.Contains("采购") ||
+            t.Contains("销售") || t.Contains("商业"))
+        {
+            return "Client";
+        }
+        if (t.Contains("朋友") || t.Contains("兄弟") || t.Contains("闺蜜") || t.Contains("同学") ||
+            t.Contains("发小") || t.Contains("社交"))
+        {
+            return "Friend";
+        }
+        return "Colleague";
+    }
 
     private void PopulateStrategyPlaybook()
     {
         if (_traits.Count == 0) return;
 
-        StrategySubTitle.Text = $"结合【{_skill.Icon} {_skill.Name}】方法论模型与 {_persona.ContactName} 的真实特质分布，生成的破局沟通战术：";
+        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
+        StrategySubTitle.Text = $"结合「{_persona.ContactName}」的多维心智特质与【{sceneName}】视角 · 资深心理与实战沟通专家深度拆解：";
 
-        var topTraits = _traits.OrderByDescending(t => t.Score).Take(2).ToList();
-        var lowTraits = _traits.OrderBy(t => t.Score).Take(2).ToList();
+        var sorted = _traits.OrderByDescending(t => t.Score).ToList();
+        var tTop1 = sorted[0];
+        var tTop2 = sorted.Count > 1 ? sorted[1] : sorted[0];
+        var tLow1 = sorted.Last();
+        var tLow2 = sorted.Count > 2 ? sorted[^2] : tLow1;
 
-        // 1. 核心心智模式概貌
-        var sbOverview = new StringBuilder();
-        sbOverview.AppendLine($"• 底层心理结构：对方在【{string.Join("】与【", topTraits.Select(t => t.Dimension))}】表现出鲜明的高位特质（得分均超 75+），表明其具备极强的个性主线与自洽诉求。");
-        foreach (var t in topTraits)
+        // 1. 卡片标题动态化绑定（绝不写死固定维度）
+        StrategyCard1Title.Text = tTop1.Dimension == tTop2.Dimension
+            ? $"🎯 核心主导心智 · 【{tTop1.Dimension}】底层心理机制与诉求底色"
+            : $"🎯 核心主导心智 · 【{tTop1.Dimension}】与【{tTop2.Dimension}】底层心理机制与诉求底色";
+
+        StrategyCard2Title.Text = tTop1.Dimension == tTop2.Dimension
+            ? $"✨ 顺势借力抓手 · 基于【{tTop1.Dimension}】的同频共鸣与推进法则"
+            : $"✨ 顺势借力抓手 · 基于【{tTop1.Dimension}】与【{tTop2.Dimension}】的同频共鸣与推进法则";
+
+        StrategyCard3Title.Text = tLow1.Dimension == tLow2.Dimension
+            ? $"🚫 心理敏感死穴 · 针对【{tLow1.Dimension}】的沟通雷区与避坑红线"
+            : $"🚫 心理敏感死穴 · 针对【{tLow1.Dimension}】与【{tLow2.Dimension}】的沟通雷区与避坑红线";
+
+        StrategyCard4Title.Text = $"💬 实战临场示范 · 针对【{tTop1.Dimension}】与【{tLow1.Dimension}】的高情商破局示范话术";
+
+        // 2. 卡片 1 内容：核心主导心智与诉求底色
+        var sb1 = new StringBuilder();
+        sb1.AppendLine($"• 第一核心主导特质：在【{tTop1.Dimension}】（得分 {tTop1.ScoreInt}分，可信度 {tTop1.ConfidenceText}）占据极其突出的心智高位。");
+        sb1.AppendLine($"  心智机制剖析：{tTop1.Attribute}");
+        if (tTop1.HasEvidence)
         {
-            sbOverview.AppendLine($"  - 【{t.Dimension}】（{t.ScoreInt}分）：{t.Attribute}");
+            sb1.AppendLine($"  真实原话印证：“{tTop1.EvidenceDisplayText}”");
         }
-        StrategyMindsetOverviewText.Text = sbOverview.ToString().TrimEnd();
 
-        // 2. 顺势借力沟通点
-        var sbLeverage = new StringBuilder();
-        string tones = _skill.SuggestedTones is { Count: > 0 } ? string.Join("、", _skill.SuggestedTones) : "真诚同频、高位自洽";
-        sbLeverage.AppendLine($"• 推荐破局调性：{tones}。");
-        if (!string.IsNullOrWhiteSpace(_skill.AdviceGuideline))
+        if (tTop1.Dimension != tTop2.Dimension)
         {
-            sbLeverage.AppendLine($"• 方法论指引：{_skill.AdviceGuideline.Split('\n')[0].Trim()}");
+            sb1.AppendLine();
+            sb1.AppendLine($"• 第二协同支柱特质：在【{tTop2.Dimension}】（得分 {tTop2.ScoreInt}分）形成强有力的心理辅助支撑。");
+            sb1.AppendLine($"  心智机制剖析：{tTop2.Attribute}");
+            if (tTop2.HasEvidence)
+            {
+                sb1.AppendLine($"  真实原话印证：“{tTop2.EvidenceDisplayText}”");
+            }
         }
-        StrategyLeveragePointsText.Text = sbLeverage.ToString().TrimEnd();
+        sb1.AppendLine();
+        sb1.AppendLine(BuildSceneMindsetSynthesis(_currentScene, tTop1, tTop2));
+        StrategyMindsetOverviewText.Text = sb1.ToString().TrimEnd();
 
-        // 3. 沟通雷区与防卫
-        var sbTaboos = new StringBuilder();
-        sbTaboos.AppendLine($"• 防御反模式：对方在【{string.Join("】与【", lowTraits.Select(t => t.Dimension))}】展现出极低的耐受度或强烈的防御机制。");
-        foreach (var t in lowTraits)
+        // 3. 卡片 2 内容：顺势借力抓手
+        var sb2 = new StringBuilder();
+        sb2.AppendLine($"• 借力抓手 1（顺应【{tTop1.Dimension}】）：{BuildTopDimensionLeverageRule(_currentScene, tTop1)}");
+        if (tTop1.Dimension != tTop2.Dimension)
         {
-            sbTaboos.AppendLine($"  - 严厉禁忌【{t.Dimension}】：严禁触发其防御机制，杜绝此类沟通表现（特质表现：{t.Attribute}）。");
+            sb2.AppendLine($"• 借力抓手 2（激活【{tTop2.Dimension}】）：{BuildTopDimensionLeverageRule(_currentScene, tTop2)}");
         }
-        StrategyTaboosText.Text = sbTaboos.ToString().TrimEnd();
+        sb2.AppendLine($"• 深度同频心法：{BuildSceneRapportGuide(_currentScene, tTop1, tTop2)}");
+        StrategyLeveragePointsText.Text = sb2.ToString().TrimEnd();
 
-        // 4. 专属行动处方
-        var sbPrescription = new StringBuilder();
-        sbPrescription.AppendLine($"1. 顺应认知节奏：在聊及工作、生活或情感议题时，切忌正面强行硬顶其【{topTraits[0].Dimension}】，而应先认同其底层逻辑，再顺水推舟给出建议。");
-        sbPrescription.AppendLine($"2. 避免低位讨好：坚守自身高位框架与清晰边界感，杜绝秒回长篇大论、自我解释与查户口式盘问。");
-        sbPrescription.AppendLine($"3. 闭环行动指引：若推进邀约或合作，用'选择题'代替'填空题'，以低需求感姿态给予对方选择权。");
-        StrategyPrescriptionText.Text = sbPrescription.ToString().TrimEnd();
+        // 4. 卡片 3 内容：心理敏感死穴与避坑红线
+        var sb3 = new StringBuilder();
+        sb3.AppendLine($"• 心理脆弱/敏感洼地：对方在【{tLow1.Dimension}】（仅 {tLow1.ScoreInt}分）显现出极强的防御心或心理脆弱点。");
+        sb3.AppendLine($"  洼地机制推断：{tLow1.Attribute}");
+        if (tLow1.Dimension != tLow2.Dimension && tLow2.Score < 50)
+        {
+            sb3.AppendLine($"  次级防备特质：在【{tLow2.Dimension}】（{tLow2.ScoreInt}分）同样存在敏感表现（{tLow2.Attribute}）。");
+        }
+        sb3.AppendLine();
+        sb3.AppendLine($"• 针对【{tLow1.Dimension}】与【{tLow2.Dimension}】的三大绝对避坑红线：");
+        sb3.AppendLine(BuildDimensionTaboos(_currentScene, tLow1, tLow2));
+        StrategyTaboosText.Text = sb3.ToString().TrimEnd();
+
+        // 5. 卡片 4 内容：实战临场示范话术
+        var sb4 = new StringBuilder();
+        sb4.AppendLine(BuildSceneDemonstrationScripts(_currentScene, tTop1, tLow1));
+        StrategyPrescriptionText.Text = sb4.ToString().TrimEnd();
+    }
+
+    private string BuildSceneMindsetSynthesis(string scene, PersonaTrait tTop1, PersonaTrait tTop2) => scene switch
+    {
+        "Intimacy" =>
+            $"• 专家情感透镜总析：在亲密交往中，对方并不是天生冷淡或难以靠近，而是其【{tTop1.Dimension}】（{tTop1.ScoreInt}分）构成了核心情感滤镜。对方深层最渴望的是【被真正看见、情绪同频与可依赖的安全感】。切忌用低位讨好的方式迎合，只有展示自洽成熟的个人状态与敏锐的情绪洞察，才能叩开对方心门。",
+        "Leader" =>
+            $"• 专家管理透镜总析：在上下级职场互动中，领导极其看重【确定性、结果闭环与掌控感】。对方在【{tTop1.Dimension}】的高位表现，意味着其极其反感含糊推诿与情绪化表达，最需要下属具备‘结论先行、凡事有交代、件件有着落’的高效执行闭环。",
+        "Colleague" =>
+            $"• 专家协作透镜总析：在职场平级配合中，对方讲求【权责明晰、效率对等、互不添堵】。其在【{tTop1.Dimension}】的高位凸显了其做事风格，对接前明确交代前因后果与利他价值，是推进丝滑协同的最优路径。",
+        "Client" =>
+            $"• 专家商业透镜总析：在商务决策场景中，客户真实核心诉求始终是【规避自身决策风险、降本增效并证明选择的正确性】。结合其在【{tTop1.Dimension}】的高敏感度，切忌空谈口头承诺，必须用扎实的数据与轻量低门槛试点打消其决策疑虑。",
+        _ =>
+            $"• 专家社交透镜总析：在日常社交相处中，对方崇尚【熟不逾矩、久处不累、自然舒坦】的相处节奏。顺应其在【{tTop1.Dimension}】的生活偏好，保持真诚有边界的互动，最能建立长久深厚的人际信任。"
+    };
+
+    private string BuildTopDimensionLeverageRule(string scene, PersonaTrait trait)
+    {
+        string dim = trait.Dimension.ToLowerInvariant();
+        if (dim.Contains("关键认知") || dim.Contains("认知"))
+        {
+            return $"不要强行说教或直接灌输观点。善用事实细节、生活类比与侧面烘托，让对方在自主思考中得出符合你期望的结论，保护其自主感。";
+        }
+        if (dim.Contains("传递方式") || dim.Contains("间接"))
+        {
+            return $"采用‘润物细无声’的间接传递策略。通过朋友圈生活切面、第三方评价或无压力的偶遇细节展现价值，制造自然吸引与好奇心。";
+        }
+        if (dim.Contains("框架"))
+        {
+            return $"保持温和而坚定的个人框架。不随对方情绪剧烈起伏而动摇，设立健康的边界感，越有原则与主见，反而越能赢得其敬畏与倾斜。";
+        }
+        if (dim.Contains("情绪价值") || dim.Contains("需求感"))
+        {
+            return $"‘先接情绪，再谈事情’。在对方表达疲惫或委屈时，第一时间提供无评判的情绪兜底，成为其最安心的心理能量站。";
+        }
+        if (dim.Contains("权威") || dim.Contains("执行") || dim.Contains("结果"))
+        {
+            return $"以‘数据说话、结论先行、闭环交付’为准则。主动定期同步进展，让对方感受到无懈可击的专业度与确定性。";
+        }
+        return $"顺应其在【{trait.Dimension}】所追求的心理预期（{trait.Attribute}），顺势而为，不与之形成逆向抵触，以理解促合作。";
+    }
+
+    private string BuildSceneRapportGuide(string scene, PersonaTrait tTop1, PersonaTrait tTop2) => scene switch
+    {
+        "Intimacy" =>
+            $"借力【{tTop1.Dimension}】建立高价值吸引，互动中多捕捉对方抛出的情绪暗号，适度制造‘推拉’与好奇心，形成双向奔赴的情感引力场。",
+        "Leader" =>
+            $"顺应其对【{tTop1.Dimension}】的高标准，请示工作带两套备选方案供其决策，永远不要把空白题直接推给领导。",
+        "Colleague" =>
+            $"对接工作提前预约并讲明利他点，把对方的工作阻力降到最低，用高情商分工换取长远互助资本。",
+        "Client" =>
+            $"以【{tTop1.Dimension}】为切入点剖析其业务痛点，以专业顾问姿态提供增量见解，实现从普通供应商到战略伙伴的跨越。",
+        _ =>
+            $"契合其共同兴趣点切入，不刻意迎合，保持松弛感与幽默感，让每次聊天都成为精神放松的愉悦体验。"
+    };
+
+    private string BuildDimensionTaboos(string scene, PersonaTrait tLow1, PersonaTrait tLow2)
+    {
+        var sb = new StringBuilder();
+        string dimLow1 = tLow1.Dimension;
+        string dimLow2 = tLow2.Dimension;
+
+        // 红线 1：专门针对 tLow1 维度的深度避坑
+        if (dimLow1.Contains("低位") || dimLow1.Contains("框架") || dimLow1.Contains("需求感"))
+        {
+            sb.AppendLine($"  1. 绝忌低声下气自我贬低与过度迎合：越是试图通过放弃原则、秒回讨好来索取回应，越会击穿对方的尊重底线，彻底沦为低位被动方；");
+        }
+        else if (dimLow1.Contains("情绪") || dimLow1.Contains("敏感") || dimLow1.Contains("脆弱"))
+        {
+            sb.AppendLine($"  1. 绝忌冷漠回避与逻辑说教：在其情绪防御高筑时切勿讲大道理，冰冷的分析只会激化对抗，必须先抚平情绪再理清事实；");
+        }
+        else
+        {
+            sb.AppendLine($"  1. 绝忌触碰其在【{dimLow1}】的心理雷区：对方在此特质处于防御洼地（{tLow1.Attribute}），切勿直接质疑或公开触碰其软肋；");
+        }
+
+        // 红线 2：次低维度或防备心避坑
+        if (dimLow2 != dimLow1 && (dimLow2.Contains("信任") || dimLow2.Contains("坦诚") || dimLow2.Contains("控制")))
+        {
+            sb.AppendLine($"  2. 绝忌隐瞒欺瞒或越界控制：给予对方充分的安全感与空间边界，任何窥探或失信行为都会引发断崖式信任瓦解；");
+        }
+        else
+        {
+            sb.AppendLine($"  2. 绝忌好为人师与否定挑刺：永远不要在言语争辩上强争高下，否定对方的感受只会引爆逆反与逃避机制；");
+        }
+
+        // 红线 3：当前交往身份的专属禁忌
+        string sceneTaboo = scene switch
+        {
+            "Intimacy" => "绝忌夺命连环催与查户口逼问：给彼此留足呼吸空间，分享欲要给懂的人，不要用令对方窒息的紧绷感绑架彼此；",
+            "Leader" => "绝忌报喜不报忧、拖延到最后一刻爆雷：遇到风险尽早预警并附带补救预案，杜绝让领导产生不可控的惊吓；",
+            "Colleague" => "绝忌在大群公开问责甩锅：协同卡点私下体面沟通对齐，切勿为了自保让同事当众难堪；",
+            "Client" => "绝忌过度承诺与虚假吹嘘：无法100%交付的内容切勿信口开河，商业往来诚信是第一生命线；",
+            _ => "绝忌毫无分寸的索取与道德绑架：亲密有间、熟不逾矩，切莫把朋友的好脾气当成理所当然的消耗品。"
+        };
+        sb.AppendLine($"  3. {sceneTaboo}");
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private string BuildSceneDemonstrationScripts(string scene, PersonaTrait tTop1, PersonaTrait tLow1) => scene switch
+    {
+        "Intimacy" =>
+$@"【示范 1：顺应【{tTop1.Dimension}】的高价值轻松破冰】
+“刚刚路过一家店看到[某样对方感兴趣的事物/萌物]，第一反应就觉得这完全是你的风格哈哈。今天忙不忙呀，给你云投喂一杯热拿铁，打工人续命要紧~”
+（心法点拨：依托生活细节唤醒好奇与好感，分享欲自然流淌，绝无索取回应的低位压迫感）
+
+【示范 2：遭遇冷淡或对方情绪低落时守住【{tLow1.Dimension}】防线】
+“感觉你今天心情有点闷闷的/特别累，摸摸头。今晚就先不吵你啦，好好泡个热水澡放空一下。有想吐槽的随时找我，我一直在，晚安好梦~”
+（心法点拨：表达细腻关切的同时主动提供安全撤退空间，零需求感、零指责，反向激发对方的内疚与依恋）",
+
+        "Leader" =>
+$@"【示范 1：突发卡点顺应【{tTop1.Dimension}】高效请示】
+“领导，关于[XX事项]遇到一个突发卡点[一句话客观陈述核心事实]。我们团队迅速拟定了两套应对方案：方案A[见效快但需小额追加资源]，方案B[稳妥但需顺延半天]。我建议采用方案A，整体影响最小，您看是否可行？”
+（心法点拨：结论先行 + 带着两套解法让领导做选择题，彻底消除失控焦虑）
+
+【示范 2：任务交付顺应【{tLow1.Dimension}】主动对齐标准】
+“收到领导。为确保最终产出分毫不差，我跟您快速对齐下验收要点：先抓好[要点1]和[要点2]，在[周五下午4点前]呈报终稿，您看这样节奏符合您的预期吗？”
+（心法点拨：明确边界与时间节点，件件有着落，彻底打消领导的潜在担忧）",
+
+        "Colleague" =>
+$@"【示范 1：跨部门协同借助【{tTop1.Dimension}】发起推进】
+“[名字]你好，这周推进[项目X]节点，在[模块Y]这块需要借力你的专业经验把把关。我们提炼了2个最关键的核心点，大概耽误你5分钟确认下，你看今天下午3点方便在工位对一下吗？”
+（心法点拨：说明必要性 + 量化时间成本 + 礼貌预约，最易获得正向支持）
+
+【示范 2：催促进度而不伤和气】
+“[名字]，看你这两天特别忙，辛苦啦！我们下游环节计划明天启动，想问问手头的[材料Z]目前进展如何，有没有什么需要我们提前搭把手的地方？”
+（心法点拨：先共情分担 + 再问进度，既达到了催办目的又照顾了同事人情）",
+
+        "Client" =>
+$@"【示范 1：客户对方案或预算心存疑虑时】
+“非常理解您的审慎考量，换作是我也会精打细算每一笔投入。之所以设计该配置，核心是为了帮贵司把[关键隐患]提前堵死。如果您想先看实际成效，我们可以先启动[第一期小步验证]，您看这样是否更踏实？”
+（心法点拨：肯定合理性 + 讲透风控价值 + 给出低风险折中台阶）
+
+【示范 2：初次触达与商务破冰】
+“[客户称呼]好，拜读过贵司近期在[业务赛道]的动作，非常钦佩。我们近期正好协助同业解决了[具体痛点]，顺手提炼了一份避坑参考资料，发您闲暇时翻翻，或许对当下规划有些许参考价值。”
+（心法点拨：利他先行 + 赠送增量认知，无压迫感建立专业连接）",
+
+        _ =>
+$@"【示范 1：久未联系随性破冰】
+“老铁，最近忙啥呢？昨天正好刷到[当年两人的共同回忆/搞笑梗]，瞬间想起你了，出来冒个泡，改天有空出来整两杯/吃个饭聚聚！”
+（心法点拨：随性真诚无负担，唤醒共同记忆）
+
+【示范 2：朋友受挫时给予力挺】
+“哥们/姐妹，别一个人闷着硬扛，有什么需要我帮忙的随时支声，一句话随叫随到。无论咋样我都在这，随时找我吐苦水！”
+（心法点拨：纯粹的情感托底，让人倍感温暖可靠）"
+    };
+
+    private async void AiConsultationBtn_Click(object sender, RoutedEventArgs e)
+    {
+        AiSettings settings = _settingsStore.Load();
+        string apiKey = DpapiProtector.Unprotect(settings.EncryptedApiKey);
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            MessageBox.Show(
+                "尚未配置 AI 接口的 API Key。\n请在悬浮窗【设置】->【AI设置】中填写 API Key 后再使用专家深度解读功能。",
+                "提示",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.Endpoint))
+        {
+            MessageBox.Show(
+                "AI 接口基址为空，请在悬浮窗【设置】->【AI设置】中配置有效接口。",
+                "提示",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        AiConsultationBtn.IsEnabled = false;
+        AiConsultationLoadingPanel.Visibility = Visibility.Visible;
+        AiConsultationResultCard.Visibility = Visibility.Collapsed;
+
+        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
+
+        try
+        {
+            var topTraits = _traits.OrderByDescending(t => t.Score).Take(2).ToList();
+            var lowTraits = _traits.OrderBy(t => t.Score).Take(2).ToList();
+            string topDimHint = topTraits.Count > 0 ? $"核心优势维度【{string.Join(" / ", topTraits.Select(t => t.Dimension))}】" : "";
+            string lowDimHint = lowTraits.Count > 0 ? $"敏感防卫维度【{string.Join(" / ", lowTraits.Select(t => t.Dimension))}】" : "";
+
+            var sbTraits = new StringBuilder();
+            foreach (var t in _traits.OrderByDescending(t => t.Score))
+            {
+                sbTraits.Append($"- 【{t.Dimension}】（得分: {t.ScoreInt}分，可信度: {t.ConfidenceText}）：{t.Attribute}");
+                if (t.Evidence.Count > 0)
+                {
+                    sbTraits.Append($"（原话印证：“{string.Join(" / ", t.Evidence.Take(2))}”）");
+                }
+                sbTraits.AppendLine();
+            }
+
+            var sbHist = new StringBuilder();
+            var recentMessages = _history.TakeLast(20).ToList();
+            if (recentMessages.Count > 0)
+            {
+                foreach (var m in recentMessages)
+                {
+                    string senderName = m.Role == MessageRole.Outgoing ? "我" : _persona.ContactName;
+                    string timeStr = m.Timestamp.HasValue ? $"[{m.Timestamp.Value:MM-dd HH:mm}] " : "";
+                    sbHist.AppendLine($"{timeStr}{senderName}: {m.Text}");
+                }
+            }
+
+            string systemPrompt =
+$@"你是一位精通人情世故、人际心理学与深度沟通博弈的资深沟通破局专家。
+你的风格：洞察犀利、通俗易懂、温暖而接地气，拒绝任何生硬学术行话（严禁使用“操作系统概貌”、“表达DNA”、“高位自洽”等空洞AI词汇）。
+请针对用户提供的联系人画像与真实聊天背景，站在【{sceneName}】场景的专业视角，深入结合其{topDimHint}与{lowDimHint}，给出一份通俗透彻、拿来即用的高情商实战破局锦囊。";
+
+            string userPrompt =
+$@"【分析对象】：{_persona.ContactName}
+【关系与场景设定】：{sceneName}
+【分析技能】：{_skill.Icon} {_skill.Name}
+【该联系人的多维心智特质画像】：
+{sbTraits}
+{(sbHist.Length > 0 ? $"【近期真实聊天记录（参考）：】\n{sbHist}\n" : "")}
+请按以下结构输出你的专家破局锦囊（注意：用真切的大白话，不要讲大话空话）：
+
+【一眼摸透对方当下真实心智】
+（用2~3句通俗透彻的大白话，揭示对方最在意的核心诉求、在当前场景下的防御痛点，以及为什么会有这种表现）
+
+【资深专家三大破局实操心法】
+（针对此人给出3条极具指导性、实操性的人际交往破局法则，条理清晰）
+
+【保姆级教科书临场回复示范】
+（针对当前场景给出2个最容易遇到的情境，提供可直接复制发送的教科书级高情商回复话术，并附上简短的心理学原理点拨）";
+
+            using var provider = new OpenAiCompatibleProvider(
+                settings.Endpoint,
+                () => apiKey,
+                timeout: TimeSpan.FromSeconds(Math.Max(settings.TimeoutSeconds, 90)));
+
+            var req = new AiRequest(
+                SystemPrompt: systemPrompt,
+                UserPrompt: userPrompt,
+                Model: settings.Model,
+                Temperature: 0.7,
+                MaxTokens: 1500);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(settings.TimeoutSeconds, 90)));
+            AiReply reply = await provider.CompleteAsync(req, cts.Token);
+
+            if (reply.Success && !string.IsNullOrWhiteSpace(reply.Text))
+            {
+                string result = reply.Text.Trim();
+                _consultationCache[sceneName] = result;
+                AiConsultationResultText.Text = result;
+                AiConsultationHeaderTitle.Text = $"✨ {sceneName} · 资深专家独家临场破局军师锦囊";
+                AiConsultationResultCard.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"AI 专家解读生成失败：\n{reply.Error ?? "返回内容为空"}",
+                    "提示",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            MessageBox.Show("AI 解读请求超时，请检查网络或更换更快的模型。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"AI 解读请求发生异常：\n{ex.Message}", "提示", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            AiConsultationLoadingPanel.Visibility = Visibility.Collapsed;
+            AiConsultationBtn.IsEnabled = true;
+        }
+    }
+
+    private void CopyConsultationBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(AiConsultationResultText.Text)) return;
+        Clipboard.SetText(AiConsultationResultText.Text);
+        MessageBox.Show("已成功将资深专家破局锦囊复制到剪贴板！", "复制成功", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     // ===================== 报告复制与导出 =====================
 
     private string BuildMarkdownReport()
     {
+        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
         var sb = new StringBuilder();
         sb.AppendLine($"# 「{_persona.ContactName}」多维心智特质与沟通行为全景分析报告");
         sb.AppendLine();
-        sb.AppendLine($"> **分析时间**：{_persona.UpdatedAt:yyyy-MM-dd HH:mm}  |  **采用技能体系**：{_skill.Icon} {_skill.Name}  |  **样本规模**：{_persona.SourceMessageCount} 条真实历史消息");
+        sb.AppendLine($"> **分析时间**：{_persona.UpdatedAt:yyyy-MM-dd HH:mm}  |  **采用技能体系**：{_skill.Icon} {_skill.Name}  |  **关系定位与分析视角**：{sceneName}  |  **样本规模**：{_persona.SourceMessageCount} 条真实历史消息");
         sb.AppendLine();
         sb.AppendLine("---");
         sb.AppendLine();
@@ -565,12 +1145,21 @@ public partial class PersonaAnalyticsWindow : Window
         }
         sb.AppendLine("---");
         sb.AppendLine();
-        sb.AppendLine("## 三、AI 实战沟通破局战术指南");
+        sb.AppendLine($"## 三、实战沟通破局战术指南（{sceneName}）");
         sb.AppendLine();
-        sb.AppendLine($"### 1. 核心心智模型总评\n{StrategyMindsetOverviewText.Text}\n");
-        sb.AppendLine($"### 2. 顺势借力沟通策略\n{StrategyLeveragePointsText.Text}\n");
-        sb.AppendLine($"### 3. 绝对禁忌与雷区\n{StrategyTaboosText.Text}\n");
-        sb.AppendLine($"### 4. 实战行动处方\n{StrategyPrescriptionText.Text}\n");
+        if (_consultationCache.TryGetValue(sceneName, out string? aiText) && !string.IsNullOrWhiteSpace(aiText))
+        {
+            sb.AppendLine("### ✨ 资深专家独家临场破局军师锦囊");
+            sb.AppendLine();
+            sb.AppendLine(aiText);
+            sb.AppendLine();
+            sb.AppendLine("---");
+            sb.AppendLine();
+        }
+        sb.AppendLine($"### 1. {StrategyCard1Title.Text}\n{StrategyMindsetOverviewText.Text}\n");
+        sb.AppendLine($"### 2. {StrategyCard2Title.Text}\n{StrategyLeveragePointsText.Text}\n");
+        sb.AppendLine($"### 3. {StrategyCard3Title.Text}\n{StrategyTaboosText.Text}\n");
+        sb.AppendLine($"### 4. {StrategyCard4Title.Text}\n{StrategyPrescriptionText.Text}\n");
 
         return sb.ToString();
     }

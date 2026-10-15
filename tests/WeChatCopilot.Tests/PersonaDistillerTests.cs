@@ -378,6 +378,18 @@ public class PersonaDistillerTests
         Assert.Equal("第八维度特质", clean[7].Dimension);
     }
 
+    [Fact]
+    public void PersonaTrait_EvidenceDisplayText_FormatsCorrectly()
+    {
+        var traitWithEvidence = new PersonaTrait("关键认知", "认知成熟", 0.9, new[] { "原话A", "原话B" }, 85);
+        Assert.True(traitWithEvidence.HasEvidence);
+        Assert.Equal("“原话A”\n“原话B”", traitWithEvidence.EvidenceDisplayText);
+
+        var traitWithoutEvidence = new PersonaTrait("情绪防线", "内敛敏感", 0.7, Array.Empty<string>(), 35);
+        Assert.False(traitWithoutEvidence.HasEvidence);
+        Assert.Equal("暂无长句直引原话，基于历史对话频率、交互节奏及上下文特征综合归纳。", traitWithoutEvidence.EvidenceDisplayText);
+    }
+
     /// <summary>按队列返回固定文本的测试用 Provider。</summary>
     private sealed class StubProvider : IAiProvider
     {
