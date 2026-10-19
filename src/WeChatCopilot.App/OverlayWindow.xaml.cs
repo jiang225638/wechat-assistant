@@ -2434,12 +2434,6 @@ public partial class OverlayWindow : Window
 
             var card = new Border
             {
-                Background = isCurrent
-                    ? (Brush)FindResource("SubBorderCheckedBrush")
-                    : (Brush)FindResource("CardSubtleBgBrush"),
-                BorderBrush = isCurrent
-                    ? (Brush)FindResource("AccentBrush")
-                    : (Brush)FindResource("BorderSubtleBrush"),
                 BorderThickness = new Thickness(isCurrent ? 1.5 : 1),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(10, 8, 8, 8),
@@ -2447,6 +2441,8 @@ public partial class OverlayWindow : Window
                 Cursor = Cursors.Hand,
                 Tag = session
             };
+            card.SetResourceReference(Border.BackgroundProperty, isCurrent ? "SubBorderCheckedBrush" : "CardSubtleBgBrush");
+            card.SetResourceReference(Border.BorderBrushProperty, isCurrent ? "AccentBrush" : "BorderSubtleBrush");
 
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -2459,12 +2455,10 @@ public partial class OverlayWindow : Window
                 Text = session.Title,
                 FontSize = 11.5,
                 FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Normal,
-                Foreground = isCurrent
-                    ? (Brush)FindResource("AccentBrush")
-                    : (Brush)FindResource("TextPrimaryBrush"),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 Margin = new Thickness(0, 0, 0, 3)
             };
+            titleText.SetResourceReference(TextBlock.ForegroundProperty, isCurrent ? "AccentBrush" : "TextPrimaryBrush");
             infoPanel.Children.Add(titleText);
 
             var subPanel = new StackPanel { Orientation = Orientation.Horizontal };
@@ -2474,9 +2468,9 @@ public partial class OverlayWindow : Window
                 {
                     Text = $"👤 {session.ContactName}",
                     FontSize = 10,
-                    Foreground = (Brush)FindResource("TextSecondaryBrush"),
                     Margin = new Thickness(0, 0, 8, 0)
                 };
+                contactBadge.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
                 subPanel.Children.Add(contactBadge);
             }
 
@@ -2484,9 +2478,9 @@ public partial class OverlayWindow : Window
             {
                 Text = $"{session.UpdatedAt:MM-dd HH:mm} · {session.Messages.Count}条",
                 FontSize = 10,
-                Foreground = (Brush)FindResource("TextSecondaryBrush"),
                 Opacity = 0.8
             };
+            timeText.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondaryBrush");
             subPanel.Children.Add(timeText);
 
             infoPanel.Children.Add(subPanel);
@@ -2496,7 +2490,6 @@ public partial class OverlayWindow : Window
             var delBtn = new Button
             {
                 Content = "🗑",
-                Style = (Style)FindResource("FluentButton"),
                 Height = 22,
                 Width = 24,
                 Padding = new Thickness(0),
@@ -2506,6 +2499,7 @@ public partial class OverlayWindow : Window
                 Margin = new Thickness(4, 0, 0, 0),
                 Tag = session
             };
+            delBtn.SetResourceReference(FrameworkElement.StyleProperty, "FluentButton");
             delBtn.Click += (s, e) =>
             {
                 e.Handled = true;
@@ -2555,22 +2549,16 @@ public partial class OverlayWindow : Window
 
     private void QaSidebarNewSessionBtn_Click(object sender, RoutedEventArgs e) => CreateNewSession();
 
-    private void QaPillsScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        if (sender is ScrollViewer sv)
-        {
-            sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta);
-            e.Handled = true;
-        }
-    }
-
     private void QaInputBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        bool hasText = !string.IsNullOrWhiteSpace(QaInputBox.Text);
         if (QaInputPlaceholder != null)
         {
-            QaInputPlaceholder.Visibility = string.IsNullOrWhiteSpace(QaInputBox.Text)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            QaInputPlaceholder.Visibility = hasText ? Visibility.Collapsed : Visibility.Visible;
+        }
+        if (QaSendButton != null)
+        {
+            QaSendButton.Tag = hasText ? "Active" : "Inactive";
         }
     }
 
@@ -2616,12 +2604,12 @@ public partial class OverlayWindow : Window
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(35, 4, 0, 8),
-            Background = (Brush)FindResource("ChatOutgoingBgBrush"),
-            BorderBrush = (Brush)FindResource("ChatOutgoingBorderBrush"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10, 10, 2, 10),
             Padding = new Thickness(12, 8, 12, 8)
         };
+        border.SetResourceReference(Border.BackgroundProperty, "ChatOutgoingBgBrush");
+        border.SetResourceReference(Border.BorderBrushProperty, "ChatOutgoingBorderBrush");
 
         var panel = new StackPanel();
 
@@ -2629,19 +2617,19 @@ public partial class OverlayWindow : Window
         {
             Text = $"🧑 我 · {(timestamp ?? DateTime.Now):HH:mm}",
             FontSize = 10,
-            Foreground = (Brush)FindResource("ChatOutgoingBadgeBrush"),
             Margin = new Thickness(0, 0, 0, 4)
         };
+        header.SetResourceReference(TextBlock.ForegroundProperty, "ChatOutgoingBadgeBrush");
         panel.Children.Add(header);
 
         var content = new TextBlock
         {
             Text = text,
-            Foreground = (Brush)FindResource("ChatOutgoingTextBrush"),
             FontSize = 12.5,
             TextWrapping = TextWrapping.Wrap,
             LineHeight = 20
         };
+        content.SetResourceReference(TextBlock.ForegroundProperty, "ChatOutgoingTextBrush");
         panel.Children.Add(content);
 
         border.Child = panel;
@@ -2663,12 +2651,12 @@ public partial class OverlayWindow : Window
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             Margin = new Thickness(0, 4, 15, 10),
-            Background = (Brush)FindResource("CardBgBrush"),
-            BorderBrush = (Brush)FindResource("BorderLightBrush"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10, 10, 10, 2),
             Padding = new Thickness(12, 10, 12, 10)
         };
+        border.SetResourceReference(Border.BackgroundProperty, "ChatIncomingBgBrush");
+        border.SetResourceReference(Border.BorderBrushProperty, "ChatIncomingBorderBrush");
 
         var panel = new StackPanel();
 
@@ -2681,21 +2669,21 @@ public partial class OverlayWindow : Window
             Text = $"🤖 AI 对话军师 · {(timestamp ?? DateTime.Now):HH:mm}",
             FontSize = 11,
             FontWeight = FontWeights.SemiBold,
-            Foreground = (Brush)FindResource("AccentBrush"),
             VerticalAlignment = VerticalAlignment.Center
         };
+        title.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
         Grid.SetColumn(title, 0);
         grid.Children.Add(title);
 
         var copyBtn = new Button
         {
             Content = "📋 复制",
-            Style = (Style)FindResource("FluentButton"),
             Height = 22,
             Padding = new Thickness(8, 0, 8, 0),
             FontSize = 10.5,
             VerticalAlignment = VerticalAlignment.Center
         };
+        copyBtn.SetResourceReference(FrameworkElement.StyleProperty, "FluentButton");
         copyBtn.Click += (s, e) =>
         {
             Clipboard.SetText(text);
@@ -2711,35 +2699,28 @@ public partial class OverlayWindow : Window
         {
             var badge = new Border
             {
-                Background = (Brush)FindResource("IntentFlowBgBrush"),
-                BorderBrush = (Brush)FindResource("IntentFlowBorderBrush"),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Padding = new Thickness(6, 2, 6, 2),
                 Margin = new Thickness(0, 0, 0, 8),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
-            badge.Child = new TextBlock
+            badge.SetResourceReference(Border.BackgroundProperty, "IntentFlowBgBrush");
+            badge.SetResourceReference(Border.BorderBrushProperty, "IntentFlowBorderBrush");
+
+            var badgeText = new TextBlock
             {
                 Text = $"🔗 {groundingInfo}",
-                FontSize = 10.5,
-                Foreground = (Brush)FindResource("IntentFlowTextBrush")
+                FontSize = 10.5
             };
+            badgeText.SetResourceReference(TextBlock.ForegroundProperty, "IntentFlowTextBrush");
+            badge.Child = badgeText;
             panel.Children.Add(badge);
         }
 
-        var body = new TextBox
-        {
-            Text = text,
-            Foreground = (Brush)FindResource("TextPrimaryBrush"),
-            FontSize = 12.5,
-            TextWrapping = TextWrapping.Wrap,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            IsReadOnly = true,
-            Padding = new Thickness(0)
-        };
-        panel.Children.Add(body);
+        // 使用 Markdown 富文本结构化预览渲染（标题、引用卡片、加粗、话术一键复制等）
+        var mdView = MarkdownRenderer.Render(text, this);
+        panel.Children.Add(mdView);
 
         border.Child = panel;
 

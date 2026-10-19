@@ -81,6 +81,10 @@
         <SolidColorBrush x:Key="ChatOutgoingBadgeBrush" Color="#6EE7B7" />
         <SolidColorBrush x:Key="ChatOutgoingTextBrush" Color="#F3F4F6" />
 
+        <!--  AI 问答发送按钮画刷 (支持 ThemeManager 动态热重载)  -->
+        <SolidColorBrush x:Key="SendBtnInactiveBgBrush" Color="#2E3342" />
+        <SolidColorBrush x:Key="SendBtnInactiveFgBrush" Color="#9CA3AF" />
+
         <!--  扁平圆角按钮样式  -->
         <Style x:Key="FluentButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}" />
@@ -151,6 +155,60 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!--  AI 问答 Antigravity 原生圆形右箭头发送按钮样式  -->
+        <Style x:Key="AntigravityRoundSendButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="{DynamicResource SendBtnInactiveBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SendBtnInactiveFgBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="btnCircle"
+                            Width="28"
+                            Height="28"
+                            CornerRadius="14"
+                            Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
+                            <Path
+                                x:Name="arrowIcon"
+                                Width="13"
+                                Height="13"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Data="M 5,12 L 19,12 M 13,6 L 19,12 L 13,18"
+                                Stretch="Uniform"
+                                Stroke="{TemplateBinding Foreground}"
+                                StrokeThickness="1.8"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnCircle" Property="Opacity" Value="0.85" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="btnCircle" Property="Opacity" Value="0.65" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="btnCircle" Property="Opacity" Value="0.35" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Tag" Value="Active">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                    <Setter Property="Foreground" Value="#FFFFFF" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <!--  现代流光动态跑马灯进度条样式 (无边框半透明窗口下 60fps 流光动画正常渲染)  -->
@@ -2169,16 +2227,18 @@
                                     BorderThickness="1"
                                     CornerRadius="10">
                                     <StackPanel>
-                                        <Grid Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 第一行：卡片主标题与维度统计 -->
+                                            <StackPanel Grid.Row="0" VerticalAlignment="Center" Orientation="Horizontal" Margin="0,0,0,6">
                                                 <TextBlock
                                                     Margin="0,0,4,0"
                                                     VerticalAlignment="Center"
-                                                    FontSize="12"
+                                                    FontSize="12.5"
                                                     Text="📊" />
                                                 <TextBlock
                                                     VerticalAlignment="Center"
@@ -2190,35 +2250,23 @@
                                                     x:Name="RadarDimensionCountText"
                                                     Margin="4,0,0,0"
                                                     VerticalAlignment="Center"
-                                                    FontSize="10"
+                                                    FontSize="10.5"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="" />
                                             </StackPanel>
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center"
-                                                Orientation="Horizontal">
-                                                <Button
-                                                    x:Name="OpenPersonaAnalyticsButton"
-                                                    Margin="0,0,5,0"
-                                                    Padding="5,1.5"
-                                                    Click="OpenPersonaAnalyticsButton_Click"
-                                                    Content="🔍 放大看板"
-                                                    FontSize="10"
-                                                    Style="{StaticResource FluentButton}"
-                                                    ToolTip="打开放大版全景深度分析看板：包含高分辨率雷达图、柱状图、折线图及全量深度分析报告" />
-                                                <Button
-                                                    x:Name="RadarToggleDimButton"
-                                                    Margin="0,0,5,0"
-                                                    Padding="5,1.5"
-                                                    Click="RadarToggleDimButton_Click"
-                                                    Content="🎯 核心视角"
-                                                    FontSize="10"
-                                                    Style="{StaticResource FluentButton}"
-                                                    ToolTip="点击在「精选视角」与「全量特质视角」之间切换"
-                                                    Visibility="Collapsed" />
+
+                                            <!-- 第二行：关联蒸馏视角标签（左）与放大看板/切换视角操作按钮（右） -->
+                                            <Grid Grid.Row="1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- 左侧：关联蒸馏技能视角 -->
                                                 <Border
+                                                    Grid.Column="0"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center"
                                                     Padding="5,1.5"
                                                     Background="#2038BDF8"
                                                     BorderBrush="#5038BDF8"
@@ -2226,14 +2274,40 @@
                                                     CornerRadius="4">
                                                     <TextBlock
                                                         x:Name="RadarSkillBadgeText"
-                                                        MaxWidth="105"
+                                                        MaxWidth="130"
                                                         FontSize="10"
                                                         FontWeight="SemiBold"
                                                         Foreground="#38BDF8"
                                                         Text="🧬 女娲心智蒸馏"
                                                         TextTrimming="CharacterEllipsis" />
                                                 </Border>
-                                            </StackPanel>
+
+                                                <!-- 右侧：放大看板与视角切换操作按钮 -->
+                                                <StackPanel
+                                                    Grid.Column="1"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Orientation="Horizontal">
+                                                    <Button
+                                                        x:Name="OpenPersonaAnalyticsButton"
+                                                        Margin="0,0,5,0"
+                                                        Padding="6,2"
+                                                        Click="OpenPersonaAnalyticsButton_Click"
+                                                        Content="🔍 放大看板"
+                                                        FontSize="10.5"
+                                                        Style="{StaticResource FluentButton}"
+                                                        ToolTip="打开放大版全景深度分析看板：包含高分辨率雷达图、柱状图、折线图及全量深度分析报告" />
+                                                    <Button
+                                                        x:Name="RadarToggleDimButton"
+                                                        Padding="6,2"
+                                                        Click="RadarToggleDimButton_Click"
+                                                        Content="🎯 核心视角"
+                                                        FontSize="10.5"
+                                                        Style="{StaticResource FluentButton}"
+                                                        ToolTip="点击在「精选视角」与「全量特质视角」之间切换"
+                                                        Visibility="Collapsed" />
+                                                </StackPanel>
+                                            </Grid>
                                         </Grid>
                                         <Canvas
                                             x:Name="RadarCanvas"
@@ -2623,67 +2697,8 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!--  底部：快捷胶囊 + Antigravity 风格统一输入卡片  -->
+                    <!--  底部：Antigravity 风格统一输入卡片  -->
                     <StackPanel Grid.Row="2">
-                        <!-- 快捷胶囊横向流 (支持滚轮横向滚动，紧凑排布无截断) -->
-                        <ScrollViewer
-                            x:Name="QaPillsScrollViewer"
-                            HorizontalScrollBarVisibility="Hidden"
-                            VerticalScrollBarVisibility="Disabled"
-                            PreviewMouseWheel="QaPillsScrollViewer_PreviewMouseWheel"
-                            Margin="0,0,0,6">
-                            <StackPanel Orientation="Horizontal">
-                                <Button
-                                    Style="{StaticResource FluentButton}"
-                                    Height="23"
-                                    Padding="7,0,7,0"
-                                    Margin="0,0,4,0"
-                                    FontSize="11"
-                                    Content="🔍 潜台词"
-                                    Click="QaPromptPill_Click"
-                                    Tag="请结合对方画像与最近发言，帮我深度洞察对方没说出口的潜台词和当下真实想法？"
-                                    ToolTip="结合画像与近期发言深度洞察潜台词" />
-                                <Button
-                                    Style="{StaticResource FluentButton}"
-                                    Height="23"
-                                    Padding="7,0,7,0"
-                                    Margin="0,0,4,0"
-                                    FontSize="11"
-                                    Content="💬 高情商"
-                                    Click="QaPromptPill_Click"
-                                    Tag="结合对方心智特质，针对最新发言提供3个高情商示范回复，并简析底层逻辑。"
-                                    ToolTip="针对最新发言提供3套高情商示范回复" />
-                                <Button
-                                    Style="{StaticResource FluentButton}"
-                                    Height="23"
-                                    Padding="7,0,7,0"
-                                    Margin="0,0,4,0"
-                                    FontSize="11"
-                                    Content="⚠️ 找卡点"
-                                    Click="QaPromptPill_Click"
-                                    Tag="研判当前沟通互动走势，指出最大的隐患、雷区或关系卡点是什么？"
-                                    ToolTip="深度研判关系互动中的核心卡点与隐患" />
-                                <Button
-                                    Style="{StaticResource FluentButton}"
-                                    Height="23"
-                                    Padding="7,0,7,0"
-                                    Margin="0,0,4,0"
-                                    FontSize="11"
-                                    Content="❤️ 测好感"
-                                    Click="QaPromptPill_Click"
-                                    Tag="根据言行表现与画像，评估对方目前对我的态度与好感度处于哪个层级？"
-                                    ToolTip="评估对方对我的态度与好感度层级" />
-                                <Button
-                                    Style="{StaticResource FluentButton}"
-                                    Height="23"
-                                    Padding="7,0,7,0"
-                                    FontSize="11"
-                                    Content="🎯 促推进"
-                                    Click="QaPromptPill_Click"
-                                    Tag="帮我构思一个下一步自然松弛、打破僵局推进互动的行动策略。"
-                                    ToolTip="构思自然打破僵局或推进邀约的策略" />
-                            </StackPanel>
-                        </ScrollViewer>
 
                         <!-- 输入框与工具操作统一卡片 (Antigravity 风格：多行高视野输入框在上，融合开关与发送按钮同列在下) -->
                         <Border
@@ -2757,15 +2772,12 @@
                                             ToolTip="勾选后，AI 回答时将自动调取近期真实聊天上下文作为研判依据" />
                                     </StackPanel>
 
-                                    <!-- 右侧：发送按钮 -->
+                                    <!-- 右侧：发送按钮 (Antigravity 原生极简圆形右箭头按钮) -->
                                     <Button
                                         Grid.Column="1"
                                         x:Name="QaSendButton"
                                         Click="QaSendButton_Click"
-                                        Style="{StaticResource PrimaryAccentButton}"
-                                        Height="28"
-                                        Padding="14,0,14,0"
-                                        Content="发送 ➤"
+                                        Style="{StaticResource AntigravityRoundSendButtonStyle}"
                                         ToolTip="发送提问给军师 (Enter 发送，Shift+Enter 换行)"
                                         VerticalAlignment="Center" />
                                 </Grid>

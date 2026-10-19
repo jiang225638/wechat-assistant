@@ -7,14 +7,14 @@
 ![Language](https://img.shields.io/badge/C%23-14-239120?logo=csharp)
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
-![Tests](https://img.shields.io/badge/Tests-175%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-180%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
 **为微信 PC 端量身打造的贴边悬浮式 AI 智能沟通副驾**  
-无感贴边跟随 · 自由拖拽缩放 · 同层级智能沉浮 · 明暗双主题 · SQLite本地持久化 · 技能文件夹绑定 · 话语力量全景博弈大看板
+无感贴边跟随 · 自由拖拽缩放 · 同层级智能沉浮 · 明暗双主题 · SQLite本地持久化 · 技能文件夹绑定 · AI问答对话军师 · 多维画像全景放大看板
 
-[核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
+[界面预览](#-软件界面精选预览) • [核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
 
 </div>
 
@@ -22,14 +22,45 @@
 
 ## 📖 项目简介
 
-**WeChat Copilot** 是一款专为 Windows 平台微信 PC 端量身定制的**全域智能对话辅助桌面工具**。以轻量无边框的现代 Fluent 悬浮窗形态，自动贴合微信聊天窗口边缘，随微信窗口平滑移动与跨屏漫游；同时支持鼠标移动到边框自由缩放尺寸与明暗双主题无缝热切换。
+**WeChat Copilot** 是一款专为 Windows 平台微信 PC 端量身定制的**全域智能对话辅助桌面工具**。以轻量无边框的现代 Fluent 悬浮窗形态，自动贴合微信聊天窗口边缘，随微信窗口平滑移动与跨屏漫游；同时支持鼠标在边框任意拖拽自由缩放尺寸与明暗双主题无缝热重载。
 
 项目严格遵循 **“本地优先 (Local-First)”** 与 **“只读不代发”** 的严苛安全原则：
 - **热链路（实时感知）**：Windows 原生硬件级视觉 OCR 与聊天气泡几何判定，不注入进程、不解密内存、不 Hook 接口，安全零风控识读当前对话；
 - **冷链路（深度认知与离线持久化）**：对接本地 [TraceMemo](https://github.com/Wxw-Gu/TraceMemo) 微信服务与本地 SQLite 数据库，基于可插拔的 **Skill 认知蒸馏方法论**（职场商业协同、亲密关系心理、麦肯锡结构化逻辑等），生成动态自适应的多维雷达图谱与长效画像；
+- **🤖 AI 对话军师（Antigravity 交互体系）**：主界面全新内嵌 AI 问答 Tab，支持融合本地画像与真实聊天记录进行多轮实时研判，配备多历史会话独立抽屉式管理与快捷探针指令；
 - **SQLite 轻量化本地关系数据库**：引入 `Microsoft.Data.Sqlite` 开启 WAL 高并发模式。消息带 SHA256 唯一指纹幂等去重，TraceMemo 在线时自动增量入库；TraceMemo 离线时**秒级回退加载本地历史**，断网或未开 TraceMemo 依然能随时蒸馏画像与查阅记录；
 - **Antigravity 风格技能文件夹绑定**：支持绑定工作区或指定目录，递归自动发现所有 `SKILL.md`，支持热重扫与物理安全删除；
-- **AI 动态立体研判与话语力量看板**：彻底去除死板硬编码，由【终极战略目的 $\times$ 认知画像 $\times$ 作战Skill $\times$ 用户意图】协同驱动，实时提炼专属博弈维度，在一屏全景大看板中融合**重叠雷达、量化柱状、战略双轴象限图**，让用户直观感受话语的力量。
+- **多维画像全景放大看板**：提供全屏/大窗口深度研判体验，顶部动态提炼主导特质卡片，融合全景雷达图、量化得分对比柱状图、特质走势折线图与左右对照证据清单，支持一键导出 Markdown 分析报告。
+
+---
+
+## 🖼️ 软件界面精选预览
+
+### 1. 核心交互与多维画像看板
+
+| 💬 贴边对话与气泡识别 (`对话` Tab) | 👤 多维心智特质画像 (`画像` Tab) |
+| :---: | :---: |
+| 自动吸附微信边缘，无感贴边与气泡几何判定识别 | 一键蒸馏多维特质，自适应 6 维认知雷达图谱 |
+| ![贴边对话与气泡识别](pic/Snipaste_2026-10-19_14-02-10.png) | ![多维心智特质画像](pic/Snipaste_2026-10-19_14-04-10.png) |
+
+| 🤖 AI 问答军师 (`AI问答` Tab) | 🔍 多维画像全景放大看板 (`PersonaAnalyticsWindow`) |
+| :---: | :---: |
+| Antigravity 交互美学，融合本地画像与聊天记录 | 动态主导特质卡片、全景雷达图、量化对比柱状图与梯度走势折线图 |
+| ![AI问答军师](pic/Snipaste_2026-10-19_14-04-18.png) | ![多维画像全景放大看板](pic/Snipaste_2026-10-19_14-06-00.png) |
+
+---
+
+### 2. 全新集成设置中心与系统指南
+
+| 🤖 AI 模型与服务设置 | 🏷️ 技能中心 (Skill Studio) |
+| :---: | :---: |
+| OpenAI 兼容接口配置与 DPAPI 硬件级加密 | Antigravity 风格技能文件夹递归绑定与热重扫 |
+| ![AI模型设置](pic/Snipaste_2026-10-19_14-04-28.png) | ![技能中心](pic/Snipaste_2026-10-19_14-05-34.png) |
+
+| 🚩 画像目的与战略管理 | 🎨 偏好与系统设置 (明暗主题) | 📖 全局快捷键与指南 |
+| :---: | :---: | :---: |
+| 为好友配置专属终极战略目的 (Chat Objective) | Fluent 深浅主题热重载、语境跨度与透明度调节 | 快捷键一览、TraceMemo 说明与本地安全原则 |
+| ![画像战略目的](pic/Snipaste_2026-10-19_14-05-40.png) | ![偏好与系统设置](pic/Snipaste_2026-10-19_14-05-46.png) | ![快捷键与指南](pic/Snipaste_2026-10-19_14-05-51.png) |
 
 ---
 
@@ -63,9 +94,24 @@
   - 自定义技能删除时同步安全清理底层物理文件与缓存，刷新绝不复现。
 - **画像全景深度分析看板 (`PersonaAnalyticsWindow`)**：
   - 配备现代化顶部全景边框（支持全屏拖拽、双击缩放、最小化 `─`、最大化/还原 `🗖`、关闭 `✕`）；
-  - 提供高分辨率多维雷达图谱、特质分值对比柱状图、特质走势折线图与真实原话证据清单，支持一键导出完整 Markdown 分析报告。
+  - **顶部 4 大动态主导特质卡片**：自动提炼【第一主导维度】、【协同支柱维度】、【心理敏感/洼地维度】与【心智张力极差与加权均分】，绝不写死维度，随技能与画像动态计算；
+  - **多图表联动呈现**：全景多维认知雷达图谱、各维度量化得分对比柱状图、特质波动与梯度走势折线图；
+  - **全维度特质与原始证据左右对照清单**：左侧清晰展现特质推断，右侧逐项印证亲口原话引用；
+  - 支持一键复制完整 Markdown 分析报告与导出文本。
 
-### 5. 💾 SQLite 本地轻量化数据库持久化 (Local SQLite Database & Offline Sync)
+### 5. 🤖 AI 问答军师与 Antigravity 交互体系 (AI Chat Advisor & Antigravity UX)
+- **Antigravity 交互美学设计**：精心对齐 Antigravity 工具的现代科技质感，包含深浅双主题自适应气泡、极简圆环发送箭头按钮与流式交互。
+- **融合本地画像**：勾选【👤 融合本地画像】后，AI 自动调取当前好友的多维心智特质（核心维度得分、行为偏好、心理防御等），生成针对性量身定制的破局回复。
+- **融合真实聊天记录**：勾选【💬 融合聊天记录】后，AI 自动调取最近多轮真实聊天上下文，拒绝空洞泛泛而谈，精准剖析当前对话症结。
+- **推荐快速研判指令（探针）**：
+  - 🔍 洞察对方最新发言背后的潜台词与真实想法
+  - 💬 针对当前情境，给出 3 个教科书级高情商回复示范
+  - ⚠️ 深度诊断当前关系互动中的核心卡点与隐患雷区
+  - 💖 研判对方当前对我所处的好感度与心理防御层级
+  - 🎯 构思一个自然松弛、不尴尬推进下一步的破局策略
+- **多会话抽屉管理 (`QaSessionStore`)**：支持自由新建会话、切换历史会话、删除历史会话，会话数据独立在本地持久化保存。
+
+### 6. 💾 SQLite 本地轻量化数据库持久化 (Local SQLite Database & Offline Sync)
 - **统一本地数据底座**：采用 `Microsoft.Data.Sqlite` 在 `%AppData%\WeChatCopilot\copilot.db` 建立统一关系库，开启 WAL 模式支持高并发吞吐。
 - **SHA256 唯一指纹幂等去重**：每条消息根据 `contact_name + role + text + timestamp` 生成唯一哈希，多次刷新历史或频繁 OCR 抓屏均执行 `INSERT OR IGNORE`，绝不产生重复记录。
 - **TraceMemo 在线增量入库 + 离线秒级回退**：
@@ -74,7 +120,7 @@
 - **全链路消息自动入库**：无论是 TraceMemo 同步、CSV 文件导入还是前台屏幕 OCR 捕获，均在后台静默异步写入 SQLite。
 - **画像双向兼容**：画像与终极战略目的结构化存入 SQLite，同时保持本地 JSON 备份与平滑自动迁移。
 
-### 6. ⚔️ 动态博弈立体研判与话语力量全景大看板 (`AdviceAnalyticsWindow`)
+### 7. ⚔️ 动态博弈立体研判与话语力量全景大看板 (`AdviceAnalyticsWindow`)
 彻底告别刻板狭隘的“恋爱/情感”偏置与硬编码死板标签，升级为**全域战略沟通军师**（覆盖商务谈判、职场汇报、合作博弈、社交破冰、亲密关系等全场景）：
 - **四大战略要素协同驱动**：根据当前对话对象的【终极战略目的】、【人物认知画像】、【激活作战Skill】与【用户期望的回复意图】进行分层立体研判。
 - **自适应动态博弈维度**：由 AI 在推理时实时提炼 3～6 个专属博弈维度（如商务提炼：`商业主导权`、`筹码锁定`、`成单推进力`；向上管理提炼：`确定性交付`、`信任资产`、`边界防护`；社交破冰提炼：`舒适安全感`、`情绪共鸣`、`邀约契机`）。
@@ -85,11 +131,11 @@
   - **图表 3（战略博弈双轴象限图）**：纵轴【推进力】vs 横轴【安全度】，方案清晰定位在**🌟 黄金破局**、**⚡ 高能突刺**、**🛡️ 稳健防守**、**⚠️ 谨慎踩雷**四大象限；
   - **战局沙盘与卡片联动高亮**：点击方案卡片可在图表中联动高亮聚焦，支持一键快捷复制话术与导出 Markdown 战局推演报告。
 
-### 7. 🎯 终极战略目的与多轮语境深度调节 (Strategic Goals & Context Depth)
+### 8. 🎯 终极战略目的与多轮语境深度调节 (Strategic Goals & Context Depth)
 - **多轮语境深度可调**：支持快捷切换或自定义分析深度（最近 3 条、5 条、10 条、15 条、20 条），避免孤立研判最后一句话，全面捕捉语境脉络与情感演进。
 - **联系人终极战略目的管理**：为每位好友持久化设定终极战略目的，一键直达编辑与管理，所有回复建议均以目的达成为最高推进锚点。
 
-### 8. ⚙️ 全新集成设置中心 (Settings Hub)
+### 9. ⚙️ 全新集成设置中心 (Settings Hub)
 主界面内嵌 5 大设置专区，告别多窗口切换：
 1. **🤖 AI 模型与接口**：配置 API 基础路径、模型名称、温度系数、密码级 DPAPI 密钥与连通性测试；
 2. **🏷️ 技能中心 (Skills)**：查看当前生效技能，绑定技能文件夹、递归扫描发现、打开目录与物理安全删除；
@@ -97,10 +143,10 @@
 4. **🎨 偏好与系统**：外观主题（深色/浅色/跟随系统）、悬浮窗透明度调节、OCR 采样放大倍率、己方微信昵称偏好与数据目录一键直达；
 5. **📖 使用指南**：完整操作指引、快捷键一览与 TraceMemo 官方下载。
 
-### 9. 🛡️ 本地优先与安全防护 (Security & Privacy)
+### 10. 🛡️ 本地优先与安全防护 (Security & Privacy)
 - **DPAPI 硬件级加密**：API Key 仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **全方位测试守护**：170 项自动化单测守护核心业务算法、提示词组装、SQLite 持久化与 XAML 静态/动态资源契约。
+- **全方位测试守护**：**180 项自动化单测**守护核心业务算法、提示词组装、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
 
 ---
 
@@ -109,9 +155,9 @@
 ```mermaid
 flowchart TD
     subgraph UI["🖥️ 用户界面层 (WeChatCopilot.App)"]
-        Overlay["悬浮主窗口 (OverlayWindow - Fluent Dark & Light)\n【💬 对话】 【✨ 建议】 【👤 画像】 【⚙️ 设置】"]
+        Overlay["贴边悬浮主窗口 (OverlayWindow - Fluent Dark & Light)\n【💬 对话】 【✨ 建议】 【👤 画像】 【🤖 AI问答】 【⚙️ 设置】"]
         AdviceAnalytics["话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow)\n【重叠雷达】 【分组柱状】 【双轴象限】 【沙盘对决】"]
-        PersonaAnalytics["联系人画像深度分析看板 (PersonaAnalyticsWindow)\n【大雷达】 【分值柱状】 【走势折线】 【证据链】"]
+        PersonaAnalytics["联系人画像深度分析全景看板 (PersonaAnalyticsWindow)\n【动态主导特质】 【全景大雷达】 【分值柱状】 【走势折线】 【左右对照证据】"]
         Theme["动态主题管理器 (ThemeManager)"]
     end
 
@@ -128,6 +174,7 @@ flowchart TD
         SqliteStorage["SQLite 存储引擎 (SqliteStorage)"]
         SkillStore["技能中心与目录绑定 (SkillStore)\n【递归扫描 SKILL.md】 【物理安全删除】"]
         PersonaStore["画像与终极目的存储 (PersonaStore)\n【SQLite 优先 + JSON 平滑迁移】"]
+        QaSessionStore["AI问答会话存储 (QaSessionStore)\n【qa_sessions.json 多会话持久化】"]
     end
 
     subgraph ColdLink["🧠 冷链路 (历史蒸馏)"]
@@ -157,6 +204,7 @@ flowchart TD
     Prompt --> Client --> Parser --> Overlay
     Parser --> AdviceAnalytics
     PersonaStore --> PersonaAnalytics
+    Overlay <--> QaSessionStore
     Overlay --> UI
     Theme --> UI
 ```
@@ -167,9 +215,20 @@ flowchart TD
 
 ```text
 e:\huanmai\myprod
+├── pic/                          # 软件高清界面截图目录
+│   ├── Snipaste_2026-10-19_14-02-10.png  # 对话 Tab：实时对话气泡与 OCR
+│   ├── Snipaste_2026-10-19_14-04-10.png  # 画像 Tab：特质蒸馏与雷达图谱
+│   ├── Snipaste_2026-10-19_14-04-18.png  # AI问答 Tab：对话军师与 Antigravity 交互
+│   ├── Snipaste_2026-10-19_14-04-28.png  # 设置 Tab：AI 模型与服务配置
+│   ├── Snipaste_2026-10-19_14-05-34.png  # 设置 Tab：技能中心 (Skill Studio)
+│   ├── Snipaste_2026-10-19_14-05-40.png  # 设置 Tab：画像与战略目的管理
+│   ├── Snipaste_2026-10-19_14-05-46.png  # 设置 Tab：偏好与 Fluent 深浅主题
+│   ├── Snipaste_2026-10-19_14-05-51.png  # 设置 Tab：全局快捷键与系统指南
+│   └── Snipaste_2026-10-19_14-06-00.png  # 放大看板：多维画像复合图表全景看板
+│
 ├── src/
 │   ├── WeChatCopilot.App/        # 应用程序主工程 (WPF + XAML + Fluent 主题)
-│   │   ├── OverlayWindow.xaml    # 贴边悬浮窗主界面 (对话 / 建议 / 画像 / 设置 4 大 Tab)
+│   │   ├── OverlayWindow.xaml    # 贴边悬浮窗主界面 (对话 / 建议 / 画像 / AI问答 / 设置 5 大 Tab)
 │   │   ├── OverlayWindow.xaml.cs # 交互事件、雷达图动态绘制、自动吸附与缩放对齐逻辑
 │   │   ├── AdviceAnalyticsWindow.xaml    # 话语力量全景大看板 (重叠雷达/分组柱状/双轴象限)
 │   │   ├── AdviceAnalyticsWindow.xaml.cs # 全景图表 Canvas 绘制与卡片联动交互引擎
@@ -180,7 +239,7 @@ e:\huanmai\myprod
 │   │
 │   ├── WeChatCopilot.Core/       # 核心业务逻辑与领域模型
 │   │   ├── Ai/                   # PromptBuilder、AiOutputParser (动态维度/推进力/安全度解析)
-│   │   ├── Models/               # Persona、DistillSkill、UnifiedAiAdvice、ReplySuggestion
+│   │   ├── Models/               # Persona、DistillSkill、UnifiedAiAdvice、QaSession
 │   │   ├── Processing/           # 气泡切分 MessageSegmenter、文本规整 OcrTextJoiner
 │   │   └── Services/             # PersonaDistiller (多维心智画像提炼与证据链去重)
 │   │
@@ -202,11 +261,13 @@ e:\huanmai\myprod
 │       ├── SkillStore.cs         # 技能目录绑定、递归扫描发现与物理安全删除
 │       ├── TraceMemoClient.cs    # TraceMemo 本地 API 客户端与系统号过滤
 │       ├── PersonaStore.cs       # 联系人画像与终极战略目的本地存储 (SQLite优先/双写兼容)
+│       ├── QaSessionStore.cs     # AI 问答多会话历史记录本地持久化
 │       ├── SettingsStore.cs      # 系统设置（主题/透明度/语境条数）持久化
 │       └── DpapiProtector.cs     # Windows DPAPI 本地敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (170 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (180 项测试全覆盖)
+│       ├── AiQaAndCustomRelationshipTests.cs # AI问答界面结构、会话持久化与看板契约验证
 │       ├── SqliteStorageTests.cs         # SQLite 表初始化、消息去重排序、画像与技能持久化测试
 │       ├── SkillStoreTests.cs            # 技能绑定、递归扫描发现与物理安全删除测试
 │       ├── PersonaDistillerTests.cs      # 画像蒸馏算法、证据过滤与可信度测试
@@ -245,7 +306,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (170 项测试全绿)
+# 2. 运行自动化测试 (180 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -372,13 +433,14 @@ powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:
 
 ## 🧪 自动化测试
 
-项目内置完善的自动化测试矩阵，覆盖提示词工程、算法去重、大模型响应容错解析、SQLite 存储与迁移、XAML 静态/动态资源契约防御与 DPAPI 加密：
+项目内置完善的自动化测试矩阵，覆盖提示词工程、算法去重、大模型响应容错解析、SQLite 存储与迁移、AI问答会话模型、XAML 静态/动态资源契约防御与 DPAPI 加密：
 
 ```bash
 dotnet test
 ```
 
-测试覆盖概览（**170 项全通过**）：
+测试覆盖概览（**180 项全通过**）：
+- `AiQaAndCustomRelationshipTests`：AI 问答主界面结构、会话存储与加载、Antigravity 交互组件契约、画像分析看板纯净契约验证；
 - `SqliteStorageTests`：SQLite 数据库初始化与 WAL 模式、消息 SHA256 指纹幂等去重、按时间顺序检索、画像与战略目的存取以及键值配置测试；
 - `SkillStoreTests`：Antigravity 风格技能文件夹绑定、多层递归自动扫描、Markdown YAML 元数据解析、当前技能持久化与物理安全删除测试；
 - `PersonaStoreTests`：画像本地持久化、SQLite 优先读取与已有旧版 JSON 文件的透明双向自动迁移测试；

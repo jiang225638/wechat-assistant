@@ -27,7 +27,6 @@ public partial class PersonaAnalyticsWindow : Window
     private readonly IReadOnlyList<HistoryMessage> _history;
     private readonly IReadOnlyList<PersonaTrait> _traits;
     private readonly SettingsStore _settingsStore = new();
-    private readonly Dictionary<string, string> _consultationCache = new(StringComparer.OrdinalIgnoreCase);
     private string _currentScene = "Colleague";
 
     public PersonaAnalyticsWindow(
@@ -513,17 +512,8 @@ public partial class PersonaAnalyticsWindow : Window
 
     private void InitRelationshipIdentity()
     {
-        _currentScene = DetectRelationshipIdentity(out string matchReason);
+        _currentScene = DetectRelationshipIdentity(out _);
         _customRelationship = GetSceneDisplayName(_currentScene);
-        if (RelationshipIdentityInput != null)
-        {
-            RelationshipIdentityInput.Text = _customRelationship;
-        }
-        if (RelationshipDetectionHintText != null)
-        {
-            RelationshipDetectionHintText.Text = $"🤖 {matchReason}";
-            RelationshipDetectionHintText.ToolTip = $"系统已根据技能「{_skill.Name}」与特质画像，自动研判交往身份为【{_customRelationship}】。\n下方实战沟通指南与破局锦囊已全景围绕此视角展开。支持在输入框内自由输入或按回车切换。";
-        }
     }
 
     private string DetectRelationshipIdentity(out string matchReason)
@@ -651,100 +641,11 @@ public partial class PersonaAnalyticsWindow : Window
         _ => "💼 职场协作对象 (平级同事)"
     };
 
-    private void RelationshipIdentityInput_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            ApplyCustomRelationship(RelationshipIdentityInput.Text);
-            e.Handled = true;
-        }
-    }
-
-    private void RelationshipIdentityInput_LostFocus(object sender, RoutedEventArgs e)
-    {
-        ApplyCustomRelationship(RelationshipIdentityInput.Text);
-    }
-
-    private void RelationshipPreset_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem item && item.Tag is string tag)
-        {
-            RelationshipIdentityInput.Text = tag;
-            ApplyCustomRelationship(tag);
-        }
-    }
-
-    private void ApplyRelationshipBtn_Click(object sender, RoutedEventArgs e)
-    {
-        ApplyCustomRelationship(RelationshipIdentityInput.Text);
-    }
-
-    private void ApplyCustomRelationship(string? text)
-    {
-        string trimmed = (text ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(trimmed))
-        {
-            trimmed = GetSceneDisplayName(_currentScene);
-            if (RelationshipIdentityInput != null) RelationshipIdentityInput.Text = trimmed;
-        }
-
-        _customRelationship = trimmed;
-        _currentScene = MapRelationshipToSceneKey(trimmed);
-
-        if (RelationshipDetectionHintText != null)
-        {
-            RelationshipDetectionHintText.Text = $"🎯 当前视角：{_customRelationship}";
-            RelationshipDetectionHintText.ToolTip = $"已锁定当前交往身份视角为【{_customRelationship}】";
-        }
-
-        PopulateStrategyPlaybook();
-
-        if (_consultationCache.TryGetValue(_customRelationship, out string? cached) && !string.IsNullOrWhiteSpace(cached))
-        {
-            AiConsultationResultText.Text = cached;
-            AiConsultationHeaderTitle.Text = $"✨ {_customRelationship} · 资深专家独家临场破局军师锦囊";
-            AiConsultationResultCard.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            AiConsultationResultCard.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private string MapRelationshipToSceneKey(string text)
-    {
-        string t = text.ToLowerInvariant();
-        if (t.Contains("心仪") || t.Contains("伴侣") || t.Contains("恋") || t.Contains("爱") ||
-            t.Contains("情") || t.Contains("相亲") || t.Contains("前任") || t.Contains("追") ||
-            t.Contains("女友") || t.Contains("男友") || t.Contains("暗恋") || t.Contains("脱单") ||
-            t.Contains("暧昧"))
-        {
-            return "Intimacy";
-        }
-        if (t.Contains("领导") || t.Contains("老板") || t.Contains("上级") || t.Contains("主管") ||
-            t.Contains("总监") || t.Contains("boss"))
-        {
-            return "Leader";
-        }
-        if (t.Contains("客户") || t.Contains("甲方") || t.Contains("商务") || t.Contains("采购") ||
-            t.Contains("销售") || t.Contains("商业"))
-        {
-            return "Client";
-        }
-        if (t.Contains("朋友") || t.Contains("兄弟") || t.Contains("闺蜜") || t.Contains("同学") ||
-            t.Contains("发小") || t.Contains("社交"))
-        {
-            return "Friend";
-        }
-        return "Colleague";
-    }
-
     private void PopulateStrategyPlaybook()
     {
         if (_traits.Count == 0) return;
 
-        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
-        StrategySubTitle.Text = $"结合「{_persona.ContactName}」的多维心智特质与【{sceneName}】视角 · 资深心理与实战沟通专家深度拆解：";
+        StrategySubTitle.Text = $"结合「{_persona.ContactName}」的多维心智特质与「{_skill.Name}」技能体系 · 资深心理与实战沟通专家深度拆解：";
 
         var sorted = _traits.OrderByDescending(t => t.Score).ToList();
         var tTop1 = sorted[0];
@@ -965,153 +866,16 @@ $@"【示范 1：久未联系随性破冰】
 （心法点拨：纯粹的情感托底，让人倍感温暖可靠）"
     };
 
-    private async void AiConsultationBtn_Click(object sender, RoutedEventArgs e)
-    {
-        AiSettings settings = _settingsStore.Load();
-        string apiKey = DpapiProtector.Unprotect(settings.EncryptedApiKey);
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            MessageBox.Show(
-                "尚未配置 AI 接口的 API Key。\n请在悬浮窗【设置】->【AI设置】中填写 API Key 后再使用专家深度解读功能。",
-                "提示",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.Endpoint))
-        {
-            MessageBox.Show(
-                "AI 接口基址为空，请在悬浮窗【设置】->【AI设置】中配置有效接口。",
-                "提示",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
-        }
-
-        AiConsultationBtn.IsEnabled = false;
-        AiConsultationLoadingPanel.Visibility = Visibility.Visible;
-        AiConsultationResultCard.Visibility = Visibility.Collapsed;
-
-        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
-
-        try
-        {
-            var topTraits = _traits.OrderByDescending(t => t.Score).Take(2).ToList();
-            var lowTraits = _traits.OrderBy(t => t.Score).Take(2).ToList();
-            string topDimHint = topTraits.Count > 0 ? $"核心优势维度【{string.Join(" / ", topTraits.Select(t => t.Dimension))}】" : "";
-            string lowDimHint = lowTraits.Count > 0 ? $"敏感防卫维度【{string.Join(" / ", lowTraits.Select(t => t.Dimension))}】" : "";
-
-            var sbTraits = new StringBuilder();
-            foreach (var t in _traits.OrderByDescending(t => t.Score))
-            {
-                sbTraits.Append($"- 【{t.Dimension}】（得分: {t.ScoreInt}分，可信度: {t.ConfidenceText}）：{t.Attribute}");
-                if (t.Evidence.Count > 0)
-                {
-                    sbTraits.Append($"（原话印证：“{string.Join(" / ", t.Evidence.Take(2))}”）");
-                }
-                sbTraits.AppendLine();
-            }
-
-            var sbHist = new StringBuilder();
-            var recentMessages = _history.TakeLast(20).ToList();
-            if (recentMessages.Count > 0)
-            {
-                foreach (var m in recentMessages)
-                {
-                    string senderName = m.Role == MessageRole.Outgoing ? "我" : _persona.ContactName;
-                    string timeStr = m.Timestamp.HasValue ? $"[{m.Timestamp.Value:MM-dd HH:mm}] " : "";
-                    sbHist.AppendLine($"{timeStr}{senderName}: {m.Text}");
-                }
-            }
-
-            string systemPrompt =
-$@"你是一位精通人情世故、人际心理学与深度沟通博弈的资深沟通破局专家。
-你的风格：洞察犀利、通俗易懂、温暖而接地气，拒绝任何生硬学术行话（严禁使用“操作系统概貌”、“表达DNA”、“高位自洽”等空洞AI词汇）。
-请针对用户提供的联系人画像与真实聊天背景，站在【{sceneName}】场景的专业视角，深入结合其{topDimHint}与{lowDimHint}，给出一份通俗透彻、拿来即用的高情商实战破局锦囊。";
-
-            string userPrompt =
-$@"【分析对象】：{_persona.ContactName}
-【关系与场景设定】：{sceneName}
-【分析技能】：{_skill.Icon} {_skill.Name}
-【该联系人的多维心智特质画像】：
-{sbTraits}
-{(sbHist.Length > 0 ? $"【近期真实聊天记录（参考）：】\n{sbHist}\n" : "")}
-请按以下结构输出你的专家破局锦囊（注意：用真切的大白话，不要讲大话空话）：
-
-【一眼摸透对方当下真实心智】
-（用2~3句通俗透彻的大白话，揭示对方最在意的核心诉求、在当前场景下的防御痛点，以及为什么会有这种表现）
-
-【资深专家三大破局实操心法】
-（针对此人给出3条极具指导性、实操性的人际交往破局法则，条理清晰）
-
-【保姆级教科书临场回复示范】
-（针对当前场景给出2个最容易遇到的情境，提供可直接复制发送的教科书级高情商回复话术，并附上简短的心理学原理点拨）";
-
-            using var provider = new OpenAiCompatibleProvider(
-                settings.Endpoint,
-                () => apiKey,
-                timeout: TimeSpan.FromSeconds(Math.Max(settings.TimeoutSeconds, 90)));
-
-            var req = new AiRequest(
-                SystemPrompt: systemPrompt,
-                UserPrompt: userPrompt,
-                Model: settings.Model,
-                Temperature: 0.7,
-                MaxTokens: 1500);
-
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(settings.TimeoutSeconds, 90)));
-            AiReply reply = await provider.CompleteAsync(req, cts.Token);
-
-            if (reply.Success && !string.IsNullOrWhiteSpace(reply.Text))
-            {
-                string result = reply.Text.Trim();
-                _consultationCache[sceneName] = result;
-                AiConsultationResultText.Text = result;
-                AiConsultationHeaderTitle.Text = $"✨ {sceneName} · 资深专家独家临场破局军师锦囊";
-                AiConsultationResultCard.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                MessageBox.Show(
-                    $"AI 专家解读生成失败：\n{reply.Error ?? "返回内容为空"}",
-                    "提示",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            MessageBox.Show("AI 解读请求超时，请检查网络或更换更快的模型。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"AI 解读请求发生异常：\n{ex.Message}", "提示", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-        finally
-        {
-            AiConsultationLoadingPanel.Visibility = Visibility.Collapsed;
-            AiConsultationBtn.IsEnabled = true;
-        }
-    }
-
-    private void CopyConsultationBtn_Click(object sender, RoutedEventArgs e)
-    {
-        if (string.IsNullOrWhiteSpace(AiConsultationResultText.Text)) return;
-        Clipboard.SetText(AiConsultationResultText.Text);
-        MessageBox.Show("已成功将资深专家破局锦囊复制到剪贴板！", "复制成功", MessageBoxButton.OK, MessageBoxImage.Information);
-    }
 
     // ===================== 报告复制与导出 =====================
 
     private string BuildMarkdownReport()
     {
-        string sceneName = !string.IsNullOrWhiteSpace(_customRelationship) ? _customRelationship : GetSceneDisplayName(_currentScene);
         var sb = new StringBuilder();
         sb.AppendLine($"# 「{_persona.ContactName}」多维心智特质与沟通行为全景分析报告");
         sb.AppendLine();
-        sb.AppendLine($"> **分析时间**：{_persona.UpdatedAt:yyyy-MM-dd HH:mm}  |  **采用技能体系**：{_skill.Icon} {_skill.Name}  |  **关系定位与分析视角**：{sceneName}  |  **样本规模**：{_persona.SourceMessageCount} 条真实历史消息");
+        sb.AppendLine($"> **分析时间**：{_persona.UpdatedAt:yyyy-MM-dd HH:mm}  |  **采用技能体系**：{_skill.Icon} {_skill.Name}  |  **样本规模**：{_persona.SourceMessageCount} 条真实历史消息");
         sb.AppendLine();
         sb.AppendLine("---");
         sb.AppendLine();
@@ -1145,17 +909,9 @@ $@"【分析对象】：{_persona.ContactName}
         }
         sb.AppendLine("---");
         sb.AppendLine();
-        sb.AppendLine($"## 三、实战沟通破局战术指南（{sceneName}）");
+        sb.AppendLine($"## 三、实战沟通破局战术指南（{_skill.Name}）");
         sb.AppendLine();
-        if (_consultationCache.TryGetValue(sceneName, out string? aiText) && !string.IsNullOrWhiteSpace(aiText))
-        {
-            sb.AppendLine("### ✨ 资深专家独家临场破局军师锦囊");
-            sb.AppendLine();
-            sb.AppendLine(aiText);
-            sb.AppendLine();
-            sb.AppendLine("---");
-            sb.AppendLine();
-        }
+
         sb.AppendLine($"### 1. {StrategyCard1Title.Text}\n{StrategyMindsetOverviewText.Text}\n");
         sb.AppendLine($"### 2. {StrategyCard2Title.Text}\n{StrategyLeveragePointsText.Text}\n");
         sb.AppendLine($"### 3. {StrategyCard3Title.Text}\n{StrategyTaboosText.Text}\n");

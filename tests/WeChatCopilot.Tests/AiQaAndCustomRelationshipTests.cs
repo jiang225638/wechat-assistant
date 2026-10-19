@@ -22,7 +22,7 @@ public class AiQaAndCustomRelationshipTests
     }
 
     [Fact]
-    public void PersonaAnalyticsWindow_ShouldContainEditableRelationshipInputAndPresets()
+    public void PersonaAnalyticsWindow_ShouldNotContainRelationshipIdentityInputOrButtons()
     {
         string repoRoot = GetRepoRoot();
         string xamlPath = Path.Combine(repoRoot, "src", "WeChatCopilot.App", "PersonaAnalyticsWindow.xaml");
@@ -30,18 +30,17 @@ public class AiQaAndCustomRelationshipTests
 
         string content = File.ReadAllText(xamlPath);
 
-        // 验证 TextBox 输入框
-        Assert.Contains("x:Name=\"RelationshipIdentityInput\"", content);
-        Assert.Contains("KeyDown=\"RelationshipIdentityInput_KeyDown\"", content);
-        Assert.Contains("LostFocus=\"RelationshipIdentityInput_LostFocus\"", content);
+        // 验证已完全删除关系定位输入框、占位符与应用视角按钮
+        Assert.DoesNotContain("RelationshipIdentityInput", content);
+        Assert.DoesNotContain("RelationshipIdentityPlaceholder", content);
+        Assert.DoesNotContain("ApplyRelationshipBtn", content);
+        Assert.DoesNotContain("🎯 关系定位与分析视角：", content);
 
-        // 验证常用预设菜单与应用视角按钮
-        Assert.Contains("x:Name=\"ApplyRelationshipBtn\"", content);
-        Assert.Contains("Click=\"ApplyRelationshipBtn_Click\"", content);
-        Assert.Contains("Click=\"RelationshipPreset_Click\"", content);
-        Assert.Contains("Tag=\"亲密交往对象 (心仪伴侣)\"", content);
-        Assert.Contains("Tag=\"相亲交往对象 (相亲发展)\"", content);
-        Assert.Contains("Tag=\"职场管理对象 (直属领导)\"", content);
+        // 验证控制栏（智能研判胶囊标签与 AI 专家深度破局解读按钮）已被彻底移除
+        Assert.DoesNotContain("x:Name=\"RelationshipDetectionHintText\"", content);
+        Assert.DoesNotContain("x:Name=\"AiConsultationBtn\"", content);
+        Assert.DoesNotContain("x:Name=\"AiConsultationLoadingPanel\"", content);
+        Assert.DoesNotContain("x:Name=\"AiConsultationResultCard\"", content);
     }
 
     [Fact]
@@ -74,8 +73,8 @@ public class AiQaAndCustomRelationshipTests
         Assert.Contains("x:Name=\"QaInputBox\"", content);
         Assert.Contains("x:Name=\"QaSendButton\"", content);
 
-        // 验证快捷指令探针
-        Assert.Contains("Click=\"QaPromptPill_Click\"", content);
+        // 验证已彻底移除输入框上方的预设提示词胶囊条
+        Assert.DoesNotContain("x:Name=\"QaPillsScrollViewer\"", content);
     }
 
     [Fact]
