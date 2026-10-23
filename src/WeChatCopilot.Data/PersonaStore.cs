@@ -111,13 +111,28 @@ public sealed class PersonaStore
         }
 
         bool deletedSqlite = _sqliteStorage.DeletePersona(contactName);
+        bool deletedJson = false;
 
         string path = PathFor(contactName);
         if (File.Exists(path))
         {
             try
             {
+                var jsonPersona = JsonSerializer.Deserialize<Persona>(File.ReadAllText(path));
+                if (jsonPersona is not null && !string.IsNullOrWhiteSpace(jsonPersona.ContactName))
+                {
+                    deletedSqlite |= _sqliteStorage.DeletePersona(jsonPersona.ContactName);
+                }
+            }
+            catch
+            {
+                // 忽略反序列化异常
+            }
+
+            try
+            {
                 File.Delete(path);
+                deletedJson = true;
             }
             catch
             {
@@ -125,7 +140,7 @@ public sealed class PersonaStore
             }
         }
 
-        return deletedSqlite;
+        return deletedSqlite || deletedJson;
     }
 
     /// <summary>列出已存画像的联系人名（合并 SQLite 与本地 JSON 文件）。</summary>
@@ -153,24 +168,40 @@ public sealed class PersonaStore
         return set.ToList();
     }
 
-    /// <summary>获取所有已保存的画像对象集合，按更新时间倒序排列。</summary>
+    /// <summary>获取所有已保存的画像对象集合，按更新时间倒序排列（合并 SQLite 与本地未迁移 JSON 文件）。</summary>
     public IReadOnlyList<Persona> GetAllPersonas()
     {
         var list = _sqliteStorage.GetAllPersonas();
-        if (list.Count > 0)
+        var byName = new Dictionary<string, Persona>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in list)
         {
-            return list;
+            if (!string.IsNullOrWhiteSpace(p.ContactName))
+            {
+                byName[p.ContactName] = p;
+            }
         }
 
-        // 若 SQLite 暂无，回退从本地 JSON 批量加载并自动入库
-        var fromJson = List()
-            .Select(Load)
-            .Where(p => p is not null)
-            .Select(p => p!)
+        if (Directory.Exists(_directory))
+        {
+            foreach (var file in Directory.GetFiles(_directory, "*.json"))
+            {
+                string fn = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrWhiteSpace(fn) || byName.ContainsKey(fn))
+                {
+                    continue;
+                }
+
+                var migrated = Load(fn);
+                if (migrated is not null && !string.IsNullOrWhiteSpace(migrated.ContactName) && !byName.ContainsKey(migrated.ContactName))
+                {
+                    byName[migrated.ContactName] = migrated;
+                }
+            }
+        }
+
+        return byName.Values
             .OrderByDescending(p => p.UpdatedAt)
             .ToList();
-
-        return fromJson;
     }
 
     /// <summary>更新某联系人的最终聊天目的（若画像存在则保存新的 UltimateGoal）。</summary>

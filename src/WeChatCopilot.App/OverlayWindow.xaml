@@ -1980,7 +1980,19 @@
                                     VerticalContentAlignment="Center"
                                     FontSize="11.5"
                                     SelectionChanged="SavedPersonasCombo_SelectionChanged"
+                                    Margin="0,0,62,0"
                                     ToolTip="已保存画像的好友档案库，点击一键载入" />
+                                <Button
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    Width="56"
+                                    Height="28"
+                                    Padding="6,0"
+                                    Click="DeletePersonaButton_Click"
+                                    Content="🗑 删除"
+                                    FontSize="11"
+                                    Style="{StaticResource FluentButton}"
+                                    ToolTip="删除当前选中的已保存画像档案（同步清除数据库与本地 JSON）" />
                             </Grid>
 
                             <!--  第二行：选择好友输入框 与 获取当前聊天对象姓名按钮  -->
@@ -2237,7 +2249,7 @@
                                             Content="🗑️ 清除"
                                             FontSize="10"
                                             Style="{StaticResource FluentButton}"
-                                            ToolTip="删除本画像记录" />
+                                            ToolTip="删除本画像记录" Visibility="Collapsed" />
                                     </Grid>
                                 </Border>
 

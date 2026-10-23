@@ -151,4 +151,28 @@ public class PersonaStoreTests
         Assert.Null(store.Load("赵六"));
         Assert.Null(store.SqliteStorage.GetPersona("赵六"));
     }
+
+    [Fact]
+    public void GetAllPersonas_MergesSqliteAndUnmigratedJsonFiles()
+    {
+        string dir = TempDir();
+        var store = new PersonaStore(dir);
+
+        // 1. 先通过 Save 写入一条 SQLite + JSON 记录
+        store.Save(new Persona("新联系人", Array.Empty<PersonaTrait>(), new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc), 10));
+
+        // 2. 再在目录下放入一条仅存在于旧版 JSON（尚未进入 SQLite）的画像文件
+        string legacyJsonPath = Path.Combine(dir, "旧版联系人.json");
+        var legacy = new Persona("旧版联系人", Array.Empty<PersonaTrait>(), new DateTime(2026, 10, 10, 0, 0, 0, DateTimeKind.Utc), 8);
+        File.WriteAllText(legacyJsonPath, System.Text.Json.JsonSerializer.Serialize(legacy));
+
+        // 验证 List() 与 GetAllPersonas() 数量与成员完全一致
+        var listNames = store.List();
+        var allPersonas = store.GetAllPersonas();
+
+        Assert.Equal(2, listNames.Count);
+        Assert.Equal(2, allPersonas.Count);
+        Assert.Contains(allPersonas, p => p.ContactName == "新联系人");
+        Assert.Contains(allPersonas, p => p.ContactName == "旧版联系人");
+    }
 }

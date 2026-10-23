@@ -1346,6 +1346,7 @@ public partial class OverlayWindow : Window
 
         UpdateSkillBadge();
         RefreshSettingsSkillList();
+        RefreshSettingsPersonaGoalsList();
     }
 
     private void UpdateSkillBadge()
@@ -1562,6 +1563,7 @@ public partial class OverlayWindow : Window
             SwitchSettingSubTab(1);
             InitSkillCombo();
             RefreshSettingsSkillList();
+        RefreshSettingsPersonaGoalsList();
 
             if (imported.Count > 0)
             {
@@ -1590,6 +1592,7 @@ public partial class OverlayWindow : Window
             }
             InitSkillCombo();
             RefreshSettingsSkillList();
+        RefreshSettingsPersonaGoalsList();
             MessageBox.Show("✅ 已完成技能目录重新扫描与状态同步！", "刷新成功", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
@@ -1864,8 +1867,28 @@ public partial class OverlayWindow : Window
 
     private void DeletePersonaButton_Click(object sender, RoutedEventArgs e)
     {
-        string name = ContactBox.Text.Trim();
+        string name = string.Empty;
+        if (SavedPersonasCombo?.SelectedItem is string selected && !string.IsNullOrWhiteSpace(selected))
+        {
+            name = selected.Trim();
+        }
+        else
+        {
+            name = ContactBox.Text.Trim();
+        }
+
         if (string.IsNullOrEmpty(name))
+        {
+            SetPersonaStatus("请先在「已保存画像」下拉框中选择要删除的画像。", isBusy: false);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"确定要删除「{name}」的已保存画像吗？\n删除后将同步清除本地数据库与 JSON 备份记录。",
+            "确认删除画像",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.Yes)
         {
             return;
         }
@@ -1878,6 +1901,8 @@ public partial class OverlayWindow : Window
         PersonaEmptyTitle.Text = $"已清除「{name}」的画像";
         RefreshSavedPersonasCombo();
         SetPersonaStatus($"已删除「{name}」的本地画像文件与数据库记录。", isBusy: false);
+        RefreshSettingsPersonaGoalsList();
+        UpdateAiTargetInfo();
     }
 
     private void CheckAndLoadPersona(string name)
@@ -3307,6 +3332,7 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
         }
 
         RefreshSettingsSkillList();
+        RefreshSettingsPersonaGoalsList();
     }
 
     private void SettingThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -3866,6 +3892,7 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
                 bool deleted = _skillStore.DeleteCustomSkill(skillId);
                 InitSkillCombo();
                 RefreshSettingsSkillList();
+        RefreshSettingsPersonaGoalsList();
                 if (deleted)
                 {
                     MessageBox.Show("✅ 技能已成功删除并同步清理！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
