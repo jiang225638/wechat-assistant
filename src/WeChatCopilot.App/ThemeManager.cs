@@ -218,6 +218,45 @@ public static class ThemeManager
         UpdateBrush(window, "ChatOutgoingBorderBrush", chatOutgoingBorder);
         UpdateBrush(window, "ChatOutgoingBadgeBrush", chatOutgoingBadge);
         UpdateBrush(window, "ChatOutgoingTextBrush", chatOutgoingText);
+
+        NotifyWindowsThemeChanged(window);
+    }
+
+    private static void NotifyWindowsThemeChanged(Window? targetWindow)
+    {
+        var visited = new HashSet<Window>();
+        if (targetWindow != null)
+        {
+            visited.Add(targetWindow);
+            DispatchThemeChanged(targetWindow);
+        }
+
+        if (Application.Current != null)
+        {
+            foreach (Window w in Application.Current.Windows)
+            {
+                if (visited.Add(w))
+                {
+                    DispatchThemeChanged(w);
+                }
+            }
+        }
+    }
+
+    private static void DispatchThemeChanged(Window w)
+    {
+        switch (w)
+        {
+            case OverlayWindow overlay:
+                overlay.OnThemeChanged();
+                break;
+            case PersonaAnalyticsWindow personaWin:
+                personaWin.OnThemeChanged();
+                break;
+            case AdviceAnalyticsWindow adviceWin:
+                adviceWin.OnThemeChanged();
+                break;
+        }
     }
 
     private static void UpdateBrush(Window? window, string key, Color color)

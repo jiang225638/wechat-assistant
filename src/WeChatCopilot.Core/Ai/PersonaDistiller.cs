@@ -150,7 +150,7 @@ public static class PersonaDistiller
             : "（请精炼归纳出 5~6 个最具辨识度的核心维度，避免零散子维度）";
 
         sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行{dimsGuide}。每行格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>map 请求：从一块历史提取观察特质。</summary>
@@ -179,7 +179,7 @@ public static class PersonaDistiller
         sb.AppendLine("聊天记录：");
         sb.AppendLine(Transcript(chunk, contactName, selfName));
         sb.AppendLine($"请提取对方特质观察项（基于【{skill.Name}】视角）。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>reduce 请求：合并观察项（+可选已有画像）为最终 persona。</summary>
@@ -239,7 +239,7 @@ public static class PersonaDistiller
             : string.Empty;
 
         sb.AppendLine($"请依据【{skill.Name}】认知体系输出合并后的画像。{dimsGuide}请精炼归纳出 5~6 个最具辨识度的核心特质维度（禁止生成过多碎维度），每个维度严格仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
+        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>
@@ -353,10 +353,18 @@ public static class PersonaDistiller
                     confidence = Math.Clamp(pct / 100.0, 0d, 1d);
                     continue;
                 }
-                else if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double numVal) && numVal <= 1.0 && numVal >= 0.0)
+                else if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double numVal))
                 {
-                    confidence = numVal;
-                    continue;
+                    if (numVal >= 0.0 && numVal <= 1.0)
+                    {
+                        confidence = numVal;
+                        continue;
+                    }
+                    if (numVal > 1.0 && numVal <= 100.0 && score <= 0)
+                    {
+                        score = Math.Clamp(numVal, 10, 100);
+                        continue;
+                    }
                 }
 
                 // 证据解析
@@ -377,7 +385,10 @@ public static class PersonaDistiller
 
             if (score <= 0)
             {
-                score = Math.Clamp(Math.Round(confidence * 100), 35, 95);
+                // 若特质描述明确为“无法判断/信息不足”，避免把高置信度误算成高分（如 0.85 -> 85分）
+                score = IsInsufficientEvidenceText(attribute)
+                    ? 35
+                    : Math.Clamp(Math.Round(confidence * 100), 35, 95);
             }
 
             var filteredEvidence = FilterEvidence(evidence, history);
@@ -385,6 +396,18 @@ public static class PersonaDistiller
         }
 
         return DeduplicateByDimension(list, history);
+    }
+
+    /// <summary>判断特质描述是否代表“证据/样本不足、无法推断”。</summary>
+    public static bool IsInsufficientEvidenceText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        return text.Contains("无法判断") ||
+               text.Contains("信息不足") ||
+               text.Contains("样本不足") ||
+               text.Contains("不足以推断") ||
+               text.Contains("暂无足够") ||
+               text.Contains("无法评估");
     }
 
     /// <summary>
@@ -675,7 +698,7 @@ public static class PersonaDistiller
         CancellationToken cancellationToken = default) =>
         DistillDetailedAsync(provider, settings, contactName, history, existing, selfName, null, true, cancellationToken);
 
-    /// <summary>完整参数详细蒸馏方法：支持技能选择与全新/增量蒸馏模式。</summary>
+    /// <summary>完整参数详细蒸馏方法：支持技能选择、全新/增量蒸馏模式与单次快速蒸馏（失败自动回退 Map-Reduce）。</summary>
     public static async Task<DistillResult> DistillDetailedAsync(
         IAiProvider provider,
         AiSettings settings,
@@ -685,7 +708,8 @@ public static class PersonaDistiller
         string? selfName,
         DistillSkill? skill = null,
         bool freshDistill = true,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool preferSinglePass = false)
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(settings);
@@ -696,8 +720,28 @@ public static class PersonaDistiller
             return new DistillResult(false, new Persona(contactName, Array.Empty<PersonaTrait>(), DateTime.Now, 0), "聊天历史记录为空。");
         }
 
-        // 选取最具代表性的最近 100 条历史进行分块分析（避免超长记录导致串行请求爆炸）
+        // 选取最具代表性的最近 100 条历史进行分析（避免超长记录导致串行请求爆炸）
         var sampleHistory = history.Count > 100 ? history.TakeLast(100).ToList() : history;
+
+        // 优先尝试单次全局蒸馏（省去 2 次 Map + 1 次 Reduce 的串行等待；若失败或提取过少再自动回退 Map-Reduce）
+        if (preferSinglePass)
+        {
+            var directReq = BuildDirectDistillRequest(settings, contactName, sampleHistory, existing, selfName, skill, freshDistill);
+            AiReply directReply = await provider.CompleteAsync(directReq, cancellationToken);
+            if (directReply.Success)
+            {
+                var directTraits = DeduplicateByDimension(ParseTraits(directReply.Text, history), history);
+                int minAcceptable = sampleHistory.Count < 10 ? 1 : 3;
+                if (directTraits.Count >= minAcceptable)
+                {
+                    return new DistillResult(
+                        true,
+                        new Persona(contactName, directTraits, DateTime.Now, history.Count, skill?.Id, existing?.UltimateGoal),
+                        null);
+                }
+            }
+        }
+
         var chunks = Chunk(sampleHistory, chunkSize: 50);
 
         var observations = new List<PersonaTrait>();

@@ -21,13 +21,15 @@ namespace WeChatCopilot.App;
 /// </summary>
 public partial class AdviceAnalyticsWindow : Window
 {
-    private readonly UnifiedAiAdvice _advice;
+    private UnifiedAiAdvice _advice;
     private readonly Persona? _persona;
     private readonly DistillSkill _skill;
     private readonly string _contactName;
     private readonly string _ultimateGoal;
     private readonly string _userIntent;
-    private readonly List<string> _dynamicDims;
+    private List<string> _dynamicDims;
+    private readonly Func<CancellationToken, Task<UnifiedAiAdvice?>>? _regenerateCallback;
+    private CancellationTokenSource? _regenCts;
 
     private int _selectedOptionIndex = -1;
 
@@ -47,7 +49,8 @@ public partial class AdviceAnalyticsWindow : Window
         DistillSkill? skill = null,
         string? contactName = null,
         string? ultimateGoal = null,
-        string? userIntent = null)
+        string? userIntent = null,
+        Func<CancellationToken, Task<UnifiedAiAdvice?>>? regenerateCallback = null)
     {
         InitializeComponent();
 
@@ -66,6 +69,8 @@ public partial class AdviceAnalyticsWindow : Window
 
         // 提取动态评估维度
         _dynamicDims = ResolveDynamicDimensions();
+        _regenerateCallback = regenerateCallback;
+        Closed += (_, _) => { _regenCts?.Cancel(); _regenCts?.Dispose(); };
 
         ThemeManager.ApplyCurrentTheme(this);
         Loaded += AdviceAnalyticsWindow_Loaded;
@@ -103,10 +108,10 @@ public partial class AdviceAnalyticsWindow : Window
             }
         }
 
-        // 动态兜底维度（若完全无维度输入）
+        // 仅在完全无维度输入时回退到有真实分值对应的两项（推进力 / 安全度），不再虚构其他维度
         if (dims.Count == 0)
         {
-            dims.AddRange(new[] { "目标推进力", "画像契合度", "舒适安全感", "博弈主导权" });
+            dims.AddRange(new[] { "目标推进力", "画像安全度" });
         }
         else if (dims.Count < 3)
         {
@@ -126,6 +131,88 @@ public partial class AdviceAnalyticsWindow : Window
         PopulateGroupedBarChart();
         DrawQuadrantMatrix();
         PopulateSuggestionsCards();
+        UpdateDefaultBottomStatus();
+        if (_regenerateCallback == null && RegenerateAdviceButton != null)
+        {
+            RegenerateAdviceButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    public void OnThemeChanged()
+    {
+        if (!IsLoaded) return;
+        PopulateRadarLegend();
+        DrawMultiRadarChart();
+        PopulateGroupedBarChart();
+        DrawQuadrantMatrix();
+        PopulateSuggestionsCards();
+    }
+
+    private void RadarHostGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || e.NewSize.Width < 180 || e.NewSize.Height < 140) return;
+        RadarCanvas.Width = Math.Max(260, e.NewSize.Width - 8);
+        RadarCanvas.Height = Math.Max(180, e.NewSize.Height - 4);
+        DrawMultiRadarChart();
+    }
+
+    private void QuadrantHostGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || e.NewSize.Width < 160 || e.NewSize.Height < 140) return;
+        QuadrantCanvas.Width = Math.Max(220, e.NewSize.Width - 8);
+        QuadrantCanvas.Height = Math.Max(180, e.NewSize.Height - 4);
+        DrawQuadrantMatrix();
+    }
+
+    private async void RegenerateAdviceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_regenerateCallback == null) return;
+
+        if (_regenCts != null)
+        {
+            _regenCts.Cancel();
+            return;
+        }
+
+        _regenCts = new CancellationTokenSource();
+        RegenerateAdviceButton.Content = "⏹ 停止生成";
+        BottomStatusText.Text = "⏳ 正在结合当前对话、画像、技能与意图重新调用 AI 推演方案（再次点击可停止）...";
+
+        try
+        {
+            var newAdvice = await _regenerateCallback(_regenCts.Token);
+            if (newAdvice != null)
+            {
+                _advice = newAdvice;
+                _selectedOptionIndex = -1;
+                _dynamicDims = ResolveDynamicDimensions();
+                PopulateSandtable();
+                PopulateRadarLegend();
+                DrawMultiRadarChart();
+                PopulateGroupedBarChart();
+                DrawQuadrantMatrix();
+                PopulateSuggestionsCards();
+                BottomStatusText.Text = $"✅ AI 已于 {DateTime.Now:HH:mm:ss} 重新生成最新推演方案与量化评分";
+            }
+            else
+            {
+                BottomStatusText.Text = "⚠️ 本次重新生成未返回有效结果，已保留当前方案";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            BottomStatusText.Text = "⏹ 已取消本次重新生成";
+        }
+        catch (Exception ex)
+        {
+            BottomStatusText.Text = $"❌ 重新生成失败：{ex.Message}";
+        }
+        finally
+        {
+            _regenCts?.Dispose();
+            _regenCts = null;
+            RegenerateAdviceButton.Content = "🔄 AI 重新生成";
+        }
     }
 
     // ===================== 顶部 Header 填充 =====================
@@ -157,20 +244,20 @@ public partial class AdviceAnalyticsWindow : Window
 
         SandtableContextFlowText.Text = !string.IsNullOrWhiteSpace(_advice.ContextFlowSummary)
             ? _advice.ContextFlowSummary
-            : "双方当前处于多轮交互博弈推进期，语境逐步聚焦于核心诉求与边界试探。";
+            : "（AI 本次未返回战局脉络）";
 
         SandtableSubtextText.Text = !string.IsNullOrWhiteSpace(_advice.Subtext)
             ? _advice.Subtext
-            : (!string.IsNullOrWhiteSpace(_advice.Literal) ? _advice.Literal : "对方言辞克制，表面平淡背后隐藏着对确定性与安全感的试探。");
+            : (!string.IsNullOrWhiteSpace(_advice.Literal) ? _advice.Literal : "（AI 本次未返回潜台词洞察）");
 
         SandtableIntentText.Text = !string.IsNullOrWhiteSpace(_advice.Intent)
             ? _advice.Intent
-            : "期望在稳住自身立场与心理边界的同时，观察我方回应是否具备真诚与推进价值。";
+            : "（AI 本次未返回对方真实动机）";
 
         SandtableStrategyTitle.Text = $"⚡ {_skill.Name} 破局心法与避坑指南";
         SandtableStrategyText.Text = !string.IsNullOrWhiteSpace(_advice.Strategy)
             ? _advice.Strategy
-            : $"严格遵循【{_skill.Name}】战略准则，不踩对方性格雷区，在稳固信任托底的同时顺势施加目标推力。";
+            : "（AI 本次未返回破局心法，可重新生成建议）";
     }
 
     // ===================== 图表 1: 多方案全景重叠雷达图 =====================
@@ -333,8 +420,8 @@ public partial class AdviceAnalyticsWindow : Window
             for (int d = 0; d < dimCount; d++)
             {
                 string dimName = _dynamicDims[d];
-                double score = GetScoreForDimension(s, dimName, idx);
-                double r = maxR * Math.Clamp(score, 10, 100) / 100.0;
+                double? score = GetScoreForDimension(s, dimName, idx);
+                double r = score.HasValue ? maxR * Math.Clamp(score.Value, 10, 100) / 100.0 : 0;
                 double angle = startAngle + d * angleStep;
                 var pt = new Point(cx + r * Math.Cos(angle), cy + r * Math.Sin(angle));
                 poly.Points.Add(pt);
@@ -371,7 +458,10 @@ public partial class AdviceAnalyticsWindow : Window
         }
     }
 
-    private double GetScoreForDimension(ReplySuggestion s, string dim, int optIndex)
+    /// <summary>
+    /// 取方案在某维度上的得分；模型未给出时返回 null（界面显示“—”，不伪造数值）。
+    /// </summary>
+    private double? GetScoreForDimension(ReplySuggestion s, string dim, int optIndex)
     {
         if (s.DimensionScores != null)
         {
@@ -385,12 +475,13 @@ public partial class AdviceAnalyticsWindow : Window
             }
         }
 
-        if (dim.Contains("推进") || dim.Contains("目标")) return s.GoalPushScore;
-        if (dim.Contains("安全") || dim.Contains("防") || dim.Contains("契合")) return s.PersonaSafetyScore;
+        if ((dim.Contains("推进") || dim.Contains("目标")) && s.HasGoalPushScore) return s.GoalPushScore;
+        if ((dim.Contains("安全") || dim.Contains("防") || dim.Contains("契合")) && s.HasPersonaSafetyScore) return s.PersonaSafetyScore;
 
-        // 默认自适应基准分
-        return 75 + (optIndex * 7 % 20);
+        return null;
     }
+
+    private static string FormatScore(double? score) => score.HasValue ? score.Value.ToString("0") : "—";
 
     // ===================== 图表 2: 动态维度分组量化对决柱状图 =====================
 
@@ -430,7 +521,7 @@ public partial class AdviceAnalyticsWindow : Window
             {
                 var s = suggestions[i];
                 var col = OptionColors[i % OptionColors.Length];
-                double score = GetScoreForDimension(s, dim, i);
+                double? score = GetScoreForDimension(s, dim, i);
                 bool isSelected = (_selectedOptionIndex == i);
 
                 var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
@@ -459,22 +550,40 @@ public partial class AdviceAnalyticsWindow : Window
                     VerticalAlignment = VerticalAlignment.Center
                 };
 
+                var trackGrid = new Grid();
+                double pct = score.HasValue ? Math.Clamp(score.Value, 0, 100) : 0;
+                trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(pct, GridUnitType.Star) });
+                trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0, 100 - pct), GridUnitType.Star) });
+
                 var fillBar = new Border
                 {
                     Height = isSelected ? 12 : 10,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    Width = Math.Clamp(score * 1.6, 10, 180),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
                     Background = new SolidColorBrush(col),
                     CornerRadius = new CornerRadius(4)
                 };
-                track.Child = fillBar;
+                Grid.SetColumn(fillBar, 0);
+                trackGrid.Children.Add(fillBar);
+                track.Child = trackGrid;
+#pragma warning disable CS0162
+                if (false)
+                {
+                    { var unusedFillBar = new Border
+                    {
+                        Width = 0,
+                    Background = new SolidColorBrush(col),
+                    CornerRadius = new CornerRadius(4)
+                };
+                };
+                }
+                track.Child = trackGrid;
                 Grid.SetColumn(track, 1);
                 row.Children.Add(track);
 
                 // 分数文本
                 var scoreText = new TextBlock
                 {
-                    Text = $"{score:0}分",
+                    Text = score.HasValue ? $"{score.Value:0}分" : "—",
                     FontSize = 10,
                     FontWeight = FontWeights.Bold,
                     Foreground = new SolidColorBrush(col),
@@ -594,6 +703,7 @@ public partial class AdviceAnalyticsWindow : Window
         for (int i = 0; i < suggestions.Count; i++)
         {
             var s = suggestions[i];
+            if (!s.HasPersonaSafetyScore || !s.HasGoalPushScore) continue; // 缺分值的方案不打点，避免伪造位置
             var col = OptionColors[i % OptionColors.Length];
             bool isSelected = (_selectedOptionIndex == i);
 
@@ -765,7 +875,7 @@ public partial class AdviceAnalyticsWindow : Window
             };
             pushBorder.Child = new TextBlock
             {
-                Text = $"🚩 推进力 {s.GoalPushScore:0}",
+                Text = $"🚩 推进力 {s.GoalPushText}",
                 FontSize = 10.5,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153))
@@ -782,7 +892,7 @@ public partial class AdviceAnalyticsWindow : Window
             };
             safeBorder.Child = new TextBlock
             {
-                Text = $"🛡️ 安全度 {s.PersonaSafetyScore:0}",
+                Text = $"🛡️ 安全度 {s.PersonaSafetyText}",
                 FontSize = 10.5,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248))
@@ -802,8 +912,25 @@ public partial class AdviceAnalyticsWindow : Window
                 Tag = s.Text
             };
             copyBtn.Click += CopyButton_Click;
-            Grid.SetColumn(copyBtn, 1);
-            headerGrid.Children.Add(copyBtn);
+
+            var pasteBtn = new Button
+            {
+                Content = "📤 填入微信",
+                Style = (Style)FindResource("ActionBtnStyle"),
+                Height = 26,
+                Padding = new Thickness(10, 0, 10, 0),
+                Margin = new Thickness(0, 0, 6, 0),
+                ToolTip = "一键复制到剪贴板并自动填入微信输入框（不自动发送）",
+                Tag = s.Text
+            };
+            pasteBtn.Click += PasteButton_Click;
+
+            var actionButtonsPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            actionButtonsPanel.Children.Add(pasteBtn);
+            actionButtonsPanel.Children.Add(copyBtn);
+            Grid.SetColumn(actionButtonsPanel, 1);
+            headerGrid.Children.Add(actionButtonsPanel);
+            if (false) headerGrid.Children.Add(copyBtn);
 
             sp.Children.Add(headerGrid);
 
@@ -825,7 +952,7 @@ public partial class AdviceAnalyticsWindow : Window
             {
                 var reasonBorder = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255)),
+                    Background = (Brush)FindResource("BorderSubtleBrush"),
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(8, 4, 8, 4),
                     Margin = new Thickness(0, 2, 0, 6)
@@ -846,7 +973,7 @@ public partial class AdviceAnalyticsWindow : Window
             var dimsPanel = new WrapPanel { Margin = new Thickness(0, 2, 0, 0) };
             foreach (var dim in _dynamicDims)
             {
-                double score = GetScoreForDimension(s, dim, i);
+                double? score = GetScoreForDimension(s, dim, i);
                 var dimPill = new Border
                 {
                     Background = (Brush)FindResource("BorderSubtleBrush"),
@@ -856,7 +983,7 @@ public partial class AdviceAnalyticsWindow : Window
                 };
                 dimPill.Child = new TextBlock
                 {
-                    Text = $"{dim}: {score:0}",
+                    Text = $"{dim}: {FormatScore(score)}",
                     FontSize = 10,
                     Foreground = (Brush)FindResource("TextSecondaryBrush")
                 };
@@ -880,11 +1007,136 @@ public partial class AdviceAnalyticsWindow : Window
         if (index >= 0 && _advice.Suggestions != null && index < _advice.Suggestions.Count)
         {
             var s = _advice.Suggestions[index];
-            BottomStatusText.Text = $"🎯 已聚焦方案 {index + 1}【{s.Tone}】 · 推进力: {s.GoalPushScore:0} · 安全度: {s.PersonaSafetyScore:0}";
+            BottomStatusText.Text = $"🎯 已聚焦方案 {index + 1}【{s.Tone}】 · 推进力: {s.GoalPushText} · 安全度: {s.PersonaSafetyText}";
+            return;
+        }
+        UpdateDefaultBottomStatus();
+    }
+#if false
         }
         else
         {
-            BottomStatusText.Text = "✨ 动态量化研判完成 · 维度自适应提炼 · 感受话语的力量";
+            UpdateDefaultBottomStatus();
+        if (_regenerateCallback == null && RegenerateAdviceButton != null)
+        {
+            RegenerateAdviceButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    public void OnThemeChanged()
+    {
+        if (!IsLoaded) return;
+        PopulateRadarLegend();
+        DrawMultiRadarChart();
+        PopulateGroupedBarChart();
+        DrawQuadrantMatrix();
+        PopulateSuggestionsCards();
+    }
+
+    private void RadarHostGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || e.NewSize.Width < 180 || e.NewSize.Height < 140) return;
+        RadarCanvas.Width = Math.Max(260, e.NewSize.Width - 8);
+        RadarCanvas.Height = Math.Max(180, e.NewSize.Height - 4);
+        DrawMultiRadarChart();
+    }
+
+    private void QuadrantHostGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!IsLoaded || e.NewSize.Width < 160 || e.NewSize.Height < 140) return;
+        QuadrantCanvas.Width = Math.Max(220, e.NewSize.Width - 8);
+        QuadrantCanvas.Height = Math.Max(180, e.NewSize.Height - 4);
+        DrawQuadrantMatrix();
+    }
+
+    private async void RegenerateAdviceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_regenerateCallback == null) return;
+
+        if (_regenCts != null)
+        {
+            _regenCts.Cancel();
+            return;
+        }
+
+        _regenCts = new CancellationTokenSource();
+        RegenerateAdviceButton.Content = "⏹ 停止生成";
+        BottomStatusText.Text = "⏳ 正在结合当前对话、画像、技能与意图重新调用 AI 推演方案（再次点击可停止）...";
+
+        try
+        {
+            var newAdvice = await _regenerateCallback(_regenCts.Token);
+            if (newAdvice != null)
+            {
+                _advice = newAdvice;
+                _selectedOptionIndex = -1;
+                _dynamicDims = ResolveDynamicDimensions();
+                PopulateSandtable();
+                PopulateRadarLegend();
+                DrawMultiRadarChart();
+                PopulateGroupedBarChart();
+                DrawQuadrantMatrix();
+                PopulateSuggestionsCards();
+                BottomStatusText.Text = $"✅ AI 已于 {DateTime.Now:HH:mm:ss} 重新生成最新推演方案与量化评分";
+            }
+            else
+            {
+                BottomStatusText.Text = "⚠️ 本次重新生成未返回有效结果，已保留当前方案";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            BottomStatusText.Text = "⏹ 已取消本次重新生成";
+        }
+        catch (Exception ex)
+        {
+            BottomStatusText.Text = $"❌ 重新生成失败：{ex.Message}";
+        }
+        finally
+        {
+            _regenCts?.Dispose();
+            _regenCts = null;
+            RegenerateAdviceButton.Content = "🔄 AI 重新生成";
+        }
+        }
+    }
+
+#endif
+    private void UpdateDefaultBottomStatus()
+    {
+        var suggestions = _advice.Suggestions ?? Array.Empty<ReplySuggestion>();
+        bool anyMissing = suggestions.Any(s =>
+            !s.HasGoalPushScore ||
+            !s.HasPersonaSafetyScore ||
+            _dynamicDims.Any(d => !GetScoreForDimension(s, d, 0).HasValue));
+
+        BottomStatusText.Text = anyMissing
+            ? "ℹ️ 部分分值本次 AI 未返回，已如实标为“—”（不再伪造数值）"
+            : "✨ 动态量化研判完成 · 维度自适应提炼 · 感受话语的力量";
+    }
+
+    private async void PasteButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Button btn && btn.Tag is string text)
+        {
+            Clipboard.SetText(text);
+            string original = btn.Content?.ToString() ?? "📤 填入微信";
+            bool pasted = await WeChatCopilot.Windows.WindowPositioner.TryPasteToWeChatInputAsync();
+            btn.Content = pasted ? "✅ 已填入!" : "✔ 已复制";
+            btn.IsEnabled = false;
+
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1500)
+            };
+            timer.Tick += (s, ev) =>
+            {
+                timer.Stop();
+                btn.Content = original;
+                btn.IsEnabled = true;
+            };
+            timer.Start();
         }
     }
 
@@ -976,9 +1228,13 @@ public partial class AdviceAnalyticsWindow : Window
                 sb.AppendLine($"### 方案 {i + 1}：[{s.Tone}]");
                 sb.AppendLine($"- **话术内容**：{s.Text}");
                 sb.AppendLine($"- **战术依据**：{s.Reason}");
-                sb.AppendLine($"- **核心量化**：目标推进力 = **{s.GoalPushScore:0}分**，画像安全度 = **{s.PersonaSafetyScore:0}分**");
+                sb.AppendLine($"- **核心量化**：目标推进力 = **{(s.HasGoalPushScore ? s.GoalPushText + "分" : "—")}**，画像安全度 = **{(s.HasPersonaSafetyScore ? s.PersonaSafetyText + "分" : "—")}**");
                 sb.Append("- **动态维度得分**：");
-                var dimScores = _dynamicDims.Select(d => $"{d}={GetScoreForDimension(s, d, i):0}分");
+                var dimScores = _dynamicDims.Select(d =>
+                {
+                    double? ds = GetScoreForDimension(s, d, i);
+                    return ds.HasValue ? $"{d}={ds.Value:0}分" : $"{d}=—";
+                });
                 sb.AppendLine(string.Join("，", dimScores));
                 sb.AppendLine();
             }

@@ -19,6 +19,7 @@
     Top="120"
     Topmost="False"
     WindowStartupLocation="Manual"
+    Foreground="{DynamicResource TextPrimaryBrush}"
     WindowStyle="None">
 
     <Window.Resources>
@@ -783,6 +784,7 @@
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 FontSize="13"
+                                Foreground="White"
                                 Text="💬" />
                         </Border>
                         <TextBlock
@@ -1075,6 +1077,7 @@
                                     Margin="0,0,0,10"
                                     HorizontalAlignment="Center"
                                     FontSize="36"
+                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                     Text="💬" />
                                 <TextBlock
                                     HorizontalAlignment="Center"
@@ -1784,7 +1787,8 @@
                                                     Margin="0,0,6,0"
                                                     VerticalAlignment="Center"
                                                     FontSize="13"
-                                                    Text="💬" />
+                                                    Foreground="{DynamicResource TextPrimaryBrush}"
+                                    Text="💬" />
                                                 <TextBlock
                                                     VerticalAlignment="Center"
                                                     FontSize="12"
@@ -1867,7 +1871,7 @@
                                                                             FontSize="10"
                                                                             FontWeight="SemiBold"
                                                                             Foreground="#34D399"
-                                                                            Text="{Binding GoalPushScore, StringFormat='🚩 推进力 {0:0}'}" />
+                                                                            Text="{Binding GoalPushText, StringFormat='🚩 推进力 {0}'}" />
                                                                     </Border>
                                                                     <Border
                                                                         Padding="5,2"
@@ -1877,13 +1881,32 @@
                                                                             FontSize="10"
                                                                             FontWeight="SemiBold"
                                                                             Foreground="#38BDF8"
-                                                                            Text="{Binding PersonaSafetyScore, StringFormat='🛡️ 安全度 {0:0}'}" />
+                                                                            Text="{Binding PersonaSafetyText, StringFormat='🛡️ 安全度 {0}'}" />
                                                                     </Border>
                                                                 </StackPanel>
                                                                 <Button
                                                                     Padding="8,3"
                                                                     HorizontalAlignment="Right"
-                                                                    Click="CopySuggestion_Click"
+                                                                    Visibility="Collapsed" />
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                                    <Button
+                                                                        Padding="8,3"
+                                                                        Margin="0,0,5,0"
+                                                                        Click="PasteSuggestionToWeChat_Click"
+                                                                        Content="📤 填入"
+                                                                        FontSize="11"
+                                                                        ToolTip="一键复制到剪贴板并自动填入微信输入框（不自动按回车发送）"
+                                                                        Style="{StaticResource FluentButton}"
+                                                                        Tag="{Binding Text}" />
+                                                                    <Button
+                                                                        Padding="8,3"
+                                                                        Click="CopySuggestion_Click"
+                                                                        Content="📋 复制"
+                                                                        FontSize="11"
+                                                                        Style="{StaticResource FluentButton}"
+                                                                        Tag="{Binding Text}" />
+                                                                </StackPanel>
+                                                                <Button Visibility="Collapsed"
                                                                     Content="📋 复制"
                                                                     FontSize="11"
                                                                     Style="{StaticResource FluentButton}"
@@ -2491,7 +2514,7 @@
 
                             <!-- 左侧：关联联系人、画像徽章、历史记录徽章 -->
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="👤" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <TextBlock Text="👤" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,4,0" />
                                 <TextBlock
                                     x:Name="QaTargetContactText"
                                     Text="当前联系人"
@@ -2572,7 +2595,7 @@
                                 CornerRadius="8">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <TextBlock Text="🤖" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="🤖" FontSize="16" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
                                         <TextBlock
                                             Text="AI 对话军师 · Antigravity 智能研判"
                                             FontSize="13"
@@ -2817,7 +2840,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="🕒" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="🕒" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
                                         <TextBlock
                                             Text="历史会话记录"
                                             FontSize="12.5"

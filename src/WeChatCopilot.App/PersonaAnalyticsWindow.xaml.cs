@@ -38,11 +38,36 @@ public partial class PersonaAnalyticsWindow : Window
 
         _persona = persona;
         _skill = skill;
-        _history = history ?? Array.Empty<HistoryMessage>();
+        _history = ResolveContactHistory(persona.ContactName, history);
         _traits = PersonaDistiller.DeduplicateByDimension(persona.Traits, _history);
 
         ThemeManager.ApplyCurrentTheme(this);
         Loaded += PersonaAnalyticsWindow_Loaded;
+    }
+
+    private static IReadOnlyList<HistoryMessage> ResolveContactHistory(
+        string contactName,
+        IReadOnlyList<HistoryMessage>? history)
+    {
+        if (history is { Count: > 0 })
+        {
+            return history;
+        }
+
+        if (string.IsNullOrWhiteSpace(contactName))
+        {
+            return Array.Empty<HistoryMessage>();
+        }
+
+        try
+        {
+            using var storage = new SqliteStorage();
+            return storage.GetMessages(contactName, 100);
+        }
+        catch
+        {
+            return Array.Empty<HistoryMessage>();
+        }
     }
 
     private void PersonaAnalyticsWindow_Loaded(object sender, RoutedEventArgs e)
@@ -76,6 +101,13 @@ public partial class PersonaAnalyticsWindow : Window
 
         // 4. 填充实战破局战略报告
         PopulateStrategyPlaybook();
+    }
+
+    public void OnThemeChanged()
+    {
+        if (!IsLoaded) return;
+        DrawLargeRadarChart();
+        PopulateBarChart();
     }
 
     // ===================== 图表 1: 高分辨率全景雷达图 =====================
@@ -317,9 +349,14 @@ public partial class PersonaAnalyticsWindow : Window
             Grid.SetColumn(scoreTb, 2);
             rowGrid.Children.Add(scoreTb);
 
-            // 4. 状态标签胶囊
-            string statusTag = t.Score >= 75 ? "优势高位" : t.Score < 40 ? "防卫敏感" : "基准稳态";
-            Color tagColor = t.Score >= 75 ? Color.FromRgb(16, 185, 129) : t.Score < 40 ? Color.FromRgb(244, 63, 94) : Color.FromRgb(56, 189, 248);
+            // 4. 状态标签胶囊（区分真实低分与样本/证据不足）
+            bool isInsufficient = IsInsufficientTrait(t);
+            string statusTag = isInsufficient
+                ? "信息待补"
+                : t.Score >= 75 ? "优势高位" : t.Score >= 55 ? "稳态表现" : t.Score >= 40 ? "有待激活" : "防卫敏感";
+            Color tagColor = isInsufficient
+                ? Color.FromRgb(245, 158, 11)
+                : t.Score >= 75 ? Color.FromRgb(16, 185, 129) : t.Score >= 55 ? Color.FromRgb(56, 189, 248) : t.Score >= 40 ? Color.FromRgb(245, 158, 11) : Color.FromRgb(244, 63, 94);
 
             var tagBorder = new Border
             {
@@ -485,26 +522,42 @@ public partial class PersonaAnalyticsWindow : Window
         double avgScore = _traits.Average(t => t.Score);
         double avgConf = _traits.Average(t => t.Confidence);
 
-        // 卡片 1：第一主导维度 (动态绑定提取出的最高维度名称)
+        // 卡片 1：第一主导维度 (按实际得分分档描述，不夸大中等分数)
         StatCard1Header.Text = $"🌟 第一主导维度 · 【{top1.Dimension}】";
         StatTopDimText.Text = top1.Dimension;
-        StatTopScoreText.Text = $"{top1.ScoreInt}分 (显著优势 · 核心支柱)";
+        string top1Desc = top1.Score >= 75 ? "显著优势 · 核心支柱" : top1.Score >= 55 ? "相对突出 · 主要特征" : "最高得分项 · 整体偏温和";
+        StatTopScoreText.Text = $"{top1.ScoreInt}分 ({top1Desc})";
 
-        // 卡片 2：协同支柱维度 (动态绑定提取出的次高维度名称)
+        // 卡片 2：协同支柱维度
         StatCard2Header.Text = $"✨ 协同支柱维度 · 【{top2.Dimension}】";
         StatCard2DimText.Text = top2.Dimension;
-        StatCard2ScoreText.Text = $"{top2.ScoreInt}分 (强劲支撑 · 稳态表现)";
+        string top2Desc = top2.Score >= 70 ? "强劲支撑 · 协同支柱" : top2.Score >= 50 ? "次高维度 · 稳态表现" : "次高维度 · 表现尚弱";
+        StatCard2ScoreText.Text = $"{top2.ScoreInt}分 ({top2Desc})";
 
-        // 卡片 3：防备敏感/洼地维度 (动态绑定提取出的最低防御维度名称)
-        StatCard3Header.Text = $"🛡️ 心理敏感/洼地维度 · 【{low1.Dimension}】";
-        StatLowDimText.Text = low1.Dimension;
-        StatLowScoreText.Text = $"{low1.ScoreInt}分 (防备防线 · 潜在雷区)";
+        // 卡片 3：最低分维度（区分“证据不足”与“防备敏感”）
+        if (IsInsufficientTrait(low1))
+        {
+            StatCard3Header.Text = $"🔍 证据待补维度 · 【{low1.Dimension}】";
+            StatLowDimText.Text = low1.Dimension;
+            StatLowScoreText.Text = $"{low1.ScoreInt}分 (样本不足 · 暂勿过度推断)";
+        }
+        else
+        {
+            StatCard3Header.Text = $"🛡️ 心理敏感/洼地维度 · 【{low1.Dimension}】";
+            StatLowDimText.Text = low1.Dimension;
+            string lowDesc = low1.Score < 45 ? "防备防线 · 潜在雷区" : "相对短板 · 留意边界";
+            StatLowScoreText.Text = $"{low1.ScoreInt}分 ({lowDesc})";
+        }
 
-        // 卡片 4：心智极差与均分
+        // 卡片 4：心智极差与均分（按真实平均可信度显示样本质量）
         StatCard4Header.Text = $"⚡ 心智张力极差与加权均分";
         StatSpreadText.Text = $"{spread:0}分极差 (均分: {avgScore:0.0}分)";
-        StatAvgConfidenceText.Text = $"样本可信度: {avgConf:0.00} (高可信样本)";
+        string confLevel = avgConf >= 0.80 ? "高可信样本" : avgConf >= 0.60 ? "中等可信样本" : "样本偏少 · 建议多聊积累";
+        StatAvgConfidenceText.Text = $"样本可信度: {avgConf:0.00} ({confLevel})";
     }
+
+    private static bool IsInsufficientTrait(PersonaTrait t) =>
+        t.Confidence < 0.5 || PersonaDistiller.IsInsufficientEvidenceText(t.Attribute);
 
     // ===================== Tab 3: 交往身份研判与动态实战破局战术 =====================
 
@@ -674,7 +727,7 @@ public partial class PersonaAnalyticsWindow : Window
         sb1.AppendLine($"  心智机制剖析：{tTop1.Attribute}");
         if (tTop1.HasEvidence)
         {
-            sb1.AppendLine($"  真实原话印证：“{tTop1.EvidenceDisplayText}”");
+            sb1.AppendLine($"  真实原话印证：{tTop1.EvidenceDisplayText.Replace("\n", " / ")}");
         }
 
         if (tTop1.Dimension != tTop2.Dimension)
@@ -684,7 +737,7 @@ public partial class PersonaAnalyticsWindow : Window
             sb1.AppendLine($"  心智机制剖析：{tTop2.Attribute}");
             if (tTop2.HasEvidence)
             {
-                sb1.AppendLine($"  真实原话印证：“{tTop2.EvidenceDisplayText}”");
+                sb1.AppendLine($"  真实原话印证：{tTop2.EvidenceDisplayText.Replace("\n", " / ")}");
             }
         }
         sb1.AppendLine();
@@ -718,7 +771,127 @@ public partial class PersonaAnalyticsWindow : Window
         var sb4 = new StringBuilder();
         sb4.AppendLine(BuildSceneDemonstrationScripts(_currentScene, tTop1, tLow1));
         StrategyPrescriptionText.Text = sb4.ToString().TrimEnd();
+
+        // 6. 以上为本地模板生成的即时兜底内容；随后尝试用大模型生成针对该联系人的定制版本并覆盖
+        _ = LoadAiStrategyAsync(force: false);
     }
+
+    // ===================== AI 生成实战策略（覆盖本地模板） =====================
+
+    private readonly StrategyPlaybookStore _strategyStore = new();
+    private CancellationTokenSource? _strategyCts;
+
+    private void RegenerateStrategyButton_Click(object sender, RoutedEventArgs e)
+    {
+        _ = LoadAiStrategyAsync(force: true);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _strategyCts?.Cancel();
+        base.OnClosed(e);
+    }
+
+    private async Task LoadAiStrategyAsync(bool force)
+    {
+        _strategyCts?.Cancel();
+        var cts = _strategyCts = new CancellationTokenSource();
+
+        string sceneName = GetSceneDisplayName(_currentScene);
+        string cacheKey = StrategyPlaybookGenerator.ComputeCacheKey(_persona, _skill, sceneName, _history);
+
+        if (!force)
+        {
+            var cached = _strategyStore.Load(cacheKey);
+            if (cached != null)
+            {
+                ApplyPlaybook(cached, fromCache: true);
+                return;
+            }
+        }
+
+        AiSettings settings;
+        string apiKey;
+        try
+        {
+            settings = _settingsStore.Load();
+            apiKey = DpapiProtector.Unprotect(settings.EncryptedApiKey);
+        }
+        catch
+        {
+            StrategyStatusText.Text = "ℹ️ 无法读取 AI 设置，当前为本地模板生成的通用建议。";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            StrategyStatusText.Text = "ℹ️ 未配置 API Key，当前为本地模板生成的通用建议。配置后可点击右侧按钮由 AI 针对该联系人定制。";
+            return;
+        }
+
+        // 生成期间按钮保持可点：再次点击会取消当前请求并重新生成，避免“按钮点不动”的错觉
+        RegenerateStrategyButton.Content = "⏳ 生成中…点击重试";
+        StrategyStatusText.Text = "⏳ AI 正在结合画像证据与最近对话生成定制策略，完成后将自动替换下方内容（深度模型可能需要数十秒）…";
+
+        try
+        {
+            using var provider = new OpenAiCompatibleProvider(
+                settings.Endpoint,
+                () => apiKey,
+                timeout: TimeSpan.FromSeconds(Math.Max(settings.TimeoutSeconds, 120)));
+
+            var (playbook, error) = await StrategyPlaybookGenerator.GenerateAsync(
+                provider, settings, _persona, _traits, _skill, sceneName, _history, cts.Token);
+
+            if (cts.IsCancellationRequested) return;
+
+            if (playbook == null)
+            {
+                StrategyStatusText.Text = $"⚠️ AI 生成失败：{error}（已保留当前内容，可点击右侧按钮重试）";
+                return;
+            }
+
+            _strategyStore.Save(cacheKey, playbook);
+            ApplyPlaybook(playbook, fromCache: false);
+        }
+        catch (OperationCanceledException)
+        {
+            // 窗口关闭或被新的生成请求取代
+        }
+        catch (Exception ex)
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                StrategyStatusText.Text = $"⚠️ AI 生成异常：{ex.Message}（已保留当前内容）";
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_strategyCts, cts))
+            {
+                RegenerateStrategyButton.Content = "🔄 AI 重新生成";
+            }
+        }
+    }
+
+    private void ApplyPlaybook(StrategyPlaybook pb, bool fromCache)
+    {
+        StrategyCard1Title.Text = ValueOrDefault(pb.Mindset.Title, "🎯 核心心智与诉求底色");
+        StrategyMindsetOverviewText.Text = pb.Mindset.Content;
+        StrategyCard2Title.Text = ValueOrDefault(pb.Leverage.Title, "✨ 顺势借力抓手");
+        StrategyLeveragePointsText.Text = pb.Leverage.Content;
+        StrategyCard3Title.Text = ValueOrDefault(pb.Taboos.Title, "🚫 沟通雷区与避坑红线");
+        StrategyTaboosText.Text = pb.Taboos.Content;
+        StrategyCard4Title.Text = ValueOrDefault(pb.Scripts.Title, "💬 实战示范话术");
+        StrategyPrescriptionText.Text = pb.Scripts.Content;
+
+        string when = pb.GeneratedAt?.ToString("MM-dd HH:mm") ?? "";
+        string model = string.IsNullOrWhiteSpace(pb.Model) ? "" : $" · {pb.Model}";
+        StrategyStatusText.Text = $"🤖 AI 针对「{_persona.ContactName}」定制生成{model}（{when}{(fromCache ? "，来自缓存" : "")}）";
+    }
+
+    private static string ValueOrDefault(string? value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value;
 
     private string BuildSceneMindsetSynthesis(string scene, PersonaTrait tTop1, PersonaTrait tTop2) => scene switch
     {

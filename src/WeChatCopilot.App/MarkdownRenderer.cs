@@ -293,8 +293,44 @@ public static class MarkdownRenderer
                 // 忽略非致命剪贴板访问冲突
             }
         };
-        Grid.SetColumn(copyBtn, 1);
-        grid.Children.Add(copyBtn);
+        var pasteBtn = new Button
+        {
+            Content = "📤 填入",
+            Cursor = System.Windows.Input.Cursors.Hand,
+            FontSize = 10,
+            Padding = new Thickness(6, 2, 6, 2),
+            Height = 22,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+            ToolTip = "一键复制到剪贴板并自动填入微信输入框（不自动发送）"
+        };
+        pasteBtn.SetResourceReference(FrameworkElement.StyleProperty, "FluentButton");
+        pasteBtn.Click += async (s, e) =>
+        {
+            try
+            {
+                Clipboard.SetText(fullQuote);
+                bool pasted = await WeChatCopilot.Windows.WindowPositioner.TryPasteToWeChatInputAsync();
+                pasteBtn.Content = pasted ? "✅ 已填入" : "✔ 已复制";
+                _ = Task.Delay(1500).ContinueWith(_ => pasteBtn.Dispatcher.Invoke(() => pasteBtn.Content = "📤 填入"));
+            }
+            catch
+            {
+            }
+        };
+
+        copyBtn.Margin = new Thickness(4, 0, 0, 0);
+        var btnPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        btnPanel.Children.Add(pasteBtn);
+        btnPanel.Children.Add(copyBtn);
+        Grid.SetColumn(btnPanel, 1);
+        grid.Children.Add(btnPanel);
+#pragma warning disable CS0162
+        if (false) Grid.SetColumn(copyBtn, 1);
 
         border.Child = grid;
         return border;

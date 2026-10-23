@@ -85,4 +85,49 @@ public static class WindowPositioner
             MoveRelativeTo(copilotHwnd, targetHwnd, x, y);
         }
     }
+
+    /// <summary>
+    /// 将当前剪贴板文本自动聚焦并粘贴到微信聊天输入框（仅填入，绝不自动按回车发送）。
+    /// </summary>
+    public static async Task<bool> TryPasteToWeChatInputAsync(WeChatCopilot.Core.Models.WindowInfo? targetWindow = null)
+    {
+        targetWindow ??= new WeChatWindowLocator().FindWeChatMainWindow();
+        if (targetWindow is null || targetWindow.IsMinimized || !targetWindow.IsVisible || targetWindow.Handle == nint.Zero)
+        {
+            return false;
+        }
+
+        double xRatio = string.Equals(targetWindow.ClassName, "ChatWnd", StringComparison.OrdinalIgnoreCase) ? 0.50 : 0.62;
+        int clickX = targetWindow.Bounds.X + (int)(targetWindow.Bounds.Width * xRatio);
+        int bottomOffset = Math.Clamp((int)(targetWindow.Bounds.Height * 0.10), 48, 85);
+        int clickY = targetWindow.Bounds.Y + targetWindow.Bounds.Height - bottomOffset;
+
+        bool hasSavedCursor = NativeMethods.GetCursorPos(out var savedPt);
+
+        NativeMethods.SetForegroundWindow(targetWindow.Handle);
+        await Task.Delay(35).ConfigureAwait(false);
+
+        NativeMethods.SetCursorPos(clickX, clickY);
+        NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_LEFTDOWN, clickX, clickY, 0, 0);
+        NativeMethods.mouse_event(NativeMethods.MOUSEEVENTF_LEFTUP, clickX, clickY, 0, 0);
+
+        if (hasSavedCursor)
+        {
+            NativeMethods.SetCursorPos(savedPt.X, savedPt.Y);
+        }
+
+        await Task.Delay(55).ConfigureAwait(false);
+
+        NativeMethods.keybd_event(NativeMethods.VK_CONTROL, 0, 0, 0);
+        NativeMethods.keybd_event(NativeMethods.VK_V, 0, 0, 0);
+        NativeMethods.keybd_event(NativeMethods.VK_V, 0, NativeMethods.KEYEVENTF_KEYUP, 0);
+        NativeMethods.keybd_event(NativeMethods.VK_CONTROL, 0, NativeMethods.KEYEVENTF_KEYUP, 0);
+
+        return true;
+    }
+    private static void UnusedPlaceholder() { }
+}
+internal static class WindowPositionerEnd { static void M() { {
+        }
+    }
 }

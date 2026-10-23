@@ -7,7 +7,7 @@
 ![Language](https://img.shields.io/badge/C%23-14-239120?logo=csharp)
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
-![Tests](https://img.shields.io/badge/Tests-180%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-191%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
@@ -97,6 +97,7 @@
   - **顶部 4 大动态主导特质卡片**：自动提炼【第一主导维度】、【协同支柱维度】、【心理敏感/洼地维度】与【心智张力极差与加权均分】，绝不写死维度，随技能与画像动态计算；
   - **多图表联动呈现**：全景多维认知雷达图谱、各维度量化得分对比柱状图、特质波动与梯度走势折线图；
   - **全维度特质与原始证据左右对照清单**：左侧清晰展现特质推断，右侧逐项印证亲口原话引用；
+  - **AI 定制实战破局策略与避坑指南**：结合画像证据、当前技能体系、终极目的与最近真实对话，由大模型针对该联系人生成定制化四卡片策略报告（带 SHA256 内容指纹缓存、一键重新生成与本地模板即时兜底）；
   - 支持一键复制完整 Markdown 分析报告与导出文本。
 
 ### 5. 🤖 AI 问答军师与 Antigravity 交互体系 (AI Chat Advisor & Antigravity UX)
@@ -146,7 +147,7 @@
 ### 10. 🛡️ 本地优先与安全防护 (Security & Privacy)
 - **DPAPI 硬件级加密**：API Key 仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **全方位测试守护**：**180 项自动化单测**守护核心业务算法、提示词组装、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
+- **全方位测试守护**：**191 项自动化单测**守护核心业务算法、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
 
 ---
 
@@ -238,13 +239,12 @@ e:\huanmai\myprod
 │   │   └── App.xaml / App.xaml.cs# 全局生命周期管理、未捕获异常穿透拦截与日志记录
 │   │
 │   ├── WeChatCopilot.Core/       # 核心业务逻辑与领域模型
-│   │   ├── Ai/                   # PromptBuilder、AiOutputParser (动态维度/推进力/安全度解析)
+│   │   ├── Ai/                   # PromptBuilder、AiOutputParser、PersonaDistiller、StrategyPlaybookGenerator
 │   │   ├── Models/               # Persona、DistillSkill、UnifiedAiAdvice、QaSession
-│   │   ├── Processing/           # 气泡切分 MessageSegmenter、文本规整 OcrTextJoiner
-│   │   └── Services/             # PersonaDistiller (多维心智画像提炼与证据链去重)
+│   │   └── Processing/           # 气泡切分 MessageSegmenter、文本规整 OcrTextJoiner
 │   │
 │   ├── WeChatCopilot.AI/         # 大模型通信层 (OpenAI 协议兼容客户端)
-│   │   └── AiClient.cs           # 支持超时控制、健康探测、流式与非流式调用
+│   │   └── OpenAiCompatibleProvider.cs # OpenAI 兼容聊天补全提供商 (含超时与错误处理)
 │   │
 │   ├── WeChatCopilot.Ocr/        # 屏幕图像处理与视觉识别
 │   │   ├── WindowsMediaOcrEngine.cs # Windows 原生 WinRT OCR 加速
@@ -261,12 +261,14 @@ e:\huanmai\myprod
 │       ├── SkillStore.cs         # 技能目录绑定、递归扫描发现与物理安全删除
 │       ├── TraceMemoClient.cs    # TraceMemo 本地 API 客户端与系统号过滤
 │       ├── PersonaStore.cs       # 联系人画像与终极战略目的本地存储 (SQLite优先/双写兼容)
+│       ├── StrategyPlaybookStore.cs # 画像实战策略手册缓存持久化
 │       ├── QaSessionStore.cs     # AI 问答多会话历史记录本地持久化
 │       ├── SettingsStore.cs      # 系统设置（主题/透明度/语境条数）持久化
 │       └── DpapiProtector.cs     # Windows DPAPI 本地敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (180 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (191 项测试全覆盖)
+│       ├── StrategyPlaybookGeneratorTests.cs # 实战策略手册生成、JSON 容错解析与缓存键测试
 │       ├── AiQaAndCustomRelationshipTests.cs # AI问答界面结构、会话持久化与看板契约验证
 │       ├── SqliteStorageTests.cs         # SQLite 表初始化、消息去重排序、画像与技能持久化测试
 │       ├── SkillStoreTests.cs            # 技能绑定、递归扫描发现与物理安全删除测试
@@ -306,7 +308,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (180 项测试全绿)
+# 2. 运行自动化测试 (191 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -439,7 +441,8 @@ powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:
 dotnet test
 ```
 
-测试覆盖概览（**180 项全通过**）：
+测试覆盖概览（**191 项全通过**）：
+- `StrategyPlaybookGeneratorTests`：AI 实战破局策略与避坑指南请求组装、JSON 容错解析、缓存键失效以及建议分值如实展示（不伪造缺失分）测试；
 - `AiQaAndCustomRelationshipTests`：AI 问答主界面结构、会话存储与加载、Antigravity 交互组件契约、画像分析看板纯净契约验证；
 - `SqliteStorageTests`：SQLite 数据库初始化与 WAL 模式、消息 SHA256 指纹幂等去重、按时间顺序检索、画像与战略目的存取以及键值配置测试；
 - `SkillStoreTests`：Antigravity 风格技能文件夹绑定、多层递归自动扫描、Markdown YAML 元数据解析、当前技能持久化与物理安全删除测试；

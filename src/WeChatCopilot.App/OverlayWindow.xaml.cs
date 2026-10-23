@@ -67,6 +67,8 @@ public partial class OverlayWindow : Window
     private readonly ChatRegionOptions _cropOptions = new();
 
     private CancellationTokenSource? _settingTestCts;
+    private CancellationTokenSource? _adviceCts;
+    private CancellationTokenSource? _distillCts;
 
     private readonly DispatcherTimer _relocateTimer;
     private readonly DispatcherTimer _autoReadTimer;
@@ -176,6 +178,19 @@ public partial class OverlayWindow : Window
             Height = savedSettings.WindowHeight;
         }
 
+        if (savedSettings.WindowOpacity >= 0.4 && savedSettings.WindowOpacity <= 1.0)
+        {
+            Opacity = savedSettings.WindowOpacity;
+        }
+        if (savedSettings.OcrUpscaleFactor is >= 1 and <= 4)
+        {
+            _ocrUpscaleFactor = savedSettings.OcrUpscaleFactor;
+        }
+        if (!string.IsNullOrWhiteSpace(savedSettings.SelfNickname))
+        {
+            _mySelfNickname = savedSettings.SelfNickname.Trim();
+        }
+
         ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Dark");
 
         if (AiContextCountCombo != null)
@@ -209,6 +224,12 @@ public partial class OverlayWindow : Window
         _hotkeys?.Dispose();
         _settingTestCts?.Cancel();
         _settingTestCts?.Dispose();
+        _adviceCts?.Cancel();
+        _adviceCts?.Dispose();
+        _distillCts?.Cancel();
+        _distillCts?.Dispose();
+        _qaCts?.Cancel();
+        _qaCts?.Dispose();
 
         if (_tray is not null)
         {
@@ -665,6 +686,13 @@ public partial class OverlayWindow : Window
     private void RefreshChatView()
     {
         OcrOutput.Visibility = Visibility.Collapsed;
+#pragma warning disable CS0162
+        if (false && _adviceCts != null)
+        {
+            _adviceCts.Cancel();
+            return;
+        }
+
         if (_conversation.Count == 0)
         {
             ChatEmptyPlaceholder.Visibility = Visibility.Visible;
@@ -772,16 +800,36 @@ public partial class OverlayWindow : Window
             AiGoalBadge.Visibility = Visibility.Collapsed;
             AiNoGoalPromptText.Visibility = Visibility.Visible;
         }
+
+        SyncQaSessionForContact(target);
+        if (false)
+        {
+            AiPersonaBadge.Visibility = Visibility.Collapsed;
+            AiGoalBadge.Visibility = Visibility.Collapsed;
+            AiNoGoalPromptText.Visibility = Visibility.Visible;
+        }
     }
 
     private async void GenerateButton_Click(object sender, RoutedEventArgs e)
     {
+#pragma warning disable CS0162
+        if (false && _adviceCts != null)
+        {
+            _adviceCts.Cancel();
+            return;
+        }
+
         if (_conversation.Count == 0)
         {
             SetAiStatus("对话缓冲为空，请先在「当前对话」点击【⚡ 读取当前对话】。", isError: true);
             return;
         }
 
+        if (_adviceCts != null)
+        {
+            _adviceCts.Cancel();
+            return;
+        }
         int count = CountBox.SelectedIndex == 1 ? 5 : 3;
         DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Intimacy;
 
@@ -838,7 +886,8 @@ public partial class OverlayWindow : Window
                 ultimateGoal: ultimateGoal,
                 contextCount: contextCount);
 
-            AiReply reply = await provider.CompleteAsync(req);
+            _adviceCts = new CancellationTokenSource();
+            AiReply reply = await provider.CompleteAsync(req, _adviceCts.Token);
             AiStatusBanner.Visibility = Visibility.Collapsed;
 
             if (!reply.Success)
@@ -849,6 +898,90 @@ public partial class OverlayWindow : Window
 
             var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
             ShowUnifiedAdvice(advice, target, activeSkill);
+        }
+        catch (OperationCanceledException)
+        {
+            AiStatusBanner.Visibility = Visibility.Collapsed;
+            SetAiStatus("⏹ 已取消本次回复建议生成。", isError: true);
+        }
+        catch (Exception ex)
+        {
+            AiStatusBanner.Visibility = Visibility.Collapsed;
+            SetAiStatus("调用异常：" + ex.Message, isError: true);
+        }
+        finally
+        {
+            _adviceCts?.Dispose();
+            _adviceCts = null;
+            GenerateButton.IsEnabled = true;
+            GenerateButton.Content = "🚀 智能分析回复建议";
+        }
+    }
+
+    private async Task<UnifiedAiAdvice?> RegenerateAdviceFromDashboardAsync(CancellationToken ct)
+    {
+        if (_conversation.Count == 0) return null;
+
+        int count = CountBox.SelectedIndex == 1 ? 5 : 3;
+        DistillSkill activeSkill = _currentSkill ?? DistillSkillPresets.Intimacy;
+        string target = ContactBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(target)) target = _currentChatContact;
+
+        Persona? personaContext = null;
+        if (IncludePersonaCheck.IsChecked == true && !string.IsNullOrEmpty(target))
+        {
+            personaContext = _personaStore.Load(target);
+        }
+
+        string userIntent = AiIntentBox.Text.Trim();
+        string? ultimateGoal = personaContext?.UltimateGoal;
+
+        var settings = new SettingsStore().Load();
+        string key = DpapiProtector.Unprotect(settings.EncryptedApiKey);
+        int timeoutSec = Math.Max(settings.TimeoutSeconds, 120);
+        using var provider = new OpenAiCompatibleProvider(settings.Endpoint, () => key, timeout: TimeSpan.FromSeconds(timeoutSec));
+
+        var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? _conversation.Messages.LastOrDefault();
+        string targetStatement = latestIncoming?.Text ?? string.Empty;
+
+        int contextCount = 10;
+        if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
+            int.TryParse(item.Tag?.ToString(), out int parsed) && parsed > 0)
+        {
+            contextCount = parsed;
+        }
+        else if (settings.ContextMessageCount > 0)
+        {
+            contextCount = settings.ContextMessageCount;
+        }
+
+        AiRequest req = PromptBuilder.BuildUnifiedAdvice(
+            settings,
+            _conversation.Messages,
+            count,
+            personaContext,
+            target,
+            relationship: null,
+            activeSkill,
+            userIntent: userIntent,
+            ultimateGoal: ultimateGoal,
+            contextCount: contextCount);
+
+        AiReply reply = await provider.CompleteAsync(req, ct);
+        if (!reply.Success || string.IsNullOrWhiteSpace(reply.Text))
+        {
+            return null;
+        }
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
+        ShowUnifiedAdvice(advice, target, activeSkill);
+        return advice;
+    }
+
+    private void UnusedAdviceCatchPlaceholder()
+    {
+        try
+        {
         }
         catch (Exception ex)
         {
@@ -953,7 +1086,9 @@ public partial class OverlayWindow : Window
             AiStatusBanner.BorderBrush = new SolidColorBrush(Color.FromArgb(85, 59, 130, 246));
             AiStatusText.Foreground = (SolidColorBrush)FindResource("TextPrimaryBrush");
             AiStatusDismissBtn.Visibility = Visibility.Collapsed;
-            GenerateButton.Content = "⏳ 分析建议中...";
+            GenerateButton.Content = "⏹ 停止生成";
+            GenerateButton.IsEnabled = true;
+            if (false) GenerateButton.IsEnabled = false;
             GenerateButton.IsEnabled = false;
         }
     }
@@ -961,6 +1096,27 @@ public partial class OverlayWindow : Window
     private void AiStatusDismiss_Click(object sender, RoutedEventArgs e)
     {
         AiStatusBanner.Visibility = Visibility.Collapsed;
+    }
+
+    private async void PasteSuggestionToWeChat_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string text)
+        {
+            try
+            {
+                Clipboard.SetText(text);
+                bool pasted = await WindowPositioner.TryPasteToWeChatInputAsync(_tracker.GetCurrent());
+                btn.Content = pasted ? "✔ 已填入" : "✔ 已复制";
+                btn.Foreground = (SolidColorBrush)FindResource("GreenBrush");
+                await Task.Delay(1500);
+                btn.Content = "📤 填入";
+                btn.ClearValue(ForegroundProperty);
+            }
+            catch
+            {
+                // ignored
+            }
+        }
     }
 
     private async void CopySuggestion_Click(object sender, RoutedEventArgs e)
@@ -1547,6 +1703,15 @@ public partial class OverlayWindow : Window
         string name = ContactBox.Text.Trim();
         if (string.IsNullOrEmpty(name))
         {
+        }
+        if (_distillCts != null)
+        {
+            _distillCts.Cancel();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(name))
+        {
             SetPersonaStatus("请先输入或同步联系人姓名。", isBusy: false);
             return;
         }
@@ -1596,7 +1761,11 @@ public partial class OverlayWindow : Window
         }
 
         DistillButton.IsEnabled = false;
-        DistillButton.Content = "⏳ 蒸馏中...";
+        _distillCts?.Dispose();
+        _distillCts = new CancellationTokenSource();
+        DistillButton.IsEnabled = true;
+        DistillButton.Content = "⏹ 停止蒸馏";
+        if (false) DistillButton.Content = "⏳ 蒸馏中...";
         SetPersonaStatus($"🧬 正在调用【{_currentSkill.Icon} {_currentSkill.Name}】蒸馏视角，分析 {name} 的 {_history.Count} 条历史...", isBusy: true);
 
         try
@@ -1615,7 +1784,9 @@ public partial class OverlayWindow : Window
                 existing,
                 _mySelfNickname,
                 _currentSkill,
-                freshDistill: true);
+                freshDistill: true,
+                preferSinglePass: true,
+                cancellationToken: _distillCts.Token);
 
             if (!distillResult.Success || distillResult.Persona.Traits.Count == 0)
             {
@@ -1629,6 +1800,24 @@ public partial class OverlayWindow : Window
             ShowPersona(persona);
             RefreshSavedPersonasCombo();
             SetPersonaStatus($"✅「{name}」画像蒸馏成功并已保存！（应用【{_currentSkill.Icon} {_currentSkill.Name}】，提炼 {persona.Traits.Count} 项特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false);
+        }
+        catch (OperationCanceledException)
+        {
+            SetPersonaStatus("⏹ 已取消本次画像蒸馏。", isBusy: false);
+        }
+        catch (Exception ex)
+        {
+            SetPersonaStatus("画像蒸馏异常：" + ex.Message, isBusy: false);
+        }
+        finally
+        {
+            _distillCts?.Dispose();
+            _distillCts = null;
+            DistillButton.IsEnabled = true;
+            DistillButton.Content = "✨ 一键蒸馏画像";
+        }
+        try
+        {
         }
         catch (Exception ex)
         {
@@ -1789,7 +1978,33 @@ public partial class OverlayWindow : Window
             ? _skillStore.GetSkill(_currentLoadedPersona.SkillId)
             : _currentSkill;
 
-        var win = new PersonaAnalyticsWindow(_currentLoadedPersona, skill, _history)
+        // 确保传入看板的是当前画像联系人的真实历史记录（若内存未加载或属于上一位联系人，自动从 SQLite 补齐）
+        IReadOnlyList<HistoryMessage> contactHistory = _history;
+        if (contactHistory.Count == 0 ||
+            !string.Equals(_historyContactName, _currentLoadedPersona.ContactName, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var loaded = _sqliteStorage.GetMessages(_currentLoadedPersona.ContactName);
+                if (loaded.Count > 0)
+                {
+                    _history.Clear();
+                    _history.AddRange(loaded);
+                    _historyContactName = _currentLoadedPersona.ContactName;
+                    contactHistory = _history;
+                }
+                else
+                {
+                    contactHistory = Array.Empty<HistoryMessage>();
+                }
+            }
+            catch
+            {
+                contactHistory = Array.Empty<HistoryMessage>();
+            }
+        }
+
+        var win = new PersonaAnalyticsWindow(_currentLoadedPersona, skill, contactHistory)
         {
             Owner = this
         };
@@ -1829,7 +2044,7 @@ public partial class OverlayWindow : Window
             ? _lastAdviceIntent
             : (AiIntentBox?.Text?.Trim() ?? string.Empty);
 
-        var win = new AdviceAnalyticsWindow(_lastUnifiedAdvice, persona, skill, contact, goal, intent)
+        var win = new AdviceAnalyticsWindow(_lastUnifiedAdvice, persona, skill, contact, goal, intent, RegenerateAdviceFromDashboardAsync)
         {
             Owner = this
         };
@@ -2310,6 +2525,77 @@ public partial class OverlayWindow : Window
         }
         QaHistoryBadgeText.Text = msgCount > 0 ? $"记录: {msgCount}条" : "无聊天记录";
         QaHistoryBadgeText.ToolTip = msgCount > 0 ? $"已关联本地历史数据库中 {msgCount} 条真实聊天记录" : "本地暂无聊天记录";
+    }
+
+    public void OnThemeChanged()
+    {
+        if (!IsLoaded) return;
+        if (_currentLoadedPersona != null)
+        {
+            var cleanTraits = PersonaDistiller.DeduplicateByDimension(_currentLoadedPersona.Traits, _history);
+            var displaySkill = !string.IsNullOrWhiteSpace(_currentLoadedPersona.SkillId)
+                ? (_skillStore.GetSkill(_currentLoadedPersona.SkillId) ?? _currentSkill)
+                : _currentSkill;
+            DrawRadarChart(cleanTraits, displaySkill);
+        }
+        else if (RadarCanvas != null && RadarCanvas.Children.Count > 0)
+        {
+            DrawRadarChart(null, _currentSkill);
+        }
+
+        if (QaHistorySidebarOverlay?.Visibility == Visibility.Visible)
+        {
+            RenderSessionList();
+        }
+    }
+
+    private void SyncQaSessionForContact(string? contactName)
+    {
+        if (!IsLoaded) return;
+        UpdateQaContextDisplay();
+
+        if (string.IsNullOrWhiteSpace(contactName)) return;
+
+        if (_qaSessions.Count == 0)
+        {
+            _qaSessions = _qaSessionStore.LoadAll();
+        }
+
+        if (_currentQaSession != null &&
+            string.Equals(_currentQaSession.ContactName, contactName, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var existingForContact = _qaSessions
+            .Where(s => string.Equals(s.ContactName, contactName, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(s => s.UpdatedAt)
+            .FirstOrDefault();
+
+        if (existingForContact != null)
+        {
+            SwitchToSession(existingForContact);
+        }
+        else if (_currentQaSession != null && _currentQaSession.Messages.Count == 0)
+        {
+            _currentQaSession.ContactName = contactName;
+            _qaSessionStore.SaveAll(_qaSessions);
+        }
+        else
+        {
+            var newSession = new QaSession
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Title = "新会话",
+                ContactName = contactName,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now,
+                Messages = new()
+            };
+            _qaSessions.Insert(0, newSession);
+            _qaSessionStore.SaveAll(_qaSessions);
+            SwitchToSession(newSession);
+        }
     }
 
     // ===================== 会话切换、侧边栏与生命周期管理 =====================
@@ -2865,8 +3151,13 @@ public partial class OverlayWindow : Window
                 sbQaHistory.AppendLine();
             }
 
-            // 5. 提示词工程 (Antigravity Copilot Style)
-            string systemPrompt =
+            // 5. 提示词工程 (Antigravity Copilot Style + 当前激活 Skill 注入)
+            string skillGuideline = _currentSkill.GetEffectiveAdviceGuideline();
+            if (skillGuideline.Length > 1200)
+            {
+                skillGuideline = skillGuideline[..1200] + "…";
+            }
+            string systemPrompt = $"【当前激活技能体系（{_currentSkill.Icon} {_currentSkill.Name}）】：\n{skillGuideline}\n\n" +
 $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情商沟通博弈的资深私人AI军师（Antigravity Copilot）。
 用户正在与联系人【{contact}】进行沟通，并就现实互动向你寻求谋划和指导。
 你有当前联系人的实名画像数据与聊天记录作为事实依据。
@@ -2903,14 +3194,14 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
                 UserPrompt: sbUserPrompt.ToString().Trim(),
                 Model: settings.Model,
                 Temperature: 0.7,
-                MaxTokens: 1500);
+                MaxTokens: 2500);
 
             AiReply reply = await provider.CompleteAsync(req, _qaCts.Token);
 
             if (reply.Success && !string.IsNullOrWhiteSpace(reply.Text))
             {
                 string replyText = reply.Text.Trim();
-                var groundingParts = new List<string>();
+                var groundingParts = new List<string> { $"技能({_currentSkill.Name})" };
                 if (traitCount > 0) groundingParts.Add($"画像({traitCount}项特质)");
                 if (historyCount > 0) groundingParts.Add($"真实历史({historyCount}条)");
                 string groundingInfo = groundingParts.Count > 0
@@ -3554,7 +3845,10 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
             ContextMessageCount = existing.ContextMessageCount,
             ThemeMode = existing.ThemeMode,
             WindowWidth = existing.WindowWidth,
-            WindowHeight = existing.WindowHeight
+            WindowHeight = existing.WindowHeight,
+            WindowOpacity = existing.WindowOpacity,
+            OcrUpscaleFactor = existing.OcrUpscaleFactor,
+            SelfNickname = existing.SelfNickname
         };
 
         _settingsStore.Save(saved);
@@ -3587,6 +3881,12 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
             double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity))
         {
             this.Opacity = opacity;
+            var s = _settingsStore.Load();
+            if (Math.Abs(s.WindowOpacity - opacity) > 0.005)
+            {
+                s.WindowOpacity = opacity;
+                _settingsStore.Save(s);
+            }
         }
     }
 
@@ -3597,6 +3897,12 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
             double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
         {
             _ocrUpscaleFactor = (int)Math.Round(scale);
+            var s = _settingsStore.Load();
+            if (s.OcrUpscaleFactor != _ocrUpscaleFactor)
+            {
+                s.OcrUpscaleFactor = _ocrUpscaleFactor;
+                _settingsStore.Save(s);
+            }
         }
     }
 
@@ -3604,6 +3910,12 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
     {
         string text = SettingSelfNicknameBox.Text.Trim();
         _mySelfNickname = string.IsNullOrEmpty(text) ? null : text;
+        var s = _settingsStore.Load();
+        if (s.SelfNickname != _mySelfNickname)
+        {
+            s.SelfNickname = _mySelfNickname;
+            _settingsStore.Save(s);
+        }
     }
 
     private void OpenDataDirectory_Click(object sender, RoutedEventArgs e)

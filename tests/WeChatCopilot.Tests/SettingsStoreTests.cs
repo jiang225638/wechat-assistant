@@ -41,6 +41,9 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal("Dark", settings.ThemeMode);
         Assert.Equal(430.0, settings.WindowWidth);
         Assert.Equal(690.0, settings.WindowHeight);
+        Assert.Equal(1.0, settings.WindowOpacity);
+        Assert.Equal(3, settings.OcrUpscaleFactor);
+        Assert.Null(settings.SelfNickname);
     }
 
     [Fact]
@@ -54,7 +57,10 @@ public class SettingsStoreTests : IDisposable
             ContextMessageCount = 15,
             ThemeMode = "Light",
             WindowWidth = 520.0,
-            WindowHeight = 780.0
+            WindowHeight = 780.0,
+            WindowOpacity = 0.85,
+            OcrUpscaleFactor = 2,
+            SelfNickname = "测试本人昵称"
         };
 
         _store.Save(original);
@@ -67,5 +73,8 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal("Light", loaded.ThemeMode);
         Assert.Equal(520.0, loaded.WindowWidth);
         Assert.Equal(780.0, loaded.WindowHeight);
+        Assert.Equal(0.85, loaded.WindowOpacity);
+        Assert.Equal(2, loaded.OcrUpscaleFactor);
+        Assert.Equal("测试本人昵称", loaded.SelfNickname);
     }
 }

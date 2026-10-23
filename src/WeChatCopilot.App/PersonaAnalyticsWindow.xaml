@@ -9,6 +9,7 @@
     MinWidth="880"
     MinHeight="600"
     Background="{DynamicResource WindowBg}"
+    Foreground="{DynamicResource TextPrimary}"
     WindowStyle="None"
     AllowsTransparency="False"
     ResizeMode="CanResize"
@@ -382,7 +383,7 @@
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Width="28" Height="28" CornerRadius="6" Background="#2638BDF8" BorderBrush="#5538BDF8" BorderThickness="1" Margin="0,0,8,0">
-                            <TextBlock Text="👤" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Text="👤" FontSize="14" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <TextBlock
                             x:Name="HeaderContactName"
@@ -970,6 +971,30 @@
                                 Margin="0,0,0,14" />
 
 
+
+                            <!--  AI 生成状态与重新生成  -->
+                            <Grid Margin="0,-6,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="StrategyStatusText"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource TextSecondary}"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                                <Button
+                                    x:Name="RegenerateStrategyButton"
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    Click="RegenerateStrategyButton_Click"
+                                    Content="🔄 AI 重新生成"
+                                    Style="{StaticResource TopActionButton}"
+                                    ToolTip="调用大模型，针对该联系人重新生成实战策略与避坑指南" />
+                            </Grid>
 
                             <!--  模块 1：核心心理/诉求概貌总评  -->
                             <Border

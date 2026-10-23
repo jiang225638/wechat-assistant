@@ -35,5 +35,14 @@ public sealed record AiSettings
 
     /// <summary>用户调整记忆的悬浮窗高度，默认 690。</summary>
     public double WindowHeight { get; set; } = 690.0;
+
+    /// <summary>悬浮窗透明度（0.5 ~ 1.0），默认 1.0。</summary>
+    public double WindowOpacity { get; set; } = 1.0;
+
+    /// <summary>OCR 图像放大倍率（1 ~ 4），默认 3。</summary>
+    public int OcrUpscaleFactor { get; set; } = 3;
+
+    /// <summary>用户配置的本人微信昵称（用于在群聊与单聊中排除自身名称干扰）。</summary>
+    public string? SelfNickname { get; set; }
 }
 

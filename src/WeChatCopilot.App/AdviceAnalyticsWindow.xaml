@@ -9,6 +9,7 @@
     MinWidth="960"
     MinHeight="640"
     Background="{DynamicResource WindowBgBrush}"
+    Foreground="{DynamicResource TextPrimaryBrush}"
     WindowStyle="None"
     AllowsTransparency="False"
     ResizeMode="CanResize"
@@ -17,7 +18,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome
             CaptionHeight="0"
-            ResizeBorderThickness="6"
+            ResizeBorderThickness="4"
             GlassFrameThickness="-1"
             CornerRadius="12"
             UseAeroCaptionButtons="False" />
@@ -164,9 +165,9 @@
             <!-- 0: 顶部战略元信息标题栏 -->
             <RowDefinition Height="54" />
             <!-- 1: 中部一屏三大复合图表矩阵 (42%) -->
-            <RowDefinition Height="330" />
+            <RowDefinition Height="4.4*" MinHeight="310" />
             <!-- 2: 下部战局沙盘与方案对战列表 (自适应充满) -->
-            <RowDefinition Height="*" />
+            <RowDefinition Height="5.6*" />
             <!-- 3: 底部状态与操作栏 -->
             <RowDefinition Height="46" />
         </Grid.RowDefinitions>
@@ -189,7 +190,7 @@
                 <!-- 左侧: 标题与标识 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="30" Height="30" CornerRadius="6" Background="#2638BDF8" BorderBrush="#5538BDF8" BorderThickness="1" Margin="0,0,10,0">
-                        <TextBlock Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Text="⚡" FontSize="16" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="话语力量与博弈推演全景大看板" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -286,7 +287,9 @@
                     <WrapPanel Grid.Row="1" x:Name="RadarLegendPanel" Margin="0,5,0,2" HorizontalAlignment="Center" />
 
                     <!-- 雷达 Canvas 绘制区 -->
-                    <Canvas Grid.Row="2" x:Name="RadarCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="360" Height="240" />
+                    <Grid Grid.Row="2" x:Name="RadarHostGrid" SizeChanged="RadarHostGrid_SizeChanged">
+                        <Canvas x:Name="RadarCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="360" Height="240" />
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -344,7 +347,9 @@
                     </Grid>
 
                     <!-- 象限图 Canvas 绘制区 -->
-                    <Canvas Grid.Row="1" x:Name="QuadrantCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="280" Height="255" />
+                    <Grid Grid.Row="1" x:Name="QuadrantHostGrid" SizeChanged="QuadrantHostGrid_SizeChanged">
+                        <Canvas x:Name="QuadrantCanvas" ClipToBounds="False" HorizontalAlignment="Center" VerticalAlignment="Center" Width="280" Height="255" />
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
@@ -503,6 +508,13 @@
 
                 <!-- 底部按钮操作组 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button
+                        x:Name="RegenerateAdviceButton"
+                        Style="{StaticResource ActionBtnStyle}"
+                        Click="RegenerateAdviceButton_Click"
+                        Margin="0,0,10,0"
+                        ToolTip="基于当前对话、画像、技能与意图重新调用 AI 生成候选方案"
+                        Content="🔄 AI 重新生成" />
                     <Button
                         x:Name="ExportReportButton"
                         Style="{StaticResource ActionBtnStyle}"

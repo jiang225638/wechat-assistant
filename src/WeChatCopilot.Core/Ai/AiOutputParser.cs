@@ -203,8 +203,8 @@ public static class AiOutputParser
                 string text = string.Empty;
                 string reason = string.Empty;
                 var scores = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
-                double goalPush = 75;
-                double personaSafety = 80;
+                double goalPush = double.NaN;
+                double personaSafety = double.NaN;
 
                 var pipes = rest.Split(new[] { '|', '｜' }, StringSplitOptions.TrimEntries);
                 if (pipes.Length > 0)
@@ -237,17 +237,6 @@ public static class AiOutputParser
                 else
                 {
                     text = rest;
-                }
-
-                // 若动态维度已发现，且某个回复未包含具体分值，填补默认值保持图表完整
-                if (dynamicDims.Count > 0 && scores.Count == 0)
-                {
-                    int idx = suggestions.Count;
-                    double baseScore = 75 + (idx * 5 % 15);
-                    foreach (var dim in dynamicDims)
-                    {
-                        scores[dim] = baseScore;
-                    }
                 }
 
                 suggestions.Add(new ReplySuggestion(tone, text, reason, scores, goalPush, personaSafety));

@@ -258,6 +258,6 @@ public static class PromptBuilder
         sb.AppendLine();
         sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】：");
 
-        return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7);
+        return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7, MaxTokens: 2500);
     }
 }

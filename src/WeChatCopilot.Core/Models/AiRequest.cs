@@ -8,10 +8,10 @@ namespace WeChatCopilot.Core.Models;
 /// <param name="UserPrompt">用户提示（本次任务输入，如对话转写）。</param>
 /// <param name="Model">模型名（如 gpt-4o-mini / deepseek-chat）。</param>
 /// <param name="Temperature">采样温度，0 更确定、1 更发散。</param>
-/// <param name="MaxTokens">最大生成 token 数。</param>
+/// <param name="MaxTokens">最大生成 token 数（默认 2048，避免多维度/长建议被截断）。</param>
 public sealed record AiRequest(
     string SystemPrompt,
     string UserPrompt,
     string Model,
     double Temperature = 0.7,
-    int MaxTokens = 512);
+    int MaxTokens = 2048);
