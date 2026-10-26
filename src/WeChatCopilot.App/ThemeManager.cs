@@ -219,6 +219,16 @@ public static class ThemeManager
         UpdateBrush(window, "ChatOutgoingBadgeBrush", chatOutgoingBadge);
         UpdateBrush(window, "ChatOutgoingTextBrush", chatOutgoingText);
 
+        // 语义化状态画刷（错误 / 成功 / 忙碌）
+        UpdateBrush(window, "StatusErrorBrush", isLight ? Color.FromArgb(0xFF, 0xDC, 0x26, 0x26) : Color.FromArgb(0xFF, 0xF8, 0x71, 0x71));
+        UpdateBrush(window, "StatusErrorBgBrush", isLight ? Color.FromArgb(0x18, 0xEF, 0x44, 0x44) : Color.FromArgb(0x24, 0xEF, 0x44, 0x44));
+        UpdateBrush(window, "StatusErrorBorderBrush", isLight ? Color.FromArgb(0x45, 0xEF, 0x44, 0x44) : Color.FromArgb(0x5A, 0xEF, 0x44, 0x44));
+        UpdateBrush(window, "StatusSuccessBrush", isLight ? Color.FromArgb(0xFF, 0x05, 0x96, 0x69) : Color.FromArgb(0xFF, 0x34, 0xD3, 0x99));
+        UpdateBrush(window, "StatusSuccessBgBrush", isLight ? Color.FromArgb(0x16, 0x10, 0xB9, 0x81) : Color.FromArgb(0x1E, 0x10, 0xB9, 0x81));
+        UpdateBrush(window, "StatusSuccessBorderBrush", isLight ? Color.FromArgb(0x3E, 0x10, 0xB9, 0x81) : Color.FromArgb(0x46, 0x10, 0xB9, 0x81));
+        UpdateBrush(window, "StatusBusyBgBrush", isLight ? Color.FromArgb(0x18, 0x3B, 0x82, 0xF6) : Color.FromArgb(0x22, 0x3B, 0x82, 0xF6));
+        UpdateBrush(window, "StatusBusyBorderBrush", isLight ? Color.FromArgb(0x44, 0x3B, 0x82, 0xF6) : Color.FromArgb(0x55, 0x3B, 0x82, 0xF6));
+
         NotifyWindowsThemeChanged(window);
     }
 

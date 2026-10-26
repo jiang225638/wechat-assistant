@@ -4,7 +4,6 @@
     <Project Path="src/WeChatCopilot.App/WeChatCopilot.App.csproj" />
     <Project Path="src/WeChatCopilot.Core/WeChatCopilot.Core.csproj" />
     <Project Path="src/WeChatCopilot.Data/WeChatCopilot.Data.csproj" />
-    <Project Path="src/WeChatCopilot.Ocr/WeChatCopilot.Ocr.csproj" />
     <Project Path="src/WeChatCopilot.Windows/WeChatCopilot.Windows.csproj" />
   </Folder>
   <Folder Name="/tests/">

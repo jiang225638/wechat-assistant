@@ -329,8 +329,6 @@ public static class MarkdownRenderer
         btnPanel.Children.Add(copyBtn);
         Grid.SetColumn(btnPanel, 1);
         grid.Children.Add(btnPanel);
-#pragma warning disable CS0162
-        if (false) Grid.SetColumn(copyBtn, 1);
 
         border.Child = grid;
         return border;
@@ -435,7 +433,10 @@ public static class MarkdownRenderer
                     copyBtn.Content = "✅ 已复制";
                     _ = Task.Delay(1500).ContinueWith(_ => copyBtn.Dispatcher.Invoke(() => copyBtn.Content = "📋 复制"));
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    WeChatCopilot.Core.Diagnostics.AppLog.Warn("MarkdownRenderer", "复制代码块到剪贴板失败", ex);
+                }
             };
             Grid.SetColumn(copyBtn, 1);
             headerGrid.Children.Add(copyBtn);

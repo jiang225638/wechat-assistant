@@ -24,7 +24,6 @@
   <ItemGroup>
     <ProjectReference Include="..\WeChatCopilot.Core\WeChatCopilot.Core.csproj" />
     <ProjectReference Include="..\WeChatCopilot.Windows\WeChatCopilot.Windows.csproj" />
-    <ProjectReference Include="..\WeChatCopilot.Ocr\WeChatCopilot.Ocr.csproj" />
     <ProjectReference Include="..\WeChatCopilot.AI\WeChatCopilot.AI.csproj" />
     <ProjectReference Include="..\WeChatCopilot.Data\WeChatCopilot.Data.csproj" />
   </ItemGroup>

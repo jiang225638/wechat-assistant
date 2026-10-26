@@ -96,9 +96,9 @@ public sealed class PersonaStore
         {
             File.WriteAllText(PathFor(persona.ContactName), JsonSerializer.Serialize(persona, s_jsonOptions));
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略文件写异常，保证 SQLite 为权威主库
+            WeChatCopilot.Core.Diagnostics.AppLog.Warn("PersonaStore", $"写入 JSON 备份文件失败: {persona.ContactName}", ex);
         }
     }
 
@@ -124,9 +124,9 @@ public sealed class PersonaStore
                     deletedSqlite |= _sqliteStorage.DeletePersona(jsonPersona.ContactName);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略反序列化异常
+                WeChatCopilot.Core.Diagnostics.AppLog.Warn("PersonaStore", $"读取待删 JSON 画像失败: {path}", ex);
             }
 
             try
@@ -134,9 +134,9 @@ public sealed class PersonaStore
                 File.Delete(path);
                 deletedJson = true;
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略文件系统删除异常
+                WeChatCopilot.Core.Diagnostics.AppLog.Warn("PersonaStore", $"删除 JSON 备份文件失败: {path}", ex);
             }
         }
 

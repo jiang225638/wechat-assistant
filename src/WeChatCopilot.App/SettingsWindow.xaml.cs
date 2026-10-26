@@ -230,9 +230,10 @@ public partial class SettingsWindow : Window
             ? to
             : 180;
 
+        var existing = _store.Load();
         // Key 留空 = 保留原密文（允许只改其他字段而不重输 Key）
         string encrypted = string.IsNullOrEmpty(KeyBox.Password)
-            ? _store.Load().EncryptedApiKey
+            ? existing.EncryptedApiKey
             : DpapiProtector.Protect(KeyBox.Password);
 
         Saved = new AiSettings
@@ -242,7 +243,16 @@ public partial class SettingsWindow : Window
             Temperature = temp,
             TimeoutSeconds = timeout,
             EncryptedApiKey = encrypted,
-            TraceMemoBaseUrl = TraceMemoBox.Text.Trim()
+            TraceMemoBaseUrl = TraceMemoBox.Text.Trim(),
+            WeChatDbRoot = existing.WeChatDbRoot,
+            EncryptedWeChatDbKey = existing.EncryptedWeChatDbKey,
+            NativeWcdbDllDir = existing.NativeWcdbDllDir,
+            ContextMessageCount = existing.ContextMessageCount,
+            ThemeMode = existing.ThemeMode,
+            WindowWidth = existing.WindowWidth,
+            WindowHeight = existing.WindowHeight,
+            WindowOpacity = existing.WindowOpacity,
+            SelfNickname = existing.SelfNickname
         };
 
         _store.Save(Saved);

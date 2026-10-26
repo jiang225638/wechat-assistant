@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WeChatCopilot.Core\WeChatCopilot.Core.csproj" />
+    <ProjectReference Include="..\..\src\WeChatCopilot.AI\WeChatCopilot.AI.csproj" />
     <ProjectReference Include="..\..\src\WeChatCopilot.Data\WeChatCopilot.Data.csproj" />
     <ProjectReference Include="..\..\src\WeChatCopilot.Windows\WeChatCopilot.Windows.csproj" />
   </ItemGroup>

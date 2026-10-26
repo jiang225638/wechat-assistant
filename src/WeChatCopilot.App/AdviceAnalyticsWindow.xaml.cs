@@ -565,18 +565,6 @@ public partial class AdviceAnalyticsWindow : Window
                 Grid.SetColumn(fillBar, 0);
                 trackGrid.Children.Add(fillBar);
                 track.Child = trackGrid;
-#pragma warning disable CS0162
-                if (false)
-                {
-                    { var unusedFillBar = new Border
-                    {
-                        Width = 0,
-                    Background = new SolidColorBrush(col),
-                    CornerRadius = new CornerRadius(4)
-                };
-                };
-                }
-                track.Child = trackGrid;
                 Grid.SetColumn(track, 1);
                 row.Children.Add(track);
 
@@ -930,7 +918,6 @@ public partial class AdviceAnalyticsWindow : Window
             actionButtonsPanel.Children.Add(copyBtn);
             Grid.SetColumn(actionButtonsPanel, 1);
             headerGrid.Children.Add(actionButtonsPanel);
-            if (false) headerGrid.Children.Add(copyBtn);
 
             sp.Children.Add(headerGrid);
 

@@ -80,7 +80,14 @@ public sealed class SkillStore
         }
 
         string defaultDir = Path.Combine(_directory, "skills");
-        try { Directory.CreateDirectory(defaultDir); } catch {}
+        try
+        {
+            Directory.CreateDirectory(defaultDir);
+        }
+        catch (Exception ex)
+        {
+            WeChatCopilot.Core.Diagnostics.AppLog.Warn("SkillStore", $"创建默认技能目录失败: {defaultDir}", ex);
+        }
         return defaultDir;
     }
 
@@ -92,9 +99,9 @@ public sealed class SkillStore
         {
             File.WriteAllText(_boundDirFilePath, path.Trim());
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略写入异常
+            WeChatCopilot.Core.Diagnostics.AppLog.Warn("SkillStore", "写入绑定技能目录配置失败", ex);
         }
     }
 

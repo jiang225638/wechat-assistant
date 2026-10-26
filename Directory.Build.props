@@ -3,6 +3,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <WarningsAsErrors>$(WarningsAsErrors);CS0162;CS0168;CS0219</WarningsAsErrors>
     <Product>WeChat Copilot</Product>
     <Company>huanmai</Company>
     <BaseVersion>1.0</BaseVersion>

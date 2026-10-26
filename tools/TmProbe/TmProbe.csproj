@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\WeChatCopilot.Core\WeChatCopilot.Core.csproj" />
     <ProjectReference Include="..\..\src\WeChatCopilot.Data\WeChatCopilot.Data.csproj" />
   </ItemGroup>
 

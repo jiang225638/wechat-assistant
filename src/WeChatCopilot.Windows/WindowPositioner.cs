@@ -125,9 +125,4 @@ public static class WindowPositioner
 
         return true;
     }
-    private static void UnusedPlaceholder() { }
-}
-internal static class WindowPositionerEnd { static void M() { {
-        }
-    }
 }

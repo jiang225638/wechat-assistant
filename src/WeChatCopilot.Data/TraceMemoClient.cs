@@ -1,11 +1,12 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using WeChatCopilot.Core.Abstractions;
 using WeChatCopilot.Core.Models;
 
 namespace WeChatCopilot.Data;
 
 /// <summary>
-/// M5 冷链路主来源（FR-8）：TraceMemo Local HTTP API 客户端。
+/// M5 冷链路 HTTP 兜底客户端（FR-8）：TraceMemo Local HTTP API 客户端。
 /// 支持两种协议规范：
 /// 1. TraceMemo 原生 API (推荐)：
 ///    - GET api/v1/resolve?q={name} 或 api/v1/contact 获取联系人 wxid
@@ -16,10 +17,12 @@ namespace WeChatCopilot.Data;
 ///    - GET api/contacts/{id}/messages
 /// 任何异常都降级为 Success=false + Error，不抛出：冷链路故障不影响热链路。
 /// </summary>
-public sealed class TraceMemoClient : IDisposable
+public sealed class TraceMemoClient : IChatHistoryProvider
 {
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
+
+    public string SourceName => "TraceMemo API";
 
     /// <param name="baseUrl">TraceMemo Local API 基址（如 http://127.0.0.1:6131）。</param>
     /// <param name="token">Bearer Token；若为 null 则自动通过 <see cref="TraceMemoTokenProvider"/> 提取。</param>
@@ -72,6 +75,49 @@ public sealed class TraceMemoClient : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return Fail(ex.Message);
+        }
+    }
+
+    async Task<ChatHistoryResult> IChatHistoryProvider.FetchHistoryAsync(string contactName, CancellationToken cancellationToken)
+    {
+        var res = await FetchHistoryAsync(contactName, cancellationToken).ConfigureAwait(false);
+        return new ChatHistoryResult(res.Success, res.Messages, res.Error, SourceName);
+    }
+
+    public async Task<ChatConnectionStatus> TestConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        string baseUrl = _http.BaseAddress?.ToString() ?? string.Empty;
+        try
+        {
+            using var doc = await TryGetJsonAsync("api/v1/contact", cancellationToken).ConfigureAwait(false)
+                            ?? await TryGetJsonAsync("api/contacts", cancellationToken).ConfigureAwait(false);
+            if (doc is null)
+            {
+                return new ChatConnectionStatus(false, baseUrl, string.Empty, 0, "TraceMemo API 未响应或鉴权失败", SourceName);
+            }
+
+            int count = 0;
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                count = doc.RootElement.GetArrayLength();
+            }
+            else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+            {
+                if (doc.RootElement.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array)
+                {
+                    count = items.GetArrayLength();
+                }
+                else if (doc.RootElement.TryGetProperty("contacts", out var contacts) && contacts.ValueKind == JsonValueKind.Array)
+                {
+                    count = contacts.GetArrayLength();
+                }
+            }
+
+            return new ChatConnectionStatus(true, baseUrl, string.Empty, count, $"TraceMemo API 连接成功 (联系人: {count})", SourceName);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ChatConnectionStatus(false, baseUrl, string.Empty, 0, ex.Message, SourceName);
         }
     }
 
@@ -283,10 +329,12 @@ public sealed class TraceMemoClient : IDisposable
         string n = nick ?? string.Empty;
 
         if (w.StartsWith("gh_", StringComparison.OrdinalIgnoreCase) ||
+            w.StartsWith("@placeholder_", StringComparison.OrdinalIgnoreCase) ||
             w.EndsWith("@chatroom", StringComparison.OrdinalIgnoreCase) ||
             w.EndsWith("@im.chatroom", StringComparison.OrdinalIgnoreCase) ||
             w.EndsWith("@app", StringComparison.OrdinalIgnoreCase) ||
-            w.Contains("sessionholder", StringComparison.OrdinalIgnoreCase))
+            w.Contains("sessionholder", StringComparison.OrdinalIgnoreCase) ||
+            w.Equals("brandsessionholder", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
@@ -355,6 +403,86 @@ public sealed class TraceMemoClient : IDisposable
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 从 TraceMemo 的 recent_chat 流中获取最近单聊会话摘要列表。
+    /// </summary>
+    public async Task<IReadOnlyList<WeChatSessionSummary>> GetRecentSessionsAsync(int maxCount = 40, CancellationToken cancellationToken = default)
+    {
+        var result = new List<WeChatSessionSummary>();
+        try
+        {
+            using var doc = await TryGetJsonAsync("api/v1/recent_chat", cancellationToken).ConfigureAwait(false);
+            if (doc is null)
+            {
+                return result;
+            }
+
+            JsonElement root = doc.RootElement;
+            JsonElement.ArrayEnumerator enumerator = root.ValueKind switch
+            {
+                JsonValueKind.Array => root.EnumerateArray(),
+                JsonValueKind.Object when root.TryGetProperty("items", out var iArr) && iArr.ValueKind == JsonValueKind.Array => iArr.EnumerateArray(),
+                _ => default
+            };
+
+            foreach (JsonElement item in enumerator)
+            {
+                if (result.Count >= maxCount)
+                {
+                    break;
+                }
+
+                string type = GetStringAny(item, "type");
+                if (type.Equals("group", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (item.TryGetProperty("isOfficialAccount", out var isOfficial) && isOfficial.ValueKind == JsonValueKind.True)
+                {
+                    continue;
+                }
+
+                string nick = GetStringAny(item, "m_nsNickName", "nickname", "name").Trim();
+                string remark = GetStringAny(item, "remark").Trim();
+                string wxid = GetStringAny(item, "wxid", "m_nsUsrName").Trim();
+
+                if (IsSystemContact(wxid, nick) || IsSystemContact(wxid, remark))
+                {
+                    continue;
+                }
+
+                string displayName = !string.IsNullOrWhiteSpace(remark) ? remark : nick;
+                if (string.IsNullOrWhiteSpace(displayName))
+                {
+                    continue;
+                }
+
+                int unread = 0;
+                if (int.TryParse(GetStringAny(item, "unreadCount", "unread_count", "m_uUnReadCount"), out int parsedUnread) && parsedUnread > 0)
+                {
+                    unread = parsedUnread;
+                }
+
+                DateTime? lastActive = null;
+                string tsRaw = GetStringAny(item, "lastTimestamp", "last_timestamp", "timestamp", "time");
+                if (long.TryParse(tsRaw, out long tsSec) && tsSec > 0)
+                {
+                    if (tsSec > 1_000_000_000_000L) tsSec /= 1000L;
+                    lastActive = DateTimeOffset.FromUnixTimeSeconds(tsSec).UtcDateTime;
+                }
+
+                string summary = GetStringAny(item, "summary", "content", "lastMessage");
+                result.Add(new WeChatSessionSummary(wxid, displayName, nick, remark, unread, summary, lastActive));
+            }
+        }
+        catch
+        {
+        }
+
+        return result;
     }
 
     public void Dispose()

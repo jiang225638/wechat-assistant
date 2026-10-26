@@ -38,3 +38,7 @@ TestResults/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Bundled Native WCDB Binaries
+resources/wcdb/
+resources/runtime/

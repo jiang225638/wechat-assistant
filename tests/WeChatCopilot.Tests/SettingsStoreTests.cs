@@ -42,8 +42,10 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(430.0, settings.WindowWidth);
         Assert.Equal(690.0, settings.WindowHeight);
         Assert.Equal(1.0, settings.WindowOpacity);
-        Assert.Equal(3, settings.OcrUpscaleFactor);
         Assert.Null(settings.SelfNickname);
+        Assert.Equal(string.Empty, settings.WeChatDbRoot);
+        Assert.Equal(string.Empty, settings.EncryptedWeChatDbKey);
+        Assert.Equal(string.Empty, settings.NativeWcdbDllDir);
     }
 
     [Fact]
@@ -59,8 +61,10 @@ public class SettingsStoreTests : IDisposable
             WindowWidth = 520.0,
             WindowHeight = 780.0,
             WindowOpacity = 0.85,
-            OcrUpscaleFactor = 2,
-            SelfNickname = "测试本人昵称"
+            SelfNickname = "测试本人昵称",
+            WeChatDbRoot = @"E:\xwechat_files\wxid_test_1234",
+            EncryptedWeChatDbKey = "encrypted_key_payload",
+            NativeWcdbDllDir = @"C:\wcdb\win32\x64"
         };
 
         _store.Save(original);
@@ -74,7 +78,9 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(520.0, loaded.WindowWidth);
         Assert.Equal(780.0, loaded.WindowHeight);
         Assert.Equal(0.85, loaded.WindowOpacity);
-        Assert.Equal(2, loaded.OcrUpscaleFactor);
         Assert.Equal("测试本人昵称", loaded.SelfNickname);
+        Assert.Equal(@"E:\xwechat_files\wxid_test_1234", loaded.WeChatDbRoot);
+        Assert.Equal("encrypted_key_payload", loaded.EncryptedWeChatDbKey);
+        Assert.Equal(@"C:\wcdb\win32\x64", loaded.NativeWcdbDllDir);
     }
 }

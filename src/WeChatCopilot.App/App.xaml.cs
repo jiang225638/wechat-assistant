@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using WeChatCopilot.Core.Diagnostics;
 using Wpf.Ui.Appearance;
 
 namespace WeChatCopilot.App;
@@ -14,6 +15,7 @@ public partial class App : Application
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         // Fluent 暗色：与悬浮窗深色面板一致，避免控件亮色突兀
         ApplicationThemeManager.Apply(ApplicationTheme.Dark);
@@ -68,8 +70,15 @@ public partial class App : Application
         }
     }
 
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogError("后台任务未观察异常", e.Exception);
+        e.SetObserved();
+    }
+
     private static string LogError(string category, Exception ex)
     {
+        AppLog.Error(category, "全局异常捕获", ex);
         string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WeChatCopilot");
         string logFile = Path.Combine(dir, "crash.log");
         try
@@ -77,9 +86,9 @@ public partial class App : Application
             Directory.CreateDirectory(dir);
             File.AppendAllText(logFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{category}] {ex}\n\n");
         }
-        catch
+        catch (Exception writeEx)
         {
-            // 忽略日志写入错误
+            AppLog.Warn(category, "写入 crash.log 失败", writeEx);
         }
 
         return logFile;

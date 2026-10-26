@@ -15,6 +15,16 @@
             <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#60FFFFFF" />
             <SolidColorBrush x:Key="ScrollBarThumbPressedBrush" Color="#85FFFFFF" />
 
+            <!-- 语义化状态画刷 (支持 ThemeManager 深浅色动态切换) -->
+            <SolidColorBrush x:Key="StatusErrorBrush" Color="#FFF87171" />
+            <SolidColorBrush x:Key="StatusErrorBgBrush" Color="#24EF4444" />
+            <SolidColorBrush x:Key="StatusErrorBorderBrush" Color="#5AEF4444" />
+            <SolidColorBrush x:Key="StatusSuccessBrush" Color="#FF34D399" />
+            <SolidColorBrush x:Key="StatusSuccessBgBrush" Color="#1E10B981" />
+            <SolidColorBrush x:Key="StatusSuccessBorderBrush" Color="#4610B981" />
+            <SolidColorBrush x:Key="StatusBusyBgBrush" Color="#223B82F6" />
+            <SolidColorBrush x:Key="StatusBusyBorderBrush" Color="#553B82F6" />
+
             <!-- 滚动条透明 RepeatButton (无缝占位) -->
             <Style x:Key="ScrollBarTrackButton" TargetType="RepeatButton">
                 <Setter Property="OverridesDefaultStyle" Value="True" />
