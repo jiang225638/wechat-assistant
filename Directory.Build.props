@@ -6,6 +6,6 @@
     <WarningsAsErrors>$(WarningsAsErrors);CS0162;CS0168;CS0219</WarningsAsErrors>
     <Product>WeChat Copilot</Product>
     <Company>huanmai</Company>
-    <BaseVersion>1.0</BaseVersion>
+    <BaseVersion>3.2</BaseVersion>
   </PropertyGroup>
 </Project>
