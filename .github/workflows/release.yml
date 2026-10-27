@@ -51,7 +51,7 @@ jobs:
             $ver = $tag.TrimStart('v')
           } else {
             # 全自动递增模式：基于 BaseVersion + GitHub Actions 构建序号 (github.run_number) 自动递增
-            $baseVer = "1.0"
+            $baseVer = "3.0"
             if (Test-Path "Directory.Build.props") {
               [xml]$xml = Get-Content "Directory.Build.props"
               if ($xml.Project.PropertyGroup.BaseVersion) {
