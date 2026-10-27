@@ -1,80 +1,123 @@
 name: Auto Release (自动打包发布)
 
+# ==============================================================================
+# 触发条件配置 (Triggers)
+# ==============================================================================
 on:
+  # 1. 提交/合并代码到 main 主分支时自动触发
   push:
     branches:
       - main
+    # 2. 推送版本标签（如 v1.0.0, v1.0.16）时自动触发
     tags:
       - 'v*'
+
+  # 3. 手动触发 (在 GitHub 仓库 Actions 界面点击 "Run workflow" 运行)
   workflow_dispatch:
     inputs:
       version:
-        description: '发布版本号 (如 1.0.0)'
+        description: '手动指定发布版本号 (如 1.0.16，若留空则走自动计算)'
         required: false
-        default: '1.0.0'
+        # 【修改点 1】：手动触发构建时的默认版本号，可在此处直接修改
+        default: '1.0.16'
 
-# 赋予创建 Release 和上传资源的写权限
+# 赋予 GitHub Actions 写权限（用于创建 Release 和上传打包好的 EXE 安装包）
 permissions:
   contents: write
 
+# ==============================================================================
+# 构建与发布任务 (Jobs)
+# ==============================================================================
 jobs:
   build-and-release:
     name: 构建安装包并发布到 Release
     runs-on: windows-latest
 
     steps:
+      # ------------------------------------------------------------------------
+      # Step 1: 检出当前仓库代码
+      # ------------------------------------------------------------------------
       - name: 检出仓库代码
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # 获取完整提交历史，便于生成变更日志
 
+      # ------------------------------------------------------------------------
+      # Step 2: 安装配置 .NET 10.0 SDK 开发环境
+      # ------------------------------------------------------------------------
       - name: 配置 .NET 10 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
+      # ------------------------------------------------------------------------
+      # Step 3: 通过 Chocolatey 包管理器安装 Inno Setup 打包工具
+      # ------------------------------------------------------------------------
       - name: 安装 Inno Setup 编译器
         run: choco install innosetup --no-progress
 
+      # ------------------------------------------------------------------------
+      # Step 4: 运行单元测试（测试通过才继续打包，保障代码质量）
+      # ------------------------------------------------------------------------
       - name: 运行单元测试
         run: dotnet test tests/WeChatCopilot.Tests/WeChatCopilot.Tests.csproj -c Release
 
+      # ------------------------------------------------------------------------
+      # Step 5: 计算发布版本号与 Git 标签 (Tag)
+      # ------------------------------------------------------------------------
       - name: 计算发布版本号与标签
         id: get_version
         shell: pwsh
         run: |
+          # 【情况 A】：手动在 GitHub 页面触发并输入了版本号
           if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and '${{ inputs.version }}' -ne '') {
             $ver = '${{ inputs.version }}'
             $tag = "v$ver"
-          } elseif ('${{ github.ref_type }}' -eq 'tag') {
+          }
+          # 【情况 B】：通过 Git Tag 推送触发（例如 git push origin v1.0.16）
+          elseif ('${{ github.ref_type }}' -eq 'tag') {
             $tag = '${{ github.ref_name }}'
-            $ver = $tag.TrimStart('v')
-          } else {
-            # 全自动递增模式：基于 BaseVersion + GitHub Actions 构建序号 (github.run_number) 自动递增
-            $baseVer = "3.0"
+            $ver = $tag.TrimStart('v') # 去除前缀 'v'，得到纯数字版本号
+          }
+          # 【情况 C】：直接 push 到 main 分支触发（全自动递增模式）
+          else {
+            # 【修改点 2】：默认基础版本前缀（备用），优先从 Directory.Build.props 中的 <BaseVersion> 读取
+            $baseVer = "1.0"
             if (Test-Path "Directory.Build.props") {
               [xml]$xml = Get-Content "Directory.Build.props"
               if ($xml.Project.PropertyGroup.BaseVersion) {
                 $baseVer = $xml.Project.PropertyGroup.BaseVersion.Trim()
               }
             }
+            # 自动拼接 GitHub Actions 构建流水号 (run_number)，如 1.0.16
             $ver = "$baseVer.${{ github.run_number }}"
             $tag = "v$ver"
           }
+
+          # 将计算好的版本号与标签输出给后续步骤使用
           "version=$ver" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           Write-Host "Auto Release Version: $ver, Tag: $tag"
 
+      # ------------------------------------------------------------------------
+      # Step 6: 调用打包脚本编译安装包 (Setup.exe 与免安装单文件版 Portable.exe)
+      # ------------------------------------------------------------------------
       - name: 执行打包构建脚本 (生成 Setup.exe 与单文件 EXE)
         shell: pwsh
         run: |
           powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -Version "${{ steps.get_version.outputs.version }}"
 
+      # ------------------------------------------------------------------------
+      # Step 7: 检查并打印 dist 输出目录中的产物文件信息
+      # ------------------------------------------------------------------------
       - name: 确认打包产物生成完毕
         shell: pwsh
         run: |
           Get-ChildItem -Path dist | Format-Table Name, Length
 
+      # ------------------------------------------------------------------------
+      # Step 8: 将生成的 EXE 安装包发布到 GitHub Releases 供用户下载
+      # ------------------------------------------------------------------------
       - name: 发布至 GitHub Releases
         uses: softprops/action-gh-release@v2
         env:
@@ -101,6 +144,9 @@ jobs:
             > 🛡️ **运行环境自包含 (Self-Contained)**：  
             > 安装包与单文件均已内置 .NET 10 Desktop 运行时，目标用户的 Windows 电脑**无需提前安装任何 .NET 环境或依赖库**，直接双击运行！
 
+      # ------------------------------------------------------------------------
+      # Step 9: 将构建产物备份上传至 GitHub Actions 运行工件 (Artifacts，保留90天)
+      # ------------------------------------------------------------------------
       - name: 上传构建产物备份 (Action Artifacts)
         uses: actions/upload-artifact@v4
         if: always()
