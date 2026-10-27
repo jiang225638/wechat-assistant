@@ -82,7 +82,7 @@ jobs:
           # 【情况 C】：直接 push 到 main 分支触发（全自动递增模式）
           else {
             # 【修改点 2】：默认基础版本前缀（备用），优先从 Directory.Build.props 中的 <BaseVersion> 读取
-            $baseVer = "1.0"
+            $baseVer = "3.0"
             if (Test-Path "Directory.Build.props") {
               [xml]$xml = Get-Content "Directory.Build.props"
               if ($xml.Project.PropertyGroup.BaseVersion) {
