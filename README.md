@@ -8,7 +8,7 @@
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
 ![Engine](https://img.shields.io/badge/WeChat%20Engine-WCDB%204.0%20Direct-success?logo=wechat)
-![Tests](https://img.shields.io/badge/Tests-190%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-199%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
@@ -38,31 +38,40 @@
 
 ## 🖼️ 软件界面精选预览
 
-### 1. 核心交互与多维画像看板
+### 1. 贴边悬浮主界面四大核心 Tab
 
-| 💬 贴边对话与气泡识别 (`对话` Tab) | 👤 多维心智特质画像 (`画像` Tab) |
+| 💬 贴边对话与引用气泡识别 (对话 Tab) | ✨ 意图驱动与博弈建议卡片 (建议 Tab) |
 | :---: | :---: |
-| 自动吸附WX边缘，无感贴边与气泡几何判定识别 | 一键蒸馏多维特质，自适应 6 维认知雷达图谱 |
-| ![贴边对话与气泡识别](pic/Snipaste_2026-10-19_14-02-10.png) | ![多维心智特质画像](pic/Snipaste_2026-10-19_14-04-10.png) |
+| 自动吸附WX边缘，富文本引用、图片预览与表情识别 | 终极目的锚定、多候选回复、量化推进力与画像安全度 |
+| ![贴边对话与气泡识别](pic/Snipaste_2026-10-28_17-25-09.png) | ![策略建议与回复方案](pic/Snipaste_2026-10-28_17-25-33.png) |
 
-| 🤖 AI 问答军师 (`AI问答` Tab) | 🔍 多维画像全景放大看板 (`PersonaAnalyticsWindow`) |
+| 👤 多维心智特质画像 (画像 Tab) | 🤖 AI 问答对话军师 (AI问答 Tab) |
 | :---: | :---: |
-| Antigravity 交互美学，融合本地画像与聊天记录 | 动态主导特质卡片、全景雷达图、量化对比柱状图与梯度走势折线图 |
-| ![AI问答军师](pic/Snipaste_2026-10-19_14-04-18.png) | ![多维画像全景放大看板](pic/Snipaste_2026-10-19_14-06-00.png) |
+| 一键蒸馏多维特质，自适应多维认知雷达图谱与证据链 | Antigravity 交互美学，融合本地画像与真实聊天多轮研判 |
+| ![多维心智特质画像](pic/Snipaste_2026-10-28_17-25-59.png) | ![AI问答军师](pic/Snipaste_2026-10-28_17-26-14.png) |
 
 ---
 
-### 2. 全新集成设置中心与系统指南
+### 2. 双全景深度研判大看板 (复合图表全屏分析)
+
+| ⚔️ 话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow) | 🔍 联系人多维画像全景放大看板 (PersonaAnalyticsWindow) |
+| :---: | :---: |
+| 多方案重叠雷达、动态维度柱状对决、博弈双轴象限与沙盘推演 | 4 大动态主导特质卡片、全景认知雷达、得分对比柱状与走势折线 |
+| ![话语力量与博弈推演全景大看板](pic/Snipaste_2026-10-28_17-25-42.png) | ![多维画像全景放大看板](pic/Snipaste_2026-10-28_17-26-07.png) |
+
+---
+
+### 3. 全新集成设置中心与系统指南 (6 大专区)
 
 | 🤖 AI 模型与服务设置 | 💬 本地WX与数据库 (WCDB4 直连) | 🧬 技能中心 (Skill Studio) |
 | :---: | :---: | :---: |
 | OpenAI 兼容接口配置与 DPAPI 硬件级加密 | WX 4.x 数据库直连、自动嗅探与只读游标测试 | Antigravity 风格技能文件夹递归绑定与热重扫 |
-| ![AI模型设置](pic/Snipaste_2026-10-19_14-04-28.png) | ![本地WX直连](pic/Snipaste_2026-10-19_14-04-28.png) | ![技能中心](pic/Snipaste_2026-10-19_14-05-34.png) |
+| ![AI模型设置](pic/Snipaste_2026-10-28_17-26-23.png) | ![本地WX直连](pic/Snipaste_2026-10-28_17-26-33.png) | ![技能中心](pic/Snipaste_2026-10-28_17-26-41.png) |
 
 | 🎯 画像目的与战略管理 | 🎨 偏好与系统设置 (明暗主题) | ❓ 全局快捷键与指南 |
 | :---: | :---: | :---: |
 | 为好友配置专属终极战略目的 (Chat Objective) | Fluent 深浅主题热重载、语境跨度与透明度调节 | 快捷键一览、WCDB4 直连与本地优先安全说明 |
-| ![画像战略目的](pic/Snipaste_2026-10-19_14-05-40.png) | ![偏好与系统设置](pic/Snipaste_2026-10-19_14-05-46.png) | ![快捷键与指南](pic/Snipaste_2026-10-19_14-05-51.png) |
+| ![画像战略目的](pic/Snipaste_2026-10-28_17-26-49.png) | ![偏好与系统设置](pic/Snipaste_2026-10-28_17-26-53.png) | ![快捷键与指南](pic/Snipaste_2026-10-28_17-26-59.png) |
 
 ---
 
@@ -156,7 +165,7 @@
 - **DPAPI 硬件级加密**：API Key 与WX数据库密钥仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **纯文件只读游标**：WCDB4 直连引擎采用纯文件只读游标（Read-Only WAL Cursor），不扫描WX进程内存、不注入 DLL、不 Hook 任何系统函数，从根源确保WX账号零风险。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **全方位测试守护**：**190 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
+- **全方位测试守护**：**199 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
 
 ---
 
@@ -223,16 +232,19 @@ flowchart TD
 
 ```text
 e:\huanmai\myprod
-├── pic/                          # 软件高清界面截图目录
-│   ├── Snipaste_2026-10-19_14-02-10.png  # 对话 Tab：实时对话气泡与跟随
-│   ├── Snipaste_2026-10-19_14-04-10.png  # 画像 Tab：特质蒸馏与雷达图谱
-│   ├── Snipaste_2026-10-19_14-04-18.png  # AI问答 Tab：对话军师与 Antigravity 交互
-│   ├── Snipaste_2026-10-19_14-04-28.png  # 设置 Tab：AI 模型与服务配置
-│   ├── Snipaste_2026-10-19_14-05-34.png  # 设置 Tab：技能中心 (Skill Studio)
-│   ├── Snipaste_2026-10-19_14-05-40.png  # 设置 Tab：画像与战略目的管理
-│   ├── Snipaste_2026-10-19_14-05-46.png  # 设置 Tab：偏好与 Fluent 深浅主题
-│   ├── Snipaste_2026-10-19_14-05-51.png  # 设置 Tab：全局快捷键与系统指南
-│   └── Snipaste_2026-10-19_14-06-00.png  # 放大看板：多维画像复合图表全景看板
+├── pic/                                  # 软件高清界面截图目录
+│   ├── Snipaste_2026-10-28_17-25-09.png  # 对话 Tab：实时对话气泡、引用回复与富媒体呈现
+│   ├── Snipaste_2026-10-28_17-25-33.png  # 建议 Tab：终极目的驱动、多方案卡片与量化推进力
+│   ├── Snipaste_2026-10-28_17-25-42.png  # 放大看板：话语力量与博弈推演全景复合大看板
+│   ├── Snipaste_2026-10-28_17-25-59.png  # 画像 Tab：特质蒸馏、多维认知雷达图谱与证据链
+│   ├── Snipaste_2026-10-28_17-26-07.png  # 放大看板：联系人多维画像全景复合图表放大看板
+│   ├── Snipaste_2026-10-28_17-26-14.png  # AI问答 Tab：对话军师、深度研判指令与 Antigravity 交互
+│   ├── Snipaste_2026-10-28_17-26-23.png  # 设置 Tab：AI 模型与接口配置 (DPAPI 硬件级加密)
+│   ├── Snipaste_2026-10-28_17-26-33.png  # 设置 Tab：本地 WX 4.x 数据库直连与密钥探测 (WCDB4)
+│   ├── Snipaste_2026-10-28_17-26-41.png  # 设置 Tab：技能中心 (Skill Studio 文件夹绑定)
+│   ├── Snipaste_2026-10-28_17-26-49.png  # 设置 Tab：联系人终极战略目的管理 (Chat Objective)
+│   ├── Snipaste_2026-10-28_17-26-53.png  # 设置 Tab：偏好与 Fluent 明暗双主题动态热重载
+│   └── Snipaste_2026-10-28_17-26-59.png  # 设置 Tab：全局快捷键速查与架构安全指南
 │
 ├── src/
 │   ├── WeChatCopilot.App/        # 应用程序主工程 (WPF + XAML + Fluent 主题)
@@ -244,6 +256,8 @@ e:\huanmai\myprod
 │   │   ├── OverlayWindow.Persona.cs# 人物画像蒸馏、雷达多边形与特质标签
 │   │   ├── OverlayWindow.Qa.cs   # AI 问答对话军师多会话管理与探针交互
 │   │   ├── OverlayWindow.Settings.cs # 6 大设置专区交互与热重载
+│   │   ├── ChatBubbleHelper.cs   # 富媒体气泡构建 (引用高亮/表情包/图片预览/药丸徽章)
+│   │   ├── WeChatCdnMediaDownloader.cs # 微信表情与富媒体资源本地缓存探测与下载
 │   │   ├── AdviceAnalyticsWindow.xaml    # 话语力量全景大看板 (重叠雷达/分组柱状/双轴象限)
 │   │   ├── AdviceAnalyticsWindow.xaml.cs # 全景图表 Canvas 绘制与卡片联动交互引擎
 │   │   ├── PersonaAnalyticsWindow.xaml   # 联系人画像深度看板 (现代化顶部边框与多图表)
@@ -254,7 +268,7 @@ e:\huanmai\myprod
 │   ├── WeChatCopilot.Core/       # 核心业务逻辑与领域模型
 │   │   ├── Abstractions/         # IChatHistoryProvider 等核心接口契约
 │   │   ├── Ai/                   # PromptBuilder、AiOutputParser、PersonaDistiller、StrategyPlaybookGenerator
-│   │   └── Models/               # Persona、DistillSkill、UnifiedAiAdvice、QaSession
+│   │   └── Models/               # Persona、DistillSkill、UnifiedAiAdvice、QaSession、WeChatEmojiTable
 │   │
 │   ├── WeChatCopilot.AI/         # 大模型通信层 (OpenAI 协议兼容客户端)
 │   │   └── OpenAiCompatibleProvider.cs # OpenAI 兼容聊天补全提供商 (含超时与错误处理)
@@ -269,6 +283,7 @@ e:\huanmai\myprod
 │       ├── Wcdb4MessageDecoder.cs # WX 4.x WCDB 消息与单聊会话解码器
 │       ├── Wcdb4NativeInterop.cs  # WCDB 4.x 原生 C 库 P/Invoke 动态互操作
 │       ├── WeChatDbKeyAndRootProvider.cs # WX本地数据库目录与 64 位密钥自动嗅探
+│       ├── WeChatDatImageDecoder.cs # 微信 .dat 加密图片异或魔数自动探测与解码
 │       ├── WeChatAnalyticsService.cs # 关系冷热研判、未读雷达、约定提取与全库搜索
 │       ├── CompositeChatHistoryProvider.cs # 复合历史消息提供通道 (WCDB4 直连 + SQLite 缓存)
 │       ├── SqliteStorage.cs      # SQLite 本地轻量化存储引擎 (WAL模式、消息指纹去重、离线缓存)
@@ -280,11 +295,12 @@ e:\huanmai\myprod
 │       └── Security/DpapiProtector.cs # Windows DPAPI 硬件级敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (190 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (199 项测试全覆盖)
 │       ├── WeChatAnalyticsServiceTests.cs # 关系冷热、未读雷达、约定承诺抽取与全库检索测试
 │       ├── Wcdb4MessageDecoderTests.cs   # WCDB4 消息反序列化、会话排序过滤与备注解析测试
 │       ├── CompositeChatHistoryProviderTests.cs # 复合提供者通道测试
 │       ├── WeChatDbKeyAndRootProviderTests.cs # 数据库目录与密钥提供器测试
+│       ├── WeChatRichMediaTests.cs       # 微信 .dat 异或加密图片反解、表情映射与富媒体测试
 │       ├── StrategyPlaybookGeneratorTests.cs # 实战策略手册生成、JSON 容错解析与缓存键测试
 │       ├── AiQaAndCustomRelationshipTests.cs # AI问答界面结构、会话持久化与看板契约验证
 │       ├── SqliteStorageTests.cs         # SQLite 表初始化、消息去重排序、画像与技能持久化测试
@@ -326,7 +342,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (190 项测试全绿)
+# 2. 运行自动化测试 (199 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -473,7 +489,7 @@ powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:
 dotnet test
 ```
 
-测试覆盖概览（**190 项全通过**）：
+测试覆盖概览（**199 项全通过**）：
 - `WeChatAnalyticsServiceTests`：关系冷热指数与等级研判、未读雷达排序过滤、约定承诺提炼（聚会/交付/表态）、大小写不敏感全库检索测试；
 - `WeChatDbKeyAndRootProviderTests`：xwechat_files 活跃账号目录自动发现、DPAPI/AES-256-GCM 密钥库提取与 ASCII Junction 桥接探测测试；
 - `Wcdb4MessageDecoderTests`：WX 4.x Zstd 压缩包解压、XML 卡片/表情/引用回复结构化解析、活跃单聊清洗过滤与会话排序测试；
