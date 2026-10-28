@@ -18,7 +18,7 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         // Fluent 暗色：与悬浮窗深色面板一致，避免控件亮色突兀
-        ApplicationThemeManager.Apply(ApplicationTheme.Dark);
+        ApplicationThemeManager.Apply(ApplicationTheme.Light);
 
         var overlay = new OverlayWindow();
         overlay.Show();

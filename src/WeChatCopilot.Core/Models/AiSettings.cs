@@ -36,8 +36,8 @@ public sealed record AiSettings
     /// <summary>对话语境分析跨度（条数），默认 10 条（约 3~6 轮完整交互，兼顾情感走向与即时性）。</summary>
     public int ContextMessageCount { get; set; } = 10;
 
-    /// <summary>外观主题模式："Dark" (默认深色), "Light" (浅色), "System" (跟随系统)。</summary>
-    public string ThemeMode { get; set; } = "Dark";
+    /// <summary>外观主题模式："Light" (默认浅色), "Dark" (深色), "System" (跟随系统)。</summary>
+    public string ThemeMode { get; set; } = "Light";
 
     /// <summary>用户调整记忆的悬浮窗宽度，默认 430。</summary>
     public double WindowWidth { get; set; } = 430.0;

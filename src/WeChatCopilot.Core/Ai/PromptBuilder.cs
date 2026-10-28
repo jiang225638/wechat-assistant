@@ -43,7 +43,7 @@ public static class PromptBuilder
                 MessageRole.Outgoing => "我",
                 _ => "未知"
             };
-            sb.AppendLine($"[{who}] {messages[i].Text.Replace("\n", " ")}");
+            sb.AppendLine($"[{who}] {CleanMessageTextForAi(messages[i].Text)}");
         }
 
         return sb.ToString();
@@ -58,8 +58,11 @@ public static class PromptBuilder
     {
         int n = Math.Clamp(count, 1, ReplyTones.Length);
         string system =
-            "你是微信聊天回复副驾。用户会给你一段聊天记录（[对方]=对方消息，[我]=用户自己消息）。" +
-            $"请基于上下文生成 {n} 条语气不同、简洁自然口语化的中文回复建议，语气从以下集合选取：{string.Join("/", ReplyTones)}。" +
+            "你是微信聊天回复副驾。用户会给你一段聊天记录（[对方]=对方消息，[我]=用户自己消息）。\n" +
+            $"请基于上下文生成 {n} 条语气不同、极具真人微信聊天感、短小精炼且口语化的中文回复建议，语气从以下集合选取：{string.Join("/", ReplyTones)}。\n" +
+            "【微信真人感核心准则】：\n" +
+            "1. 严格控制字数：日常微信交流绝非写小作文，每条回复内容字数严格控制在 8~25 字以内（坚决杜绝长句与复合大长句），像真人随手在微信敲出来的日常口语；\n" +
+            "2. 自然松弛接地气：去油腻、去客服感、拒绝生硬背段子与长篇大论，多用日常口头语与生活化短句，随性留白让对方轻松秒回。\n" +
             "严格只按以下格式输出，每条一行，不要输出其他内容，不要代发消息：\n" +
             "[语气] 回复内容 | 理由：为什么这么说的一句话";
 
@@ -68,7 +71,7 @@ public static class PromptBuilder
         {
             userPrompt += "\n\n对方画像参考：\n" + string.Join("\n", persona.Traits.Select(t => $"- {t.Dimension}: {t.Attribute}"));
         }
-        userPrompt += $"\n请给出 {n} 条贴合上下文的回复建议。";
+        userPrompt += $"\n请给出 {n} 条贴合上下文、极具真人微信打字感的简短回复建议（每条 8~25 字）。";
 
         return new AiRequest(system, userPrompt, settings.Model, settings.Temperature);
     }
@@ -183,7 +186,8 @@ public static class PromptBuilder
         if (!string.IsNullOrWhiteSpace(effectiveGoal))
         {
             sysSb.AppendLine();
-            sysSb.AppendLine($"【👑 终极战略导向】：用户为该对话对象设定了终极战略目的【{effectiveGoal}】！你的所有意图剖析与回复生成必须作为战略军师，招招见血地引导对话向该目标稳步靠拢与顺势推进，严禁无意义闲聊！");
+            sysSb.AppendLine($"【👑 终极战略导向】：用户为该对话对象设定了终极战略目的【{effectiveGoal}】！你的所有意图剖析与回复生成必须作为战略军师，引导对话向该目标稳步靠拢与顺势推进。");
+            sysSb.AppendLine("（⚠️ 极为关键的真人感法则：战略与目的必须深藏在幕后！最高明的猎手往往以最随意的闲聊出现。战术动作和心理分析写在【理由】中，但最终生成的【回复内容】必须极其生活化、接地气、短小精悍，严禁把战略目的或多选题直接写在台词上，严禁让对方感受到目的性与压迫感！）");
         }
 
         if (!string.IsNullOrWhiteSpace(userIntent))
@@ -210,7 +214,13 @@ public static class PromptBuilder
         }
         sysSb.AppendLine("（【重要要求】：");
         sysSb.AppendLine(" 1. 方括号中的战术风格标签严禁千篇一律使用固定的'高情商/直接/专业/缓和'等刻板标签！必须根据对方画像特质、心理诉求以及用户的战略目的，动态生成极具针对性的战术风格标签；");
-        sysSb.AppendLine(" 2. 每条回复建议末尾必须给出动态维度的量化评分（0-100）、推进力（0-100，对终极目标的实际推进推动力度）与安全度（0-100，对对方画像雷区与关系的稳健防御度）。）");
+        sysSb.AppendLine(" 2. 每条回复建议末尾必须给出动态维度的量化评分（0-100）、推进力（0-100，对终极目标的实际推进推动力度）与安全度（0-100，对对方画像雷区与关系的稳健防御度）；");
+        sysSb.AppendLine(" 3. 【🔥 微信真人感与短句极简法则（必须严格执行，违者重构！）】：");
+        sysSb.AppendLine("    - 严格字数控制：日常微信聊天不是写小作文！每条回复内容字数严格控制在 8~25 字（绝对不能超过 30 字），拒绝多重从句与长篇大论；");
+        sysSb.AppendLine("    - 纯正日常微信语感：必须像真人拿手机随手打出来的口语大白话，自然、松弛、接地气、有呼吸感，像朋友随口发的一样舒服；");
+        sysSb.AppendLine("    - 严禁油腻背段子与客服式问卷：坚决禁止'那我可要提前声明…除了带路还负责…'等油腻网络脱口秀段子！坚决禁止'你是更喜欢A、B还是C，我好提前准备…'等多选式问卷调查或销售话术；");
+        sysSb.AppendLine("    - 战术在心不在嘴：把战略心法与避坑逻辑留在【理由】中；台词本身必须随性留白，抛出轻巧好接的钩子，让对方轻松接话；");
+        sysSb.AppendLine("    - 候选风格与长度梯度：候选建议之间应具备多样化节奏，涵盖：短平快秒回（8-14字）、轻快幽默推拉（12-20字）、顺水推舟自然推进（15-25字）等不同风格，严禁句式同质化。）");
 
         // 2. 编排 UserPrompt
         var sb = new StringBuilder();
@@ -256,8 +266,19 @@ public static class PromptBuilder
         sb.AppendLine();
         sb.AppendLine($"【🎯 对方最新发言】：\n“{targetStatement}”");
         sb.AppendLine();
-        sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】：");
+        sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】（严格执行微信真人感与 8~25 字短句极简准则，严禁长篇大论、油腻段子与客服式问卷）：");
 
         return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7, MaxTokens: 2500);
     }
+    /// <summary>清洗单条消息中的多媒体标记（如结构化表情/图片/分享卡片），转换为简洁自然文本供 AI 分析。</summary>
+    public static string CleanMessageTextForAi(string? rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText)) return string.Empty;
+        string res = rawText.Replace("\r", "").Replace("\n", " ").Trim();
+        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[动画表情:\s*md5=[^\]]*\]", "[动画表情]");
+        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[图片:\s*md5=[^\]]*\]", "[图片]");
+        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[分享卡片:\s*url=[^|]*\|title=([^|]*)\|[^\]]*\]", "[分享: $1]");
+        return res;
+    }
+
 }

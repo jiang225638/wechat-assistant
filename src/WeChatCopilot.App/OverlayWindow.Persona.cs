@@ -894,7 +894,7 @@ public partial class OverlayWindow : Window
         try
         {
             var s = _settingsStore.Load();
-            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Dark");
+            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Light");
         }
         catch
         {
@@ -935,7 +935,7 @@ public partial class OverlayWindow : Window
         try
         {
             var s = _settingsStore.Load();
-            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Dark");
+            ThemeManager.ApplyTheme(win, s.ThemeMode ?? "Light");
         }
         catch
         {

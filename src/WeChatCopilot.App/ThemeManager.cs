@@ -17,8 +17,8 @@ public static class ThemeManager
     public const string ThemeLight = "Light";
     public const string ThemeSystem = "System";
 
-    public static string CurrentThemeMode { get; private set; } = ThemeDark;
-    public static bool IsLightMode { get; private set; } = false;
+    public static string CurrentThemeMode { get; private set; } = ThemeLight;
+    public static bool IsLightMode { get; private set; } = true;
 
     /// <summary>
     /// 将当前已应用的主题同步应用至指定窗口。

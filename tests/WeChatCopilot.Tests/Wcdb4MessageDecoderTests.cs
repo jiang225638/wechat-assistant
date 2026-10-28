@@ -122,6 +122,42 @@ public class Wcdb4MessageDecoderTests
     }
 
     [Fact]
+    public void ParseMessageRow_WithNestedQuoteReplyXml_ExtractsInnerTitleWithoutRawXmlEntities()
+    {
+        // 模拟微信真实场景：引用的原消息本身也是一条引用消息或富媒体，content 中是 HTML 实体编码的 XML
+        string xml = """
+        <msg><appmsg appid="" sdkver="0">
+            <title>好呀～有空我来给你当导游[得意]</title>
+            <type>57</type>
+            <refermsg>
+                <type>57</type>
+                <displayname>我</displayname>
+                <content>&lt;msg&gt;&lt;appmsg appid="" sdkver="0"&gt;&lt;title&gt;等放假，指定去玩儿一圈[嘿哈]&lt;/title&gt;&lt;type&gt;57&lt;/type&gt;&lt;/appmsg&gt;&lt;/msg&gt;</content>
+            </refermsg>
+        </appmsg></msg>
+        """;
+
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            local_id = 202,
+            create_time = 1760000600,
+            local_type = 49,
+            is_send = 0,
+            message_content = xml
+        }));
+
+        HistoryMessage? msg = Wcdb4MessageDecoder.ParseMessageRow(doc.RootElement, Array.Empty<string>());
+
+        Assert.NotNull(msg);
+        Assert.Equal(MessageRole.Incoming, msg!.Role);
+        Assert.Contains("好呀～有空我来给你当导游[得意]", msg.Text);
+        Assert.Contains("等放假，指定去玩儿一圈[嘿哈]", msg.Text);
+        Assert.DoesNotContain("&lt;msg&gt;", msg.Text);
+        Assert.DoesNotContain("<msg>", msg.Text);
+    }
+
+
+    [Fact]
     public void ResolveSessionUsername_MatchesRemarkNicknameAndWxid()
     {
         var sessions = new List<Wcdb4SessionItem>

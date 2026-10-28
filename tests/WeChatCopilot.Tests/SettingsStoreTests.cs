@@ -38,7 +38,7 @@ public class SettingsStoreTests : IDisposable
 
         Assert.NotNull(settings);
         Assert.Equal(10, settings.ContextMessageCount);
-        Assert.Equal("Dark", settings.ThemeMode);
+        Assert.Equal("Light", settings.ThemeMode);
         Assert.Equal(430.0, settings.WindowWidth);
         Assert.Equal(690.0, settings.WindowHeight);
         Assert.Equal(1.0, settings.WindowOpacity);

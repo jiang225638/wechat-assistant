@@ -149,11 +149,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#2A3448" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#1E2536" />
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource ButtonPressedBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

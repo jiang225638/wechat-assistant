@@ -313,5 +313,24 @@ public class PromptBuilderTests
         Assert.Contains("锁定季度订单并守住利润底线", req.UserPrompt);
         Assert.Contains("以附加增值服务置换价格折让", req.UserPrompt);
     }
-}
 
+    [Fact]
+    public void BuildUnifiedAdvice_IncludesHumanLikeGuidelinesAndLengthConstraints()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { new ChatMessage(MessageRole.Incoming, "好呀，周末我来给你当导游") };
+        var req = PromptBuilder.BuildUnifiedAdvice(
+            settings,
+            msgs,
+            count: 5,
+            ultimateGoal: "让对方成为女友",
+            userIntent: "轻松幽默的气氛");
+
+        Assert.Contains("8~25 字", req.SystemPrompt);
+        Assert.Contains("微信真人感", req.SystemPrompt);
+        Assert.Contains("油腻", req.SystemPrompt);
+        Assert.Contains("战略与目的必须深藏在幕后", req.SystemPrompt);
+        Assert.Contains("8~25 字", req.UserPrompt);
+    }
+
+}

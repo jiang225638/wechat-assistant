@@ -224,6 +224,11 @@ public partial class OverlayWindow : Window
         try
         {
             var settings = _settingsStore.Load();
+            if (WeChatDbKeyAndRootProvider.TryResolveAccountRoot(settings?.WeChatDbRoot, out string accRoot, out _, out _, out _))
+            {
+                ChatBubbleHelper.SetAccountRoot(accRoot);
+            }
+
             using var historyProvider = CompositeChatHistoryProvider.CreateDefault(settings);
 
             var sessions = await historyProvider.GetRecentSessionsAsync(maxCount: 40);

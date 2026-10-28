@@ -178,7 +178,7 @@ public partial class OverlayWindow : Window
             _mySelfNickname = savedSettings.SelfNickname.Trim();
         }
 
-        ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Dark");
+        ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Light");
 
         if (AiContextCountCombo != null)
         {

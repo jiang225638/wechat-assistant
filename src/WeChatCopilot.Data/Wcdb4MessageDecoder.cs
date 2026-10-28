@@ -33,6 +33,12 @@ public static class Wcdb4MessageDecoder
     private static readonly Regex s_xmlTitleRegex = new(@"<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</title>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_referMsgBlockRegex = new(@"<refermsg\b[^>]*>(.*?)</refermsg>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_referContentRegex = new(@"<content>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</content>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_referTypeRegex = new(@"<type>(\d+)</type>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_emojiMd5Regex = new(@"md5=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_emojiCdnRegex = new(@"cdnurl=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_imgMd5Regex = new(@"md5=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_xmlUrlRegex = new(@"<url>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</url>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_xmlDesRegex = new(@"<des>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</des>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>
     /// 解码可能经过 Zstd 压缩（或 Hex / Base64 编码）的微信 4.x 消息内容。
@@ -545,7 +551,26 @@ public static class Wcdb4MessageDecoder
         {
             if (text.Contains("<emoji", StringComparison.OrdinalIgnoreCase) || msgType == 47)
             {
+                Match mMd5 = s_emojiMd5Regex.Match(text);
+                Match mCdn = s_emojiCdnRegex.Match(text);
+                string md5 = mMd5.Success ? mMd5.Groups[1].Value.Trim() : string.Empty;
+                string cdn = mCdn.Success ? mCdn.Groups[1].Value.Trim() : string.Empty;
+                if (!string.IsNullOrEmpty(md5) || !string.IsNullOrEmpty(cdn))
+                {
+                    return $"[动画表情: md5={md5}&cdn={cdn}]";
+                }
                 return "[动画表情]";
+            }
+
+            if (text.Contains("<img", StringComparison.OrdinalIgnoreCase) || msgType == 3)
+            {
+                Match mMd5 = s_imgMd5Regex.Match(text);
+                string md5 = mMd5.Success ? mMd5.Groups[1].Value.Trim() : string.Empty;
+                if (!string.IsNullOrEmpty(md5))
+                {
+                    return $"[图片: md5={md5}]";
+                }
+                return "[图片]";
             }
 
             Match mTitle = s_xmlTitleRegex.Match(text);
@@ -555,17 +580,23 @@ public static class Wcdb4MessageDecoder
             Match mRefer = s_referMsgBlockRegex.Match(text);
             if (mRefer.Success && !string.IsNullOrWhiteSpace(title))
             {
-                Match mRefContent = s_referContentRegex.Match(mRefer.Groups[1].Value);
-                string refText = mRefContent.Success ? mRefContent.Groups[1].Value.Trim() : string.Empty;
-                if (!string.IsNullOrWhiteSpace(refText) && !refText.Contains('<'))
+                string? refText = ExtractReferencedText(mRefer.Groups[1].Value);
+                if (!string.IsNullOrWhiteSpace(refText))
                 {
-                    if (refText.Length > 40)
-                    {
-                        refText = refText[..40] + "...";
-                    }
-                    return $"{title} (引用：「{refText}」)";
+                    return $"{title} (引用: 「{refText}」)";
                 }
                 return title;
+            }
+
+            Match mUrl = s_xmlUrlRegex.Match(text);
+            Match mDes = s_xmlDesRegex.Match(text);
+            string url = mUrl.Success ? mUrl.Groups[1].Value.Trim() : string.Empty;
+            string des = mDes.Success ? mDes.Groups[1].Value.Trim() : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                string safeTitle = !string.IsNullOrWhiteSpace(title) ? title : "网页链接";
+                return $"[分享卡片: url={url}|title={safeTitle}|des={des}]";
             }
 
             if (!string.IsNullOrWhiteSpace(title))
@@ -595,6 +626,111 @@ public static class Wcdb4MessageDecoder
             return "[语音消息]";
         }
 
+        return text;
+    }
+
+    private static string? ExtractReferencedText(string referBlockXml)
+    {
+        if (string.IsNullOrWhiteSpace(referBlockXml)) return null;
+
+        Match mRefContent = s_referContentRegex.Match(referBlockXml);
+        string rawRef = mRefContent.Success ? mRefContent.Groups[1].Value.Trim() : string.Empty;
+
+        Match mRefType = s_referTypeRegex.Match(referBlockXml);
+        int refType = mRefType.Success && int.TryParse(mRefType.Groups[1].Value, out int rt) ? rt : 0;
+
+        if (string.IsNullOrWhiteSpace(rawRef))
+        {
+            return refType switch
+            {
+                3 => "[图片]",
+                34 => "[语音消息]",
+                43 => "[视频]",
+                47 => "[动画表情]",
+                _ => null
+            };
+        }
+
+        // HTML 实体解码（如 &lt;msg&gt; -> <msg>）
+        string decoded = System.Net.WebUtility.HtmlDecode(rawRef).Trim();
+        if (decoded.Contains("&lt;", StringComparison.OrdinalIgnoreCase))
+        {
+            decoded = System.Net.WebUtility.HtmlDecode(decoded).Trim();
+        }
+
+        // 剥除发送者前缀，如 wxid_xxx:\n
+        int newlineIdx = decoded.IndexOf('\n');
+        if (newlineIdx > 0 && newlineIdx < 80)
+        {
+            string firstLine = decoded[..newlineIdx].Trim();
+            if (firstLine.EndsWith(':') && !firstLine.Contains(' ') && !firstLine.Contains('<'))
+            {
+                string prefixId = firstLine[..^1];
+                if (prefixId.StartsWith("wxid_", StringComparison.OrdinalIgnoreCase) || prefixId.Contains('@'))
+                {
+                    decoded = decoded[(newlineIdx + 1)..].Trim();
+                }
+            }
+        }
+
+        // 若被引用的消息本身也是一条 XML 富媒体或引用回复
+        if (decoded.Contains("<appmsg", StringComparison.OrdinalIgnoreCase) ||
+            decoded.Contains("<msg", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decoded.Contains("<emoji", StringComparison.OrdinalIgnoreCase))
+            {
+                return "[动画表情]";
+            }
+
+            Match nestedTitle = s_xmlTitleRegex.Match(decoded);
+            if (nestedTitle.Success)
+            {
+                string nestedTitleText = System.Net.WebUtility.HtmlDecode(nestedTitle.Groups[1].Value.Trim());
+                if (!string.IsNullOrWhiteSpace(nestedTitleText) &&
+                    !nestedTitleText.StartsWith("<", StringComparison.Ordinal) &&
+                    !nestedTitleText.StartsWith("&lt;", StringComparison.OrdinalIgnoreCase))
+                {
+                    return TruncateRefText(nestedTitleText);
+                }
+            }
+
+            return refType switch
+            {
+                3 => "[图片]",
+                34 => "[语音消息]",
+                43 => "[视频]",
+                47 => "[动画表情]",
+                _ => "[引用内容]"
+            };
+        }
+
+        if (refType == 3 || decoded.Contains("<img", StringComparison.OrdinalIgnoreCase)) return "[图片]";
+        if (refType == 34) return "[语音消息]";
+        if (refType == 43) return "[视频]";
+        if (refType == 47) return "[动画表情]";
+
+        // 移除可能存在的 XML 标签残留
+        if (decoded.Contains('<') && decoded.Contains('>'))
+        {
+            decoded = Regex.Replace(decoded, @"<[^>]+>", string.Empty).Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(decoded) || decoded.StartsWith("&lt;", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return TruncateRefText(decoded);
+    }
+
+    private static string TruncateRefText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        text = text.Replace("\r", "").Replace("\n", " ").Trim();
+        if (text.Length > 40)
+        {
+            text = text[..40] + "...";
+        }
         return text;
     }
 
@@ -847,4 +983,17 @@ public static class Wcdb4MessageDecoder
         value = default;
         return false;
     }
+    /// <summary>
+    /// 将带元数据的富媒体标记清洗为纯文本摘要（如 [动画表情: md5=...] -> [动画表情]），供 AI 提示词与统计使用。
+    /// </summary>
+    public static string StripMediaMarkup(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        string res = text;
+        res = Regex.Replace(res, @"\[动画表情:\s*md5=[^\]]*\]", "[动画表情]");
+        res = Regex.Replace(res, @"\[图片:\s*md5=[^\]]*\]", "[图片]");
+        res = Regex.Replace(res, @"\[分享卡片:\s*url=[^|]*\|title=([^|]*)\|[^\]]*\]", "[分享] $1");
+        return res;
+    }
+
 }

@@ -67,7 +67,7 @@ public partial class OverlayWindow : Window
         SettingSelfNicknameBox.Text = _mySelfNickname ?? string.Empty;
 
         // 外观主题
-        string currentTheme = s.ThemeMode ?? "Dark";
+        string currentTheme = s.ThemeMode ?? "Light";
         if (SettingThemeCombo != null)
         {
             foreach (ComboBoxItem item in SettingThemeCombo.Items)

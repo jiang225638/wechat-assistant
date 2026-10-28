@@ -2,6 +2,7 @@
     x:Class="WeChatCopilot.App.OverlayWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:WeChatCopilot.App"
     Title="WeChat Copilot"
     Icon="app.ico"
     Width="430"
@@ -792,7 +793,7 @@
                             FontSize="14"
                             FontWeight="Bold"
                             Foreground="{DynamicResource TextPrimaryBrush}"
-                            Text="微信 Copilot" />
+                            Text="WX Copilot" />
                         <TextBlock
                             Margin="6,0,0,0"
                             VerticalAlignment="Center"
@@ -824,7 +825,7 @@
                             Content="🎯 定位"
                             FontSize="11"
                             Style="{StaticResource FluentButton}"
-                            ToolTip="重新锁定并贴靠微信主窗口" />
+                            ToolTip="重新锁定并贴靠WX主窗口" />
                         <Button
                             x:Name="MinimizeButton"
                             Margin="0,0,6,0"
@@ -846,7 +847,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!--  微信连接状态胶囊栏  -->
+                <!--  WX连接状态胶囊栏  -->
                 <Border
                     Margin="0,10,0,0"
                     Padding="10,6"
@@ -860,7 +861,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!--  左侧：微信当前聊天连接指示  -->
+                        <!--  左侧：WX当前聊天连接指示  -->
                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <Ellipse
                                 x:Name="StatusDot"
@@ -873,7 +874,7 @@
                                 VerticalAlignment="Center"
                                 FontSize="12"
                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                Text="正在查找微信窗口..." />
+                                Text="正在查找WX窗口..." />
                         </StackPanel>
 
                         <!--  右侧：展开底层诊断信息  -->
@@ -908,7 +909,7 @@
                         TextWrapping="Wrap" />
                 </Border>
 
-                <!--  微信会话与数据中枢下拉栏（和“微信已就绪”同样风格）  -->
+                <!--  WX会话与数据中枢下拉栏（和“WX已就绪”同样风格）  -->
                 <Border
                     Margin="0,6,0,0"
                     Padding="10,6"
@@ -968,7 +969,7 @@
                             Content="🔄 刷新"
                             FontSize="10"
                             Style="{StaticResource FluentButton}"
-                            ToolTip="重新扫描微信 4.x 本地数据库会话与未读数" />
+                            ToolTip="重新扫描WX 4.x 本地数据库会话与未读数" />
 
                         <!-- 展开/收起 ToggleButton（与“诊断 ▾”风格完全一致） -->
                         <ToggleButton
@@ -979,12 +980,12 @@
                             Content="会话中枢 ▾"
                             FontSize="10"
                             Style="{StaticResource FluentToggleButton}"
-                            ToolTip="展开/折叠微信会话与数据中枢（包含最近会话选择、关系冷热、未读雷达、约定备忘、全库检索）"
+                            ToolTip="展开/折叠WX会话与数据中枢（包含最近会话选择、关系冷热、未读雷达、约定备忘、全库检索）"
                             Unchecked="HubToggle_Changed" />
                     </Grid>
                 </Border>
 
-                <!--  折叠的微信数据中枢面板  -->
+                <!--  折叠的WX数据中枢面板  -->
                 <Border
                     x:Name="HubPanel"
                     Margin="0,6,0,0"
@@ -1075,7 +1076,7 @@
                                     VerticalContentAlignment="Center"
                                     FontSize="11.5"
                                     SelectionChanged="HubRecentSessionsCombo_SelectionChanged"
-                                    ToolTip="直接从微信 4.x 本地数据库读取最近单聊列表（按最新消息严格时间倒序，含备注名、未读数与时间），点击秒级切换并自动加载对话" />
+                                    ToolTip="直接从WX 4.x 本地数据库读取最近单聊列表（按最新消息严格时间倒序，含备注名、未读数与时间），点击秒级切换并自动加载对话" />
                             </Grid>
                             <TextBlock
                                 Grid.Row="1"
@@ -1149,7 +1150,7 @@
                         <!-- 子视图 2: 🔔 未读消息主动提醒与破冰跟进雷达 -->
                         <ScrollViewer x:Name="HubViewRadar" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
                             <StackPanel Margin="0,2,2,4">
-                                <TextBlock x:Name="RadarEmptyNotice" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="✅ 当前微信所有单聊均已跟进，暂无未读消息。" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,15,0,0" />
+                                <TextBlock x:Name="RadarEmptyNotice" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Text="✅ 当前WX所有单聊均已跟进，暂无未读消息。" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,15,0,0" />
                                 <ItemsControl x:Name="HubUnreadList">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -1308,7 +1309,7 @@
                 <TabItem
                     x:Name="TabChat"
                     Header="💬 对话"
-                    ToolTip="微信当前会话与本地数据库历史记录" />
+                    ToolTip="WX当前会话与本地数据库历史记录" />
                 <TabItem
                     x:Name="TabAi"
                     Header="✨ 建议"
@@ -1467,7 +1468,7 @@
                                                     <TextBlock
                                                         FontSize="12.5"
                                                         LineHeight="18"
-                                                        Text="{Binding Text}"
+                                                        local:ChatBubbleHelper.FormattedMessage="{Binding Text}"
                                                         TextWrapping="Wrap">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
@@ -2109,7 +2110,7 @@
                                                     VerticalAlignment="Center"
                                                     FontSize="11"
                                                     Foreground="{DynamicResource TextSecondaryBrush}"
-                                                    Text="(点击「复制」可直接粘贴发微信)" />
+                                                    Text="(点击「复制」可直接粘贴发WX)" />
                                             </StackPanel>
                                             <Button
                                                 x:Name="OpenAdviceAnalyticsButton"
@@ -2204,7 +2205,7 @@
                                                                         Click="PasteSuggestionToWeChat_Click"
                                                                         Content="📤 填入"
                                                                         FontSize="11"
-                                                                        ToolTip="一键复制到剪贴板并自动填入微信输入框（不自动按回车发送）"
+                                                                        ToolTip="一键复制到剪贴板并自动填入WX输入框（不自动按回车发送）"
                                                                         Style="{StaticResource FluentButton}"
                                                                         Tag="{Binding Text}" />
                                                                     <Button
@@ -2324,7 +2325,7 @@
                                     FontSize="11.5"
                                     Style="{StaticResource FluentTextBox}"
                                     TextChanged="ContactBox_TextChanged"
-                                    ToolTip="当前分析的微信好友备注名（可直接手动输入，也可点击右侧按钮自动获取）" />
+                                    ToolTip="当前分析的WX好友备注名（可直接手动输入，也可点击右侧按钮自动获取）" />
                                 <Button
                                     x:Name="SyncContactButton"
                                     Grid.Column="2"
@@ -2335,7 +2336,7 @@
                                     Content="🔍 获取当前聊天对象"
                                     FontSize="11"
                                     Style="{StaticResource FluentButton}"
-                                    ToolTip="自动识别并填入微信主窗口当前正在聊天的联系人" />
+                                    ToolTip="自动识别并填入WX主窗口当前正在聊天的联系人" />
                             </Grid>
 
                             <!--  3. 蒸馏技能视角选择（直观展示与快速切换）  -->
@@ -2493,7 +2494,7 @@
                                     FontSize="12"
                                     Foreground="{DynamicResource TextSecondaryBrush}"
                                     LineHeight="18"
-                                    Text="点击【⚡ 刷新历史】将自动检索本地微信数据库历史；&#x0a;获取历史后点击【✨ 一键蒸馏画像】，AI 将基于所选专业 Skill 视角，深度提炼对方多维特质认知画像全景。"
+                                    Text="点击【⚡ 刷新历史】将自动检索本地WX数据库历史；&#x0a;获取历史后点击【✨ 一键蒸馏画像】，AI 将基于所选专业 Skill 视角，深度提炼对方多维特质认知画像全景。"
                                     TextAlignment="Center"
                                     TextWrapping="Wrap" />
                             </StackPanel>
@@ -2918,7 +2919,7 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                         <TextBlock Text="🤖" FontSize="16" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
                                         <TextBlock
-                                            Text="AI 对话军师 · Antigravity 智能研判"
+                                            Text="AI 对话军师 ·  智能研判"
                                             FontSize="13"
                                             FontWeight="Bold"
                                             Foreground="{DynamicResource TextPrimaryBrush}"
@@ -3243,10 +3244,10 @@
                             <RadioButton
                                 x:Name="SettingSubTabWeChat"
                                 Click="SettingSubTab_Click"
-                                Content="💬 微信"
+                                Content="💬 WX"
                                 Style="{StaticResource SettingSubTabRadio}"
                                 Tag="1"
-                                ToolTip="微信 4.x 本地数据库直连与 TraceMemo 协同设置" />
+                                ToolTip="WX 4.x 本地数据库直连与 TraceMemo 协同设置" />
                             <RadioButton
                                 x:Name="SettingSubTabSkill"
                                 Click="SettingSubTab_Click"
@@ -3448,14 +3449,14 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!--  子视图 1: 💬 本地微信与数据库设置  -->
+                    <!--  子视图 1: 💬 本地WX与数据库设置  -->
                     <ScrollViewer
                         x:Name="SettingViewWeChat"
                         Grid.Row="1"
                         VerticalScrollBarVisibility="Auto"
                         Visibility="Collapsed">
                         <StackPanel Margin="0,0,0,16">
-                            <!--  卡片 1: 微信 4.x 本地数据库直连 (WCDB4 原生引擎)  -->
+                            <!--  卡片 1: WX 4.x 本地数据库直连 (WCDB4 原生引擎)  -->
                             <Border
                                 Margin="0,0,0,12"
                                 Padding="12"
@@ -3468,20 +3469,20 @@
                                         FontSize="13"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource TextPrimaryBrush}"
-                                        Text="💬 微信 4.x 本地数据库直连 (WCDB4 原生引擎)" />
+                                        Text="💬 WX 4.x 本地数据库直连 (WCDB4 原生引擎)" />
                                     <TextBlock
                                         Margin="0,4,0,10"
                                         FontSize="11"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="16"
-                                        Text="内置腾讯 WCDB 4.0 原生只读引擎，直接读取本地加密数据库，秒级提取长历史聊天记录与联系人；无需启动任何外部常驻服务，零进程注入，零封号风险。"
+                                        Text="内置  WCDB 4.0 原生只读引擎，直接读取本地加密数据库，秒级提取长历史聊天记录与联系人；无需启动任何外部常驻服务，零进程注入，零封号风险。"
                                         TextWrapping="Wrap" />
 
                                     <TextBlock
                                         Margin="0,4,0,4"
                                         FontSize="11"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
-                                        Text="微信 4.x 数据目录 (留空自动扫描本机 xwechat_files 活跃账号)：" />
+                                        Text="WX 4.x 数据目录 (留空自动扫描本机 xwechat_files 活跃账号)：" />
                                     <TextBox
                                         x:Name="SettingWeChatDbRootBox"
                                         Height="32"
@@ -3534,17 +3535,17 @@
                                             Content="🔍 自动探测本机配置"
                                             FontSize="11"
                                             Style="{StaticResource FluentButton}"
-                                            ToolTip="自动扫描本机微信 4.x 账号目录与本地加密密钥库" />
+                                            ToolTip="自动扫描本机WX 4.x 账号目录与本地加密密钥库" />
                                         <Button
                                             x:Name="SettingTestWeChatDbButton"
                                             Height="30"
                                             Margin="0,0,8,6"
                                             Padding="12,0"
                                             Click="SettingTestWeChatDbButton_Click"
-                                            Content="⚡ 测试微信 4.x 直连"
+                                            Content="⚡ 测试WX 4.x 直连"
                                             FontSize="11"
                                             Style="{StaticResource FluentButton}"
-                                            ToolTip="使用 WCDB4 原生引擎直接连接微信 4.x 本地加密数据库并读取联系人与消息" />
+                                            ToolTip="使用 WCDB4 原生引擎直接连接WX 4.x 本地加密数据库并读取联系人与消息" />
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -3606,7 +3607,7 @@
                                     Padding="16,0"
                                     HorizontalAlignment="Right"
                                     Click="SettingSaveWeChatDbButton_Click"
-                                    Content="💾 保存本地微信设置"
+                                    Content="💾 保存本地WX设置"
                                     Style="{StaticResource PrimaryAccentButton}" />
                             </Grid>
                         </StackPanel>
@@ -4074,7 +4075,7 @@
                                         </ComboBox>
                                     </Grid>
 
-                                    <!--  己方微信昵称  -->
+                                    <!--  己方WX昵称  -->
                                     <Grid Margin="0,6,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -4084,7 +4085,7 @@
                                             <TextBlock
                                                 FontSize="11.5"
                                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                                Text="己方微信昵称/备注" />
+                                                Text="己方WX昵称/备注" />
                                             <TextBlock
                                                 FontSize="10.5"
                                                 Foreground="{DynamicResource TextSecondaryBrush}"
@@ -4287,12 +4288,12 @@
                                             VerticalAlignment="Center"
                                             FontSize="12"
                                             Foreground="{DynamicResource TextPrimaryBrush}"
-                                            Text="重新定位并贴齐微信右侧边缘" />
+                                            Text="重新定位并贴齐WX右侧边缘" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!--  微信 4.x 本地数据库直连说明  -->
+                            <!--  WX 4.x 本地数据库直连说明  -->
                             <Border
                                 Margin="0,0,0,10"
                                 Padding="14"
@@ -4306,12 +4307,12 @@
                                         FontSize="13"
                                         FontWeight="Bold"
                                         Foreground="{DynamicResource TextPrimaryBrush}"
-                                        Text="💬 聊天记录获取方式说明（微信 4.x 原生数据库直读）" />
+                                        Text="💬 聊天记录获取方式说明（wx 4.x 原生数据库直读）" />
                                     <TextBlock
                                         FontSize="11.5"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="19"
-                                        Text="本助手采用 100% 本地数据库直读方案，实现极速、精准的人格特质蒸馏与完整上下文理解：&#x0a;• 原生直读：内置腾讯 WCDB 4.0 原生只读引擎，直接访问本机加密数据库，无需启动任何外部常驻进程或第三方 HTTP 端口，响应极快、零干扰、零封号风险。&#x0a;• 本地持久化：历史消息自动沉淀于本地 SQLite 数据库（WAL 高性能模式），即使微信未打开亦可随时调阅离线画像与对话。&#x0a;• 纯只读游标：从不修改任何微信底层文件，从不注入 DLL，安全合规。"
+                                        Text="本助手采用 100% 本地数据库直读方案，实现极速、精准的人格特质蒸馏与完整上下文理解：&#x0a;• 原生直读：内置 WCDB 4.0 原生只读引擎，直接访问本机加密数据库，无需启动任何外部常驻进程或第三方 HTTP 端口，响应极快、零干扰、零封号风险。&#x0a;• 本地持久化：历史消息自动沉淀于本地 SQLite 数据库（WAL 高性能模式），即使wx未打开亦可随时调阅离线画像与对话。&#x0a;• 纯只读游标：从不修改任何wx底层文件，从不注入 DLL，安全合规。"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
@@ -4335,7 +4336,7 @@
                                         FontSize="11.5"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
                                         LineHeight="19"
-                                        Text="• 只读不代发：本助手绝不会模拟键盘鼠标自动发送消息，完全由您自主确认与复制。&#x0a;• 硬件级加密：API Key 与微信数据库密钥均经 Windows DPAPI 加密隔离保存，仅当前 Windows 账户可解密，绝不落明文。&#x0a;• 零注入零封号：内置 WCDB4 引擎采用纯文件只读游标（Read-Only WAL Cursor），不扫描微信进程内存、不注入 DLL、不 Hook 任何系统函数，从根源确保微信账号零风险。&#x0a;• 本地闭环：聊天记录与画像全过程完全保留在您的个人电脑本地，严禁且绝无任何第三方云端上传行为。"
+                                        Text="• 只读不代发：本助手绝不会模拟键盘鼠标自动发送消息，完全由您自主确认与复制。&#x0a;• 硬件级加密：API Key 与wx数据库密钥均经 Windows DPAPI 加密隔离保存，仅当前 Windows 账户可解密，绝不落明文。&#x0a;• 零注入零封号：内置 WCDB4 引擎采用纯文件只读游标（Read-Only WAL Cursor），不扫描WX进程内存、不注入 DLL、不 Hook 任何系统函数，从根源确保WX账号零风险。&#x0a;• 本地闭环：聊天记录与画像全过程完全保留在您的个人电脑本地，严禁且绝无任何第三方云端上传行为。"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
