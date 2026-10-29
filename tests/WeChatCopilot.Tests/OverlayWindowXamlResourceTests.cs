@@ -352,4 +352,33 @@ public class OverlayWindowXamlResourceTests
         Assert.True(missingKeys.Count == 0,
             $"Found missing StaticResource references in PersonaAnalyticsWindow.xaml: {string.Join(", ", missingKeys.Distinct())}");
     }
+    [Fact]
+    public void OverlayWindow_FluentEvidenceExpander_IsProperlyDefinedAndApplied()
+    {
+        string currentDir = AppContext.BaseDirectory;
+        string? repoRoot = null;
+        var dir = new DirectoryInfo(currentDir);
+        while (dir != null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "WeChatCopilot.slnx")) || File.Exists(Path.Combine(dir.FullName, "Directory.Build.props")))
+            {
+                repoRoot = dir.FullName;
+                break;
+            }
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(repoRoot);
+        string xamlPath = Path.Combine(repoRoot, "src", "WeChatCopilot.App", "OverlayWindow.xaml");
+        string xamlContent = File.ReadAllText(xamlPath);
+
+        // 验证定义了 FluentEvidenceExpander 样式
+        Assert.Contains(@"x:Key=""FluentEvidenceExpander""", xamlContent);
+        // 验证定义了 Expander 隐式样式覆盖
+        Assert.Contains(@"<Style TargetType=""Expander"" BasedOn=""{StaticResource FluentEvidenceExpander}"" />", xamlContent);
+        // 验证证据 Expander 显式指定了该样式
+        Assert.Contains(@"Style=""{StaticResource FluentEvidenceExpander}""", xamlContent);
+        // 验证特质证据文本前景色使用高对比度 TextPrimaryBrush
+        Assert.Contains(@"Foreground=""{DynamicResource TextPrimaryBrush}""", xamlContent);
+    }
 }

@@ -8,7 +8,7 @@
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
 ![Engine](https://img.shields.io/badge/WeChat%20Engine-WCDB%204.0%20Direct-success?logo=wechat)
-![Tests](https://img.shields.io/badge/Tests-199%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-200%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
@@ -165,7 +165,7 @@
 - **DPAPI 硬件级加密**：API Key 与WX数据库密钥仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **纯文件只读游标**：WCDB4 直连引擎采用纯文件只读游标（Read-Only WAL Cursor），不扫描WX进程内存、不注入 DLL、不 Hook 任何系统函数，从根源确保WX账号零风险。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **全方位测试守护**：**199 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
+- **全方位测试守护**：**200 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
 
 ---
 
@@ -295,7 +295,7 @@ e:\huanmai\myprod
 │       └── Security/DpapiProtector.cs # Windows DPAPI 硬件级敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (199 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (200 项测试全覆盖)
 │       ├── WeChatAnalyticsServiceTests.cs # 关系冷热、未读雷达、约定承诺抽取与全库检索测试
 │       ├── Wcdb4MessageDecoderTests.cs   # WCDB4 消息反序列化、会话排序过滤与备注解析测试
 │       ├── CompositeChatHistoryProviderTests.cs # 复合提供者通道测试
@@ -342,7 +342,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (199 项测试全绿)
+# 2. 运行自动化测试 (200 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -489,7 +489,7 @@ powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:
 dotnet test
 ```
 
-测试覆盖概览（**199 项全通过**）：
+测试覆盖概览（**200 项全通过**）：
 - `WeChatAnalyticsServiceTests`：关系冷热指数与等级研判、未读雷达排序过滤、约定承诺提炼（聚会/交付/表态）、大小写不敏感全库检索测试；
 - `WeChatDbKeyAndRootProviderTests`：xwechat_files 活跃账号目录自动发现、DPAPI/AES-256-GCM 密钥库提取与 ASCII Junction 桥接探测测试；
 - `Wcdb4MessageDecoderTests`：WX 4.x Zstd 压缩包解压、XML 卡片/表情/引用回复结构化解析、活跃单聊清洗过滤与会话排序测试；

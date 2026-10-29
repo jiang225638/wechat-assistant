@@ -98,6 +98,109 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
         }
     }
 
+    /// <summary>
+    /// 以 Server-Sent Events (SSE) 协议执行真实流式聊天补全。
+    /// 走 POST {base}/chat/completions (stream: true)，按 token / chunk 异步返回增量内容。
+    /// </summary>
+    public async IAsyncEnumerable<string> CompleteStreamAsync(
+        AiRequest request,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        string key = _apiKeyGetter();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new InvalidOperationException("未配置 API Key，请先在「AI 设置」中填写。");
+        }
+
+        var payload = new
+        {
+            model = request.Model,
+            temperature = request.Temperature,
+            max_tokens = request.MaxTokens,
+            stream = true,
+            messages = new[]
+            {
+                new { role = "system", content = request.SystemPrompt },
+                new { role = "user", content = request.UserPrompt }
+            }
+        };
+
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        msg.Content = JsonContent.Create(payload);
+
+        // 必须使用 HttpCompletionOption.ResponseHeadersRead 才能开启即时流式响应
+        using var resp = await _http.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            string errBody = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            throw new HttpRequestException($"HTTP {(int)resp.StatusCode}: {Truncate(errBody)}");
+        }
+
+        using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            string? line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+            if (line == null) break;
+
+            line = line.Trim();
+            if (string.IsNullOrEmpty(line) || line.StartsWith(':'))
+            {
+                continue;
+            }
+
+            if (line.StartsWith("data:", StringComparison.Ordinal))
+            {
+                string data = line[5..].Trim();
+                if (data == "[DONE]")
+                {
+                    break;
+                }
+
+                string? chunk = ExtractDeltaContent(data);
+                if (!string.IsNullOrEmpty(chunk))
+                {
+                    yield return chunk;
+                }
+            }
+        }
+    }
+
+    private static string? ExtractDeltaContent(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("choices", out var choices) || choices.GetArrayLength() == 0)
+            {
+                return null;
+            }
+
+            var choice0 = choices[0];
+            if (!choice0.TryGetProperty("delta", out var delta))
+            {
+                return null;
+            }
+
+            if (delta.TryGetProperty("content", out var contentProp) && contentProp.ValueKind == JsonValueKind.String)
+            {
+                return contentProp.GetString();
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static string Truncate(string s, int max = 300) =>
         s.Length <= max ? s : s[..max] + "...";
 

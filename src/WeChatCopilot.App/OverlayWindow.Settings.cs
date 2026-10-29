@@ -114,6 +114,7 @@ public partial class OverlayWindow : Window
 
     private void SettingThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!IsLoaded) return;
         if (SettingThemeCombo?.SelectedItem is ComboBoxItem item && item.Tag is string theme)
         {
             var s = _settingsStore.Load();
@@ -128,6 +129,7 @@ public partial class OverlayWindow : Window
 
     private void SettingContextCountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!IsLoaded) return;
         if (SettingContextCountCombo?.SelectedItem is ComboBoxItem item &&
             item.Tag is string tagStr && int.TryParse(tagStr, out int count) && count > 0)
         {
@@ -876,6 +878,7 @@ public partial class OverlayWindow : Window
 
     private void SettingOpacityCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (!IsLoaded) return;
         if (SettingOpacityCombo?.SelectedItem is ComboBoxItem item &&
             item.Tag is string tagStr &&
             double.TryParse(tagStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double opacity))

@@ -730,6 +730,110 @@
             </Setter>
         </Style>
 
+        <!--  画像原话证据专属折叠器样式 (支持深浅主题动态自适应，杜绝灰色色块与低对比度)  -->
+        <Style x:Key="FluentEvidenceExpander" TargetType="Expander">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <DockPanel Background="Transparent">
+                            <ToggleButton
+                                x:Name="HeaderSite"
+                                DockPanel.Dock="Top"
+                                Focusable="False"
+                                Cursor="Hand"
+                                Content="{TemplateBinding Header}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border
+                                            x:Name="headerBorder"
+                                            Padding="9,5"
+                                            Background="{DynamicResource CardSubtleBgBrush}"
+                                            BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            TextElement.Foreground="{DynamicResource TextPrimaryBrush}"
+                                            SnapsToDevicePixels="True">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="11"
+                                                    Text="💬" />
+                                                <ContentPresenter
+                                                    x:Name="HeaderContent"
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Content="{TemplateBinding Content}"
+                                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                    RecognizesAccessKey="True"
+                                                    TextElement.FontSize="11"
+                                                    TextElement.FontWeight="Medium" />
+                                                <Path
+                                                    x:Name="arrow"
+                                                    Grid.Column="2"
+                                                    Margin="6,0,2,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Center"
+                                                    Data="M 0 0 L 4 4 L 8 0"
+                                                    Stroke="{DynamicResource TextSecondaryBrush}"
+                                                    StrokeThickness="1.5"
+                                                    StrokeStartLineCap="Round"
+                                                    StrokeEndLineCap="Round"
+                                                    StrokeLineJoin="Round"
+                                                    IsHitTestVisible="False" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="headerBorder" Property="Background" Value="{DynamicResource ButtonHoverBrush}" />
+                                                <Setter TargetName="headerBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource TextPrimaryBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="headerBorder" Property="Background" Value="{DynamicResource SubBorderCheckedBrush}" />
+                                                <Setter TargetName="headerBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                <Setter TargetName="headerBorder" Property="TextElement.Foreground" Value="{DynamicResource SubBorderCheckedTextBrush}" />
+                                                <Setter TargetName="arrow" Property="Stroke" Value="{DynamicResource AccentBrush}" />
+                                                <Setter TargetName="arrow" Property="Data" Value="M 0 4 L 4 0 L 8 4" />
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="headerBorder" Property="Opacity" Value="0.45" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter
+                                x:Name="ExpandSite"
+                                DockPanel.Dock="Bottom"
+                                Focusable="False"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </DockPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!--  全局隐式控件样式覆盖，确保深浅主题下全部控件自动适配且高对比度  -->
         <Style TargetType="Button" BasedOn="{StaticResource FluentButton}" />
         <Style TargetType="ToggleButton" BasedOn="{StaticResource FluentToggleButton}" />
@@ -739,6 +843,7 @@
         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource FluentComboBoxItem}" />
         <Style TargetType="ToolTip" BasedOn="{StaticResource FluentToolTip}" />
         <Style TargetType="CheckBox" BasedOn="{StaticResource FluentCheckBox}" />
+        <Style TargetType="Expander" BasedOn="{StaticResource FluentEvidenceExpander}" />
     </Window.Resources>
 
     <!--  外层卡片边框  -->
@@ -2778,22 +2883,23 @@
 
                                                     <!--  证据原话 (观察层，折叠显示)  -->
                                                     <Expander
+                                                        Style="{StaticResource FluentEvidenceExpander}"
                                                         Margin="0,6,0,0"
-                                                        FontSize="11"
-                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                         Header="{Binding EvidenceSummary}"
                                                         Visibility="{Binding HasEvidence, Converter={StaticResource BoolToVis}}">
                                                         <Border
                                                             Margin="0,4,0,0"
-                                                            Padding="8"
+                                                            Padding="10,8"
                                                             Background="{DynamicResource CardSubtleBgBrush}"
+                                                            BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                                            BorderThickness="1"
                                                             CornerRadius="6">
 
                                                             <TextBlock
-                                                                FontSize="11"
+                                                                FontSize="11.5"
                                                                 FontStyle="Italic"
-                                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                                                LineHeight="17"
+                                                                Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                LineHeight="18"
                                                                 Text="{Binding EvidenceText}"
                                                                 TextWrapping="Wrap" />
                                                         </Border>
@@ -3244,7 +3350,7 @@
                             <RadioButton
                                 x:Name="SettingSubTabWeChat"
                                 Click="SettingSubTab_Click"
-                                Content="💬 WX"
+                                Content="💬 微信"
                                 Style="{StaticResource SettingSubTabRadio}"
                                 Tag="1"
                                 ToolTip="WX 4.x 本地数据库直连与 TraceMemo 协同设置" />
@@ -4002,8 +4108,8 @@
                                             VerticalContentAlignment="Center"
                                             FontSize="11"
                                             SelectionChanged="SettingThemeCombo_SelectionChanged">
-                                            <ComboBoxItem Content="🌙 深色模式" Tag="Dark" IsSelected="True" />
-                                            <ComboBoxItem Content="☀️ 浅色模式" Tag="Light" />
+                                            <ComboBoxItem Content="☀️ 浅色模式" Tag="Light" IsSelected="True" />
+                                            <ComboBoxItem Content="🌙 深色模式" Tag="Dark" />
                                             <ComboBoxItem Content="🔄 跟随系统" Tag="System" />
                                         </ComboBox>
                                     </Grid>

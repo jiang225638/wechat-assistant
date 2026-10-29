@@ -1,3 +1,5 @@
+using System.Text;
+using WeChatCopilot.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -81,7 +83,29 @@ public static class MarkdownRenderer
                 continue;
             }
 
-            // 4. 标题 (#, ##, ###, ####)
+            // 4. 表格 (| col1 | col2 | ...)
+            if (trimmed.Contains('|') && i + 1 < lineCount && IsTableSeparator(rawLines[i + 1], out var alignments))
+            {
+                var headers = ParseTableRow(trimmed);
+                i += 2; // 跳过表头与分隔行
+
+                var rows = new List<string[]>();
+                while (i < lineCount)
+                {
+                    string rLine = rawLines[i].Trim();
+                    if (string.IsNullOrEmpty(rLine) || !rLine.Contains('|'))
+                    {
+                        break;
+                    }
+                    rows.Add(ParseTableRow(rLine));
+                    i++;
+                }
+
+                container.Children.Add(CreateTableElement(headers, rows, alignments));
+                continue;
+            }
+
+            // 5. 标题 (#, ##, ###, ####)
             if (trimmed.StartsWith('#'))
             {
                 int level = 0;
@@ -140,7 +164,8 @@ public static class MarkdownRenderer
                     IsHorizontalRule(nextTrimmed) ||
                     (nextTrimmed.StartsWith('#') && nextTrimmed.Contains(' ')) ||
                     nextTrimmed.StartsWith('>') ||
-                    IsListItem(nextTrimmed, out _, out _))
+                    IsListItem(nextTrimmed, out _, out _) ||
+                    (nextTrimmed.Contains('|') && i + 1 < lineCount && IsTableSeparator(rawLines[i + 1], out _)))
                 {
                     break;
                 }
@@ -465,6 +490,7 @@ public static class MarkdownRenderer
     public static void AppendFormattedInlines(TextBlock textBlock, string text)
     {
         if (string.IsNullOrEmpty(text)) return;
+        text = NormalizeTextForDisplay(text);
 
         var matches = s_inlineRegex.Matches(text);
         foreach (Match m in matches)
@@ -510,5 +536,245 @@ public static class MarkdownRenderer
                 textBlock.Inlines.Add(new Run(val));
             }
         }
+    }
+    private static string NormalizeTextForDisplay(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        text = WeChatEmojiTable.ReplaceWeChatEmojis(text);
+        text = text.Replace("[check]", "✅")
+                   .Replace("[x]", "☑️")
+                   .Replace("[X]", "☑️")
+                   .Replace("[ ]", "⬜")
+                   .Replace("[face]", "😊");
+        return text;
+    }
+
+    private static UIElement CreateTableElement(
+        string[] headers,
+        List<string[]> rows,
+        List<HorizontalAlignment> alignments)
+    {
+        int colCount = headers.Length;
+        if (colCount == 0) return new Border();
+
+        var scrollViewer = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            Margin = new Thickness(0, 4, 0, 8),
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        var outerBorder = new Border
+        {
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1),
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+        outerBorder.SetResourceReference(Border.BackgroundProperty, "CardSubtleBgBrush");
+        outerBorder.SetResourceReference(Border.BorderBrushProperty, "BorderSubtleBrush");
+
+        var grid = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        for (int c = 0; c < colCount; c++)
+        {
+            double starWeight = 1.0;
+            if (colCount >= 3)
+            {
+                if (c == 0) starWeight = 1.1;
+                else if (c == 1) starWeight = 1.2;
+                else if (c == colCount - 1) starWeight = 1.7;
+            }
+
+            grid.ColumnDefinitions.Add(new ColumnDefinition
+            {
+                Width = new GridLength(starWeight, GridUnitType.Star),
+                MinWidth = 80
+            });
+        }
+
+        // 行 0：表头
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var headerBg = new Border
+        {
+            CornerRadius = new CornerRadius(7, 7, 0, 0),
+            BorderThickness = new Thickness(0, 0, 0, 1.5)
+        };
+        headerBg.SetResourceReference(Border.BackgroundProperty, "SubBorderCheckedBrush");
+        headerBg.SetResourceReference(Border.BorderBrushProperty, "BorderLightBrush");
+        Grid.SetRow(headerBg, 0);
+        Grid.SetColumn(headerBg, 0);
+        Grid.SetColumnSpan(headerBg, colCount);
+        grid.Children.Add(headerBg);
+
+        for (int c = 0; c < colCount; c++)
+        {
+            var align = c < alignments.Count ? alignments[c] : HorizontalAlignment.Left;
+            var headerCell = new Border
+            {
+                Padding = new Thickness(8, 6, 8, 6),
+                BorderThickness = new Thickness(0, 0, c == colCount - 1 ? 0 : 1, 0)
+            };
+            headerCell.SetResourceReference(Border.BorderBrushProperty, "BorderSubtleBrush");
+
+            var tb = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 11.5,
+                HorizontalAlignment = align
+            };
+            tb.SetResourceReference(TextBlock.ForegroundProperty, "SubBorderCheckedTextBrush");
+            AppendFormattedInlines(tb, headers[c]);
+            headerCell.Child = tb;
+
+            Grid.SetRow(headerCell, 0);
+            Grid.SetColumn(headerCell, c);
+            grid.Children.Add(headerCell);
+        }
+
+        // 数据行
+        for (int r = 0; r < rows.Count; r++)
+        {
+            int rowIdx = r + 1;
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var rowBorder = new Border
+            {
+                BorderThickness = new Thickness(0, 0, 0, r == rows.Count - 1 ? 0 : 1)
+            };
+            rowBorder.SetResourceReference(Border.BorderBrushProperty, "BorderSubtleBrush");
+            if (r % 2 == 1)
+            {
+                rowBorder.SetResourceReference(Border.BackgroundProperty, "CardBgBrush");
+            }
+            if (r == rows.Count - 1)
+            {
+                rowBorder.CornerRadius = new CornerRadius(0, 0, 7, 7);
+            }
+
+            Grid.SetRow(rowBorder, rowIdx);
+            Grid.SetColumn(rowBorder, 0);
+            Grid.SetColumnSpan(rowBorder, colCount);
+            grid.Children.Add(rowBorder);
+
+            string[] rowData = rows[r];
+            for (int c = 0; c < colCount; c++)
+            {
+                string cellText = c < rowData.Length ? rowData[c] : "";
+                var align = c < alignments.Count ? alignments[c] : HorizontalAlignment.Left;
+
+                var cellBorder = new Border
+                {
+                    Padding = new Thickness(8, 6, 8, 6),
+                    BorderThickness = new Thickness(0, 0, c == colCount - 1 ? 0 : 1, 0)
+                };
+                cellBorder.SetResourceReference(Border.BorderBrushProperty, "BorderSubtleBrush");
+
+                var tb = new TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap,
+                    LineHeight = 18,
+                    FontSize = 11,
+                    HorizontalAlignment = align
+                };
+                tb.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimaryBrush");
+                AppendFormattedInlines(tb, cellText);
+                cellBorder.Child = tb;
+
+                Grid.SetRow(cellBorder, rowIdx);
+                Grid.SetColumn(cellBorder, c);
+                grid.Children.Add(cellBorder);
+            }
+        }
+
+        outerBorder.Child = grid;
+        scrollViewer.Content = outerBorder;
+        return scrollViewer;
+    }
+
+    private static string[] ParseTableRow(string line)
+    {
+        var cells = new List<string>();
+        var current = new StringBuilder();
+        bool escaped = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (escaped)
+            {
+                current.Append(c);
+                escaped = false;
+            }
+            else if (c == '\\')
+            {
+                escaped = true;
+            }
+            else if (c == '|')
+            {
+                cells.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+        cells.Add(current.ToString().Trim());
+
+        if (cells.Count > 0 && string.IsNullOrEmpty(cells[0]) && line.TrimStart().StartsWith('|'))
+        {
+            cells.RemoveAt(0);
+        }
+        if (cells.Count > 0 && string.IsNullOrEmpty(cells[^1]) && line.TrimEnd().EndsWith('|'))
+        {
+            cells.RemoveAt(cells.Count - 1);
+        }
+
+        return cells.ToArray();
+    }
+
+    private static bool IsTableSeparator(string line, out List<HorizontalAlignment> alignments)
+    {
+        alignments = new List<HorizontalAlignment>();
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        string trimmed = line.Trim();
+        if (!trimmed.Contains('-') || !trimmed.Contains('|')) return false;
+
+        var cells = ParseTableRow(trimmed);
+        if (cells.Length == 0) return false;
+
+        foreach (var cell in cells)
+        {
+            string s = cell.Trim();
+            if (string.IsNullOrEmpty(s)) return false;
+            if (!Regex.IsMatch(s, @"^:?-{1,}:?$"))
+            {
+                return false;
+            }
+
+            bool left = s.StartsWith(':');
+            bool right = s.EndsWith(':');
+            if (left && right)
+            {
+                alignments.Add(HorizontalAlignment.Center);
+            }
+            else if (right)
+            {
+                alignments.Add(HorizontalAlignment.Right);
+            }
+            else
+            {
+                alignments.Add(HorizontalAlignment.Left);
+            }
+        }
+
+        return alignments.Count > 0;
     }
 }
