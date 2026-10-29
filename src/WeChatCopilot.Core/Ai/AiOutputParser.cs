@@ -15,7 +15,9 @@ public static class AiOutputParser
     private static readonly Regex NumberPrefix = new(@"^\d+\s*[\.、\)]\s*", RegexOptions.Compiled);
 
     // [语气] 其余内容
-    private static readonly Regex SuggestionLine = new(@"^\[(?<tone>[^\]]+)\]\s*(?<rest>.*)$", RegexOptions.Compiled);
+    private static readonly Regex SuggestionLine = new(
+        @"^(?:[\*\-\+]|\d+[\.、\)])?\s*(?:\*\*)?[\[【](?<tone>[^\]】]+)[\]】](?:\*\*)?\s*[:：]?\s*(?<rest>.*)$",
+        RegexOptions.Compiled);
 
     // 回复正文 | 理由：xxx（竖线半角/全角，冒号半角/全角）
     private static readonly Regex ReasonSplit = new(
@@ -133,10 +135,20 @@ public static class AiOutputParser
 
         var suggestions = new List<ReplySuggestion>();
 
+        bool inSuggestionsSection = false;
+
         foreach (string rawLine in raw.Split('\n'))
         {
             string line = rawLine.Trim('\r', ' ', '\t');
-            if (line.Length == 0 || line.StartsWith("===") || line.StartsWith("---") || line.StartsWith("```"))
+            if (line.Length == 0) continue;
+
+            if (line.Contains("回复建议") || line.Contains("候选回复") || line.Contains("建议回复"))
+            {
+                inSuggestionsSection = true;
+                continue;
+            }
+
+            if (line.StartsWith("===") || line.StartsWith("---") || line.StartsWith("```"))
             {
                 continue;
             }
@@ -193,12 +205,38 @@ public static class AiOutputParser
             }
 
             // 2. 尝试匹配回复建议格式: [战术风格] 内容 | 理由：xxx | 得分：维度1=88... | 推进力=86, 安全度=90
-            string cleaned = NumberPrefix.Replace(line, string.Empty);
+            string cleaned = NumberPrefix.Replace(line, string.Empty).TrimStart('*', '-', '+', ' ', '\t');
             Match m = SuggestionLine.Match(cleaned);
+            string tone = string.Empty;
+            string rest = string.Empty;
+
             if (m.Success)
             {
-                string tone = m.Groups["tone"].Value.Trim();
-                string rest = m.Groups["rest"].Value.Trim();
+                tone = m.Groups["tone"].Value.Trim('*', ' ');
+                rest = m.Groups["rest"].Value.Trim();
+            }
+            else if (inSuggestionsSection || cleaned.Contains('|') || cleaned.Contains('｜'))
+            {
+                var colonMatch = Regex.Match(cleaned, @"^(?:[\*\-\+]|\d+[\.、\)])?\s*(?<tone>[\u4e00-\u9fa5a-zA-Z0-9_\-\s]{2,10})[:：]\s*(?<rest>.*)$");
+                if (colonMatch.Success && (colonMatch.Groups["rest"].Value.Contains('|') || colonMatch.Groups["rest"].Value.Contains('｜')))
+                {
+                    tone = colonMatch.Groups["tone"].Value.Trim();
+                    rest = colonMatch.Groups["rest"].Value.Trim();
+                }
+                else if (cleaned.Contains('|') || cleaned.Contains('｜'))
+                {
+                    tone = "破局建议";
+                    rest = cleaned;
+                }
+                else if (inSuggestionsSection && cleaned.Length >= 4 && !cleaned.StartsWith('#'))
+                {
+                    tone = "破局建议";
+                    rest = cleaned;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(tone) && !string.IsNullOrEmpty(rest))
+            {
 
                 string text = string.Empty;
                 string reason = string.Empty;

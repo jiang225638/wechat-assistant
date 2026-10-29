@@ -243,4 +243,28 @@ public class AiOutputParserTests
         Assert.NotNull(s2.DimensionScores);
         Assert.Equal(95, s2.DimensionScores["信任赋能"]);
     }
+    [Fact]
+    public void ParseUnifiedAdvice_ChineseBracketsAndBullets_ParsedSuccessfully()
+    {
+        string raw =
+            "=== 意图剖析 ===\n" +
+            "目标原话：好呀\n" +
+            "字面意思：表示同意\n" +
+            "\n" +
+            "=== 回复建议 ===\n" +
+            "1. 【幽默推拉】那我也不能落后，下周听你安排。 | 理由：接梗幽默\n" +
+            "* [借势推进] 行，你负责有饭，我负责有心，分工明确。那下周哪天赏脸？ | 理由：推进见面 | 推进力=80, 安全度=85\n" +
+            "3. 顺水推舟：没问题，周六见 | 理由：直接确认";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw);
+
+        Assert.Equal(3, advice.Suggestions.Count);
+        Assert.Equal("幽默推拉", advice.Suggestions[0].Tone);
+        Assert.Equal("那我也不能落后，下周听你安排。", advice.Suggestions[0].Text);
+        Assert.Equal("借势推进", advice.Suggestions[1].Tone);
+        Assert.Equal("行，你负责有饭，我负责有心，分工明确。那下周哪天赏脸？", advice.Suggestions[1].Text);
+        Assert.Equal(80, advice.Suggestions[1].GoalPushScore);
+        Assert.Equal("顺水推舟", advice.Suggestions[2].Tone);
+        Assert.Equal("没问题，周六见", advice.Suggestions[2].Text);
+    }
 }

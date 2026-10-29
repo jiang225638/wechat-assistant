@@ -286,7 +286,23 @@ public partial class OverlayWindow : Window
             ? advice.Strategy
             : "建议保持积极客气、就事论事的态度，明确时间与具体要求。";
 
-        SuggestionCards.ItemsSource = advice.Suggestions;
+        if (advice.Suggestions.Count == 0)
+        {
+            var fallbackList = new List<ReplySuggestion>();
+            if (!string.IsNullOrWhiteSpace(advice.Strategy))
+            {
+                fallbackList.Add(new ReplySuggestion("策略破局", advice.Strategy, "依据当前战局破局心法自动提炼"));
+            }
+            else
+            {
+                fallbackList.Add(new ReplySuggestion("重新生成", "本次模型回复未生成明确的候选，请点击上方「智能分析回复建议」重试或在输入框微调意图。", "建议微调回复意图重新推演"));
+            }
+            SuggestionCards.ItemsSource = fallbackList;
+        }
+        else
+        {
+            SuggestionCards.ItemsSource = advice.Suggestions;
+        }
         UnifiedAiScroll.ScrollToTop();
 
         _lastUnifiedAdvice = advice;

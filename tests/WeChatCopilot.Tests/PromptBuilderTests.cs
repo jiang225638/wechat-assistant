@@ -326,11 +326,11 @@ public class PromptBuilderTests
             ultimateGoal: "让对方成为女友",
             userIntent: "轻松幽默的气氛");
 
-        Assert.Contains("8~25 字", req.SystemPrompt);
+        Assert.Contains("15~35 字", req.SystemPrompt);
         Assert.Contains("微信真人感", req.SystemPrompt);
         Assert.Contains("油腻", req.SystemPrompt);
         Assert.Contains("战略与目的必须深藏在幕后", req.SystemPrompt);
-        Assert.Contains("8~25 字", req.UserPrompt);
+        Assert.Contains("15~35 字", req.UserPrompt);
     }
 
 }
