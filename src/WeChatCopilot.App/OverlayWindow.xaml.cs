@@ -48,6 +48,7 @@ public partial class OverlayWindow : Window
 
     private readonly IWeChatWindowLocator _locator = new WeChatWindowLocator();
     private readonly IWindowTracker _tracker = new PollingWindowTracker();
+    private readonly WeChatHeaderDetector _headerDetector = new();
     private readonly ConversationBuffer _conversation = new();
     private readonly List<HistoryMessage> _history = new();
     private readonly SqliteStorage _sqliteStorage = new();
@@ -68,7 +69,7 @@ public partial class OverlayWindow : Window
     private nint _hwnd;
     private bool _pinned;
     private bool _manualHidden;
-    private bool _autoRead;
+    private bool _autoRead = true;
     private bool _reading;
     private bool _autoSyncContact = true;
     private bool _isSyncingPersonaSelection;
@@ -107,7 +108,7 @@ public partial class OverlayWindow : Window
             }
         };
 
-        _autoReadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _autoReadTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         _autoReadTimer.Tick += async (_, _) => await AutoReadTickAsync();
 
         _saveSizeDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -198,9 +199,17 @@ public partial class OverlayWindow : Window
 
         RefreshSavedPersonasCombo();
         InitSkillCombo();
+        UpdateAutoSyncToggleUi();
         TryLocate();
         _relocateTimer.Start();
-        _ = RefreshRecentSessionsAsync(autoSelectActive: true);
+        _autoReadTimer.Start();
+        _ = InitializeActiveSessionOnStartupAsync();
+    }
+
+    private async Task InitializeActiveSessionOnStartupAsync()
+    {
+        await RefreshRecentSessionsAsync(autoSelectActive: true);
+        await ReadConversationAsync(silent: true, forceAutoDetect: true);
     }
 
     private void OnClosed(object? sender, EventArgs e)
@@ -574,14 +583,14 @@ public partial class OverlayWindow : Window
             string contact = CleanContactName(info.Title);
             if (!string.IsNullOrEmpty(contact) && contact != _mySelfNickname)
             {
+                bool changed = !string.Equals(_currentChatContact, contact, StringComparison.OrdinalIgnoreCase);
                 _currentChatContact = contact;
                 StatusText.Text = $"已连接：{contact}";
                 StatusDot.Fill = (SolidColorBrush)FindResource("GreenBrush");
 
-                if (_autoSyncContact)
+                if (_autoSyncContact && changed)
                 {
-                    ContactBox.Text = contact;
-                    CheckAndLoadPersona(contact);
+                    _ = SwitchActiveSessionContactAsync(contact, "微信独立聊天窗口");
                 }
             }
         }

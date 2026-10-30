@@ -28,6 +28,23 @@ public class PersonaDistillerTests
     }
 
     [Fact]
+    public void SampleRepresentativeHistory_PreservesEarlyAndRecentMessages()
+    {
+        var history = Enumerable.Range(1, 200)
+            .Select(i => H(MessageRole.Incoming, $"msg_{i}"))
+            .ToList();
+
+        var sampled = PersonaDistiller.SampleRepresentativeHistory(history, maxCount: 100);
+
+        Assert.Equal(100, sampled.Count);
+        // 应包含第一条早期消息和最后一条最新消息
+        Assert.Equal("msg_1", sampled[0].Text);
+        Assert.Equal("msg_200", sampled[^1].Text);
+        // 最近 70 条（131..200）必须完整保留
+        Assert.Equal("msg_131", sampled[30].Text);
+    }
+
+    [Fact]
     public void ParseTraits_WellFormedLine()
     {
         var list = PersonaDistiller.ParseTraits(
@@ -87,6 +104,7 @@ public class PersonaDistillerTests
         Assert.Contains("语言风格 | 短句 | 可信度: 0.70 | 证据: 嗯", req.UserPrompt);
         Assert.Contains("稳定属性 | 夜班 | 可信度: 0.90", req.UserPrompt);
         Assert.Contains("已有画像基线", req.UserPrompt);
+        Assert.Contains("Reduce 阶段聚合归纳核心准则", req.SystemPrompt);
     }
 
     [Fact]
@@ -224,6 +242,24 @@ public class PersonaDistillerTests
         // 己方发言应被自动剔除，只保留对方亲口发言
         Assert.Single(filtered);
         Assert.Equal("好的没问题，准时到", filtered[0]);
+    }
+
+    [Fact]
+    public void FilterEvidence_DoesNotDeleteLongIncomingQuote_WhenUserSentShortWord()
+    {
+        var history = new[]
+        {
+            new HistoryMessage(MessageRole.Outgoing, "好的"),
+            new HistoryMessage(MessageRole.Incoming, "那我们明天下午三点在星巴克见，好的话我提前占座")
+        };
+
+        // 假如模型摘录了对方原话片段（由于某种原因未与原句100%全等，但包含“好的”）
+        var rawEvidence = new[] { "好的", "明天下午三点星巴克见，好的话提前占座" };
+        var filtered = PersonaDistiller.FilterEvidence(rawEvidence, history);
+
+        // 己方短句 "好的" 被剔除，但包含 "好的" 的对方长句不应被误杀
+        Assert.Single(filtered);
+        Assert.Equal("明天下午三点星巴克见，好的话提前占座", filtered[0]);
     }
 
     [Fact]

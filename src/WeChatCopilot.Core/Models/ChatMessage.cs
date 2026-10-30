@@ -6,7 +6,8 @@ namespace WeChatCopilot.Core.Models;
 /// </summary>
 /// <param name="Role">收发方向（对方/自己/未知）。</param>
 /// <param name="Text">消息文本（多行气泡含换行）。</param>
-public sealed record ChatMessage(MessageRole Role, string Text)
+/// <param name="Timestamp">可选消息发送时间（来自本地数据库或历史缓存）。</param>
+public sealed record ChatMessage(MessageRole Role, string Text, DateTime? Timestamp = null)
 {
     /// <summary>去重键：方向 + 归一化文本。表达式属性，不参与 record 相等性比较。</summary>
     public string Key => $"{(int)Role}\u0001{MessageNormalizer.Normalize(Text)}";
@@ -40,4 +41,3 @@ public sealed record ChatMessage(MessageRole Role, string Text)
     /// <summary>徽章文字颜色。</summary>
     public string BadgeForeground => IsIncoming ? "#93C5FD" : "#6EE7B7";
 }
-

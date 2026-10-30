@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using WeChatCopilot.Core.Diagnostics;
 using WeChatCopilot.Core.Models;
 
 namespace WeChatCopilot.Data;
@@ -17,6 +18,7 @@ public sealed class SkillStore
     private readonly string _skillsFilePath;
     private readonly string _activeSkillFilePath;
     private readonly string _boundDirFilePath;
+    private IReadOnlyList<DistillSkill>? _cachedAllSkills;
 
     public SkillStore(string? directory = null)
     {
@@ -30,12 +32,20 @@ public sealed class SkillStore
         _boundDirFilePath = Path.Combine(_directory, "bound_skills_dir.txt");
     }
 
+    /// <summary>使内存中的技能列表缓存失效（在目录切换、导入、增删自定义技能时自动调用）。</summary>
+    public void InvalidateCache() => _cachedAllSkills = null;
+
     /// <summary>获取当前所有可用技能（内置预设 + 本地工作区发现 + 用户自定义）。</summary>
-    public IReadOnlyList<DistillSkill> GetAllSkills()
+    public IReadOnlyList<DistillSkill> GetAllSkills(bool forceRefresh = false)
     {
+        if (!forceRefresh && _cachedAllSkills is not null)
+        {
+            return _cachedAllSkills;
+        }
+
         var list = new List<DistillSkill>(DistillSkillPresets.AllBuiltIn);
 
-        var workspaceSkills = ScanWorkspaceSkills();
+        var workspaceSkills = ScanWorkspaceSkillsCore();
         foreach (var ws in workspaceSkills)
         {
             if (!list.Any(s => s.Id.Equals(ws.Id, StringComparison.OrdinalIgnoreCase)))
@@ -52,6 +62,8 @@ public sealed class SkillStore
                 list.Add(cs);
             }
         }
+
+        _cachedAllSkills = list;
         return list;
     }
 
@@ -69,9 +81,9 @@ public sealed class SkillStore
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略读取异常
+            AppLog.Warn("SkillStore", "读取绑定技能目录配置失败", ex);
         }
 
         var roots = GetPotentialSkillRoots();
@@ -87,7 +99,7 @@ public sealed class SkillStore
         }
         catch (Exception ex)
         {
-            WeChatCopilot.Core.Diagnostics.AppLog.Warn("SkillStore", $"创建默认技能目录失败: {defaultDir}", ex);
+            AppLog.Warn("SkillStore", $"创建默认技能目录失败: {defaultDir}", ex);
         }
         return defaultDir;
     }
@@ -99,15 +111,22 @@ public sealed class SkillStore
         try
         {
             File.WriteAllText(_boundDirFilePath, path.Trim());
+            _cachedAllSkills = null;
         }
         catch (Exception ex)
         {
-            WeChatCopilot.Core.Diagnostics.AppLog.Warn("SkillStore", "写入绑定技能目录配置失败", ex);
+            AppLog.Warn("SkillStore", "写入绑定技能目录配置失败", ex);
         }
     }
 
     /// <summary>自动扫描工作区与绑定目录中的扩展技能（如 local 技能及其子模块）。</summary>
     public IReadOnlyList<DistillSkill> ScanWorkspaceSkills()
+    {
+        _cachedAllSkills = null;
+        return ScanWorkspaceSkillsCore();
+    }
+
+    private IReadOnlyList<DistillSkill> ScanWorkspaceSkillsCore()
     {
         var found = new List<DistillSkill>();
         try
@@ -143,14 +162,12 @@ public sealed class SkillStore
                             found.Add(parsed);
                         }
                     }
-
-
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略扫描异常
+            AppLog.Warn("SkillStore", "扫描工作区扩展技能异常", ex);
         }
 
         return found;
@@ -172,9 +189,9 @@ public sealed class SkillStore
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略
+            AppLog.Warn("SkillStore", "读取潜在技能根目录配置失败", ex);
         }
 
         string current = Directory.GetCurrentDirectory();
@@ -213,6 +230,13 @@ public sealed class SkillStore
         return ParseSkillMd(dirName, filePath);
     }
 
+    private static string CapText(string? text, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        string trimmed = text.Trim();
+        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength] + "\n...(核心摘要已截断，完整子模块按需渐进式披露)";
+    }
+
     private static DistillSkill? ParseSkillMd(string folderName, string filePath)
     {
         try
@@ -227,12 +251,12 @@ public sealed class SkillStore
                           folderName.Contains("td", StringComparison.OrdinalIgnoreCase) ? "🐰" : "🧩";
 
             var match = Regex.Match(content, @"^---\s*\r?\n(.*?)\r?\n---\s*\r?\n(.*)$", RegexOptions.Singleline);
-            string body = content;
+            string rawBody = content;
             string? yaml = null;
             if (match.Success)
             {
                 yaml = match.Groups[1].Value;
-                body = match.Groups[2].Value.Trim();
+                rawBody = match.Groups[2].Value.Trim();
 
                 var nameMatch = Regex.Match(yaml, @"name:\s*(.+)$", RegexOptions.Multiline);
                 if (nameMatch.Success) name = nameMatch.Groups[1].Value.Trim().Trim('"', '\'');
@@ -245,16 +269,46 @@ public sealed class SkillStore
                 }
             }
 
-            // 自动聚合检测关联知识库与实战策略（支持标准 Agent 技能的 references/ 体系与伴随方法论文档）
+            // 1. 提取评估维度（在净化裁剪前先提取，以免丢失声明式维度）
+            var dimensions = ExtractDimensionsFromSkill(yaml, rawBody);
+            if (folderName.Equals("tdskill", StringComparison.OrdinalIgnoreCase) ||
+                folderName.StartsWith("tds-", StringComparison.OrdinalIgnoreCase))
+            {
+                dimensions = new List<string>
+                {
+                    "男女话题与张力",
+                    "框架博弈与高位感",
+                    "客观话题与舒适度",
+                    "需求感与推拉节奏",
+                    "基础价值与展示面",
+                    "废测识别与应对"
+                };
+            }
+
+            // 2. 净化主入口正文：剥离 CLI 专属路由说明、新手引导问答与公众号推广尾注
+            string cleanedRootBody = DistillSkill.CleanCliSkillNoise(rawBody);
+            if (string.IsNullOrWhiteSpace(cleanedRootBody))
+            {
+                cleanedRootBody = rawBody.Trim();
+            }
+
+            // 渐进式披露双轨构建：
+            // - sbDistillBody: 供人格画像蒸馏（PersonaDistiller）与作战手册使用的精炼全域框架（控制在 ~12k 字符以内）
+            // - sbAdviceGuideline: 供「回复建议」使用的极速专注聊天准则（仅包含核心公理 + 聊天回复子模块，控制在 ~7k 字符以内）
+            var sbDistillBody = new StringBuilder(CapText(cleanedRootBody, 3500));
+            var sbAdviceGuideline = new StringBuilder();
+            sbAdviceGuideline.AppendLine($"【{name} · 核心实战准则】");
+            sbAdviceGuideline.AppendLine(CapText(cleanedRootBody, 2200));
+
             try
             {
                 string? baseDir = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(baseDir))
                 {
-                    // A. 同级 references/ 目录下的顶层 markdown 文件（如 guanxi-skills-main 等标准平铺参考库）
                     string refDir = Path.Combine(baseDir, "references");
                     if (Directory.Exists(refDir))
                     {
+                        // A. 同级 references/ 目录下的顶层 markdown 文件（如 guanxi-skills-main 等标准平铺参考库）
                         var refFiles = Directory.GetFiles(refDir, "*.md", SearchOption.TopDirectoryOnly)
                             .Where(f => !Path.GetFileName(f).Equals("SKILL.md", StringComparison.OrdinalIgnoreCase) &&
                                         !Path.GetFileName(f).Equals("README.md", StringComparison.OrdinalIgnoreCase))
@@ -265,81 +319,138 @@ public sealed class SkillStore
                         {
                             var sbRefs = new StringBuilder();
                             sbRefs.AppendLine("\n\n### 【本技能配套实战策略与核心参考资料（References 知识库注入）】：");
+                            int flatAdviceAdded = 0;
+
                             foreach (var rf in refFiles)
                             {
                                 try
                                 {
                                     string rfName = Path.GetFileNameWithoutExtension(rf);
-                                    string rfContent = File.ReadAllText(rf).Trim();
+                                    string rfContent = DistillSkill.CleanCliSkillNoise(File.ReadAllText(rf));
                                     if (!string.IsNullOrWhiteSpace(rfContent))
                                     {
                                         sbRefs.AppendLine($"\n#### [模块：{rfName}]");
-                                        sbRefs.AppendLine(rfContent);
+                                        sbRefs.AppendLine(CapText(rfContent, 1800));
+
+                                        bool isChatRelated = rfName.Contains("chat", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("reply", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("signal", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("stage", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("dialogue", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("话术", StringComparison.OrdinalIgnoreCase) ||
+                                                             rfName.Contains("沟通", StringComparison.OrdinalIgnoreCase);
+                                        if ((isChatRelated || refFiles.Count <= 2) && flatAdviceAdded < 2)
+                                        {
+                                            sbAdviceGuideline.AppendLine($"\n### 【实战参考：{rfName}】");
+                                            sbAdviceGuideline.AppendLine(CapText(rfContent, 2400));
+                                            flatAdviceAdded++;
+                                        }
                                     }
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    AppLog.Warn("SkillStore", $"读取参考文件失败: {rf}", ex);
                                 }
                             }
-                            body += sbRefs.ToString();
+
+                            // 若新 Skill 的参考文件命名未包含 chat/话术 等字样，自动取前 2 个核心参考文件作为默认建议基线
+                            if (flatAdviceAdded == 0)
+                            {
+                                foreach (var rf in refFiles.Take(2))
+                                {
+                                    try
+                                    {
+                                        string rfName = Path.GetFileNameWithoutExtension(rf);
+                                        string rfContent = DistillSkill.CleanCliSkillNoise(File.ReadAllText(rf));
+                                        if (!string.IsNullOrWhiteSpace(rfContent))
+                                        {
+                                            sbAdviceGuideline.AppendLine($"\n### 【实战参考：{rfName}】");
+                                            sbAdviceGuideline.AppendLine(CapText(rfContent, 2400));
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // 忽略单个文件异常
+                                    }
+                                }
+                            }
+
+                            sbDistillBody.Append(sbRefs);
                         }
 
-                        // 若存在 references/知识库/高频概念词典.md 核心字典，自动为总入口注入
-                        string conceptDictPath = Path.Combine(refDir, "知识库", "高频概念词典.md");
-                        if (File.Exists(conceptDictPath))
+                        // B. 通用概念词典 / 术语表自发现（支持任意包含“词典/概念/glossary/concept”的参考文档）
+                        var glossaryFile = Directory.GetFiles(refDir, "*.md", SearchOption.AllDirectories)
+                            .FirstOrDefault(f =>
+                            {
+                                string fn = Path.GetFileNameWithoutExtension(f);
+                                return fn.Contains("词典", StringComparison.OrdinalIgnoreCase) ||
+                                       fn.Contains("概念", StringComparison.OrdinalIgnoreCase) ||
+                                       fn.Contains("glossary", StringComparison.OrdinalIgnoreCase) ||
+                                       fn.Contains("concept", StringComparison.OrdinalIgnoreCase);
+                            });
+
+                        if (!string.IsNullOrEmpty(glossaryFile) && File.Exists(glossaryFile))
                         {
                             try
                             {
-                                string dictText = File.ReadAllText(conceptDictPath).Trim();
+                                string dictText = DistillSkill.CleanCliSkillNoise(File.ReadAllText(glossaryFile));
                                 if (!string.IsNullOrWhiteSpace(dictText))
                                 {
-                                    body += "\n\n### 【配套高频概念词典与底层心智体系（知识库注入）】：\n" + dictText;
+                                    sbDistillBody.AppendLine("\n\n### 【配套高频概念词典与底层心智体系（核心摘要）】：");
+                                    sbDistillBody.AppendLine(CapText(dictText, 2400));
+
+                                    sbAdviceGuideline.AppendLine("\n### 【核心概念速查】：");
+                                    sbAdviceGuideline.AppendLine(CapText(dictText, 1200));
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                AppLog.Warn("SkillStore", $"读取概念词典失败: {glossaryFile}", ex);
                             }
                         }
 
-                        // C. 检索 references/ 下的关键深度方法论文档（如 tdskill 下 references/tds-chat/chat_聊天方法论.md 等）
-                        var subPlaybooks = Directory.GetFiles(refDir, "*.md", SearchOption.AllDirectories)
+                        // C. 检索 references/ 下的核心沟通/对话方法论文档（支持任意含 聊天/chat/话术/沟通/dialogue 的文档）
+                        var chatPlaybooks = Directory.GetFiles(refDir, "*.md", SearchOption.AllDirectories)
                             .Where(f =>
                             {
                                 string fn = Path.GetFileName(f);
                                 if (fn.Equals("SKILL.md", StringComparison.OrdinalIgnoreCase) ||
                                     fn.Equals("README.md", StringComparison.OrdinalIgnoreCase)) return false;
                                 if (refFiles.Contains(f)) return false;
-                                return fn.Contains("方法论", StringComparison.OrdinalIgnoreCase) ||
+                                return fn.Contains("聊天", StringComparison.OrdinalIgnoreCase) ||
                                        fn.Contains("chat", StringComparison.OrdinalIgnoreCase) ||
-                                       fn.Contains("词典", StringComparison.OrdinalIgnoreCase);
+                                       fn.Contains("话术", StringComparison.OrdinalIgnoreCase) ||
+                                       fn.Contains("沟通", StringComparison.OrdinalIgnoreCase) ||
+                                       fn.Contains("dialogue", StringComparison.OrdinalIgnoreCase);
                             })
-                            .OrderBy(f => f.Contains("聊天", StringComparison.OrdinalIgnoreCase) || f.Contains("chat", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                            .Take(2)
+                            .Take(1)
                             .ToList();
 
-                        if (subPlaybooks.Count > 0)
+                        foreach (var sp in chatPlaybooks)
                         {
-                            var sbSub = new StringBuilder();
-                            sbSub.AppendLine("\n\n### 【本技能配套深度方法论体系（Playbook 深度指导注入）】：");
-                            foreach (var sp in subPlaybooks)
+                            try
                             {
-                                try
+                                string spName = Path.GetFileNameWithoutExtension(sp);
+                                string spContent = DistillSkill.CleanCliSkillNoise(File.ReadAllText(sp));
+                                if (!string.IsNullOrWhiteSpace(spContent))
                                 {
-                                    string spName = Path.GetFileNameWithoutExtension(sp);
-                                    string spContent = File.ReadAllText(sp).Trim();
-                                    if (!string.IsNullOrWhiteSpace(spContent))
-                                    {
-                                        sbSub.AppendLine($"\n#### [实战方法：{spName}]");
-                                        sbSub.AppendLine(spContent);
-                                    }
+                                    sbDistillBody.AppendLine($"\n\n### 【核心聊天方法论（{spName}）】：");
+                                    sbDistillBody.AppendLine(CapText(spContent, 2200));
+
+                                    sbAdviceGuideline.AppendLine($"\n### 【核心聊天方法论（{spName}）】：");
+                                    sbAdviceGuideline.AppendLine(CapText(spContent, 2800));
                                 }
-                                catch { }
                             }
-                            body += sbSub.ToString();
+                            catch (Exception ex)
+                            {
+                                AppLog.Warn("SkillStore", $"读取子方法论失败: {sp}", ex);
+                            }
                         }
 
-                        // D. 复合工具箱型技能（如 tdskill 包含 tds-approach, tds-attraction, tds-chat, tds-date 等 7 大实战子模块）
-                        // 自动提取每个子领域的专精实战框架并注入总技能中，使其具备全域诊断与实战指导能力
+                        // D. 复合工具箱型技能（如 tdskill 包含 tds-chat, tds-date 等子模块）
+                        // 采用渐进式披露：
+                        // 1) 回复建议（AdviceGuideline）仅定向注入 tds-chat 聊天诊断核心框架；
+                        // 2) 画像蒸馏（SystemPrompt）仅注入各子模块的精要大纲摘要（每模块上限 600 字），彻底告别 246KB 全量拼接。
                         var subDirs = Directory.GetDirectories(refDir)
                             .OrderBy(d => Path.GetFileName(d))
                             .ToList();
@@ -347,11 +458,16 @@ public sealed class SkillStore
                         if (subDirs.Count > 0)
                         {
                             var sbSubSkills = new StringBuilder();
-                            sbSubSkills.AppendLine("\n\n### 【本技能配套全域实战专精体系（7大核心子领域全能力注入）】：");
+                            sbSubSkills.AppendLine("\n\n### 【本技能配套全域实战专精体系（核心纲要）】：" );
                             foreach (var sDir in subDirs)
                             {
                                 string sName = Path.GetFileName(sDir);
-                                if (sName.StartsWith('.') || sName.Equals("docs", StringComparison.OrdinalIgnoreCase) || sName.Equals("知识库", StringComparison.OrdinalIgnoreCase)) continue;
+                                if (sName.StartsWith('.') ||
+                                    sName.Equals("docs", StringComparison.OrdinalIgnoreCase) ||
+                                    sName.Equals("知识库", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    continue;
+                                }
 
                                 string sFile = Path.Combine(sDir, "SKILL.md");
                                 if (!File.Exists(sFile)) sFile = Path.Combine(sDir, "skill.md");
@@ -359,24 +475,30 @@ public sealed class SkillStore
                                 {
                                     try
                                     {
-                                        string subText = File.ReadAllText(sFile).Trim();
-                                        subText = Regex.Replace(subText, @"^---\s*[\r\n].*?[\r\n]---\s*[\r\n]", "", RegexOptions.Singleline).Trim();
-                                        subText = Regex.Replace(subText, @"\*\*你每一次回复用户的内容.*?在这行文字之后，不得再有任何其他内容", "", RegexOptions.Singleline);
-                                        subText = Regex.Replace(subText, @"\*?公众号：.*?关注\*?", "");
+                                        string subText = DistillSkill.CleanCliSkillNoise(File.ReadAllText(sFile));
                                         if (!string.IsNullOrWhiteSpace(subText))
                                         {
-                                            sbSubSkills.AppendLine($"\n#### 【专项实战能力：{sName}】");
-                                            sbSubSkills.AppendLine(subText.Trim());
+                                            sbSubSkills.AppendLine($"\n#### 【专项能力：{sName}】");
+                                            sbSubSkills.AppendLine(CapText(subText, 600));
+
+                                            if (sName.Contains("chat", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                sbAdviceGuideline.AppendLine($"\n### 【聊天实战专精（{sName}）】：");
+                                                sbAdviceGuideline.AppendLine(CapText(subText, 2400));
+                                            }
                                         }
                                     }
-                                    catch { }
+                                    catch (Exception ex)
+                                    {
+                                        AppLog.Warn("SkillStore", $"读取子技能失败: {sFile}", ex);
+                                    }
                                 }
                             }
-                            body += sbSubSkills.ToString();
+                            sbDistillBody.Append(sbSubSkills);
                         }
                     }
 
-                    // B. 同级目录下的伴随深度方法论文档（如 tdskill 子技能 tds-chat 下的 chat_聊天方法论.md）
+                    // E. 同级目录下的伴随深度方法论文档（如独立子技能目录下的 *.md）
                     var companionFiles = Directory.GetFiles(baseDir, "*.md", SearchOption.TopDirectoryOnly)
                         .Where(f => !Path.GetFileName(f).Equals("SKILL.md", StringComparison.OrdinalIgnoreCase) &&
                                     !Path.GetFileName(f).Equals("README.md", StringComparison.OrdinalIgnoreCase))
@@ -392,40 +514,28 @@ public sealed class SkillStore
                             try
                             {
                                 string cfName = Path.GetFileNameWithoutExtension(cf);
-                                string cfContent = File.ReadAllText(cf).Trim();
+                                string cfContent = DistillSkill.CleanCliSkillNoise(File.ReadAllText(cf));
                                 if (!string.IsNullOrWhiteSpace(cfContent))
                                 {
                                     sbCompanions.AppendLine($"\n#### [方法论文档：{cfName}]");
-                                    sbCompanions.AppendLine(cfContent);
+                                    sbCompanions.AppendLine(CapText(cfContent, 2400));
+
+                                    sbAdviceGuideline.AppendLine($"\n### [方法论文档：{cfName}]");
+                                    sbAdviceGuideline.AppendLine(CapText(cfContent, 2400));
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                AppLog.Warn("SkillStore", $"读取伴随方法论文档失败: {cf}", ex);
                             }
                         }
-                        body += sbCompanions.ToString();
+                        sbDistillBody.Append(sbCompanions);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-            }
-
-            var dimensions = ExtractDimensionsFromSkill(yaml, body);
-
-            // 针对 tdskill 系列复合技能提供最契合其推文理论的 6 大核心支柱维度
-            if (folderName.Equals("tdskill", StringComparison.OrdinalIgnoreCase) ||
-                folderName.StartsWith("tds-", StringComparison.OrdinalIgnoreCase))
-            {
-                dimensions = new List<string>
-                {
-                    "男女话题与张力",
-                    "框架博弈与高位感",
-                    "客观话题与舒适度",
-                    "需求感与推拉节奏",
-                    "基础价值与展示面",
-                    "废测识别与应对"
-                };
+                AppLog.Warn("SkillStore", $"聚合技能参考资料异常: {filePath}", ex);
             }
 
             string dimsInstruction = dimensions.Count > 0
@@ -435,10 +545,12 @@ public sealed class SkillStore
             string distillPrompt =
                 $"你是基于【{name}】方法论的聊天与对话深度分析专家。\n" +
                 $"请依据以下技能指导，分析目标联系人（[对方]）在聊天中所体现的行为模式与认知特质：\n\n" +
-                $"{body}\n\n" +
+                $"{sbDistillBody}\n\n" +
                 $"输出格式要求（每项一行，严格使用竖线 | 分隔，严禁将用户发言当成对方特质，证据必须100%摘录对方原话）：\n" +
                 $"维度 | 特质描述 | 评分: 0到100的量化分 | 可信度: 0.0到1.0 | 证据: 对方原话引用\n" +
                 dimsInstruction;
+
+            string adviceGuideline = CapText(sbAdviceGuideline.ToString(), 8500);
 
             return new DistillSkill(
                 Id: folderName.ToLowerInvariant(),
@@ -448,10 +560,12 @@ public sealed class SkillStore
                 SystemPrompt: distillPrompt,
                 Dimensions: dimensions,
                 IsBuiltIn: false,
-                SourceFilePath: filePath);
+                SourceFilePath: filePath,
+                AdviceGuideline: adviceGuideline);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Warn("SkillStore", $"解析技能文件失败: {filePath}", ex);
             return null;
         }
     }
@@ -550,11 +664,32 @@ public sealed class SkillStore
                 {
                     string cand = m.Groups[1].Value.Trim('*', ' ', '`');
                     cand = Core.Ai.PersonaDistiller.CleanDimensionName(cand);
-                    if (cand.Length >= 2 && cand.Length <= 10 && !dims.Contains(cand))
+                    if (IsValidDimension(cand) && !dims.Contains(cand, StringComparer.OrdinalIgnoreCase))
                     {
                         dims.Add(cand);
                     }
                     if (dims.Count >= 8) break;
+                }
+            }
+
+            // 模式 C: 从 Markdown 表格首列提取核心评估项（如 "| 报价博弈力 | 说明 |"）
+            if (dims.Count == 0)
+            {
+                var tableMatches = Regex.Matches(body, @"^\s*\|\s*\*\*?([^|\*\r\n]{2,10})\*\*?\s*\|", RegexOptions.Multiline);
+                foreach (Match m in tableMatches)
+                {
+                    string cand = Core.Ai.PersonaDistiller.CleanDimensionName(m.Groups[1].Value.Trim());
+                    if (IsValidDimension(cand) &&
+                        !cand.Contains("---") &&
+                        !cand.Equals("维度", StringComparison.OrdinalIgnoreCase) &&
+                        !cand.Equals("指标", StringComparison.OrdinalIgnoreCase) &&
+                        !cand.Equals("模块", StringComparison.OrdinalIgnoreCase) &&
+                        !cand.Equals("场景", StringComparison.OrdinalIgnoreCase) &&
+                        !dims.Contains(cand, StringComparer.OrdinalIgnoreCase))
+                    {
+                        dims.Add(cand);
+                    }
+                    if (dims.Count >= 6) break;
                 }
             }
         }
@@ -620,11 +755,12 @@ public sealed class SkillStore
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略外部访问或权限异常
+            AppLog.Warn("SkillStore", $"扫描导入文件夹失败: {folderPath}", ex);
         }
 
+        _cachedAllSkills = null;
         return imported;
     }
 
@@ -641,7 +777,7 @@ public sealed class SkillStore
                ?? DistillSkillPresets.Intimacy;
     }
 
-    /// <summary>获取当前选中的技能 ID（缺省为 nuwa）。</summary>
+    /// <summary>获取当前选中的技能 ID（缺省为默认技能）。</summary>
     public string GetActiveSkillId()
     {
         try
@@ -655,9 +791,9 @@ public sealed class SkillStore
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略文件读取异常
+            AppLog.Warn("SkillStore", "读取当前选中技能 ID 失败", ex);
         }
 
         return DistillSkillPresets.DefaultSkillId;
@@ -670,9 +806,9 @@ public sealed class SkillStore
         {
             File.WriteAllText(_activeSkillFilePath, id.Trim());
         }
-        catch
+        catch (Exception ex)
         {
-            // 忽略写入错误
+            AppLog.Warn("SkillStore", "保存当前选中技能 ID 失败", ex);
         }
     }
 
@@ -701,6 +837,7 @@ public sealed class SkillStore
         }
 
         File.WriteAllText(_skillsFilePath, JsonSerializer.Serialize(customList, s_jsonOptions));
+        _cachedAllSkills = null;
     }
 
     /// <summary>删除自定义技能（内置技能无法删除；若关联本地物理文件则安全删除以防止重新扫描复现）。</summary>
@@ -742,9 +879,9 @@ public sealed class SkillStore
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略文件物理删除权限异常
+                AppLog.Warn("SkillStore", $"删除自定义技能物理文件失败: {targetSkill.SourceFilePath}", ex);
             }
         }
 
@@ -763,6 +900,7 @@ public sealed class SkillStore
             SetActiveSkillId(DistillSkillPresets.DefaultSkillId);
         }
 
+        _cachedAllSkills = null;
         return removedAny;
     }
 
@@ -792,13 +930,17 @@ public sealed class SkillStore
                 {
                     File.WriteAllText(_skillsFilePath, JsonSerializer.Serialize(filtered, s_jsonOptions));
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    AppLog.Warn("SkillStore", "回写清理后的 custom_skills.json 失败", ex);
+                }
             }
 
             return filtered;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLog.Warn("SkillStore", "读取 custom_skills.json 失败", ex);
             return Array.Empty<DistillSkill>();
         }
     }

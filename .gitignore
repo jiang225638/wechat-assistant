@@ -38,6 +38,8 @@ TestResults/
 # OS generated files
 .DS_Store
 Thumbs.db
+.obsidian/
+.agents/skills/**/*.zip
 
 # Bundled Native WCDB Binaries
 resources/wcdb/

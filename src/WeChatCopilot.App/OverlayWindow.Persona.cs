@@ -36,9 +36,12 @@ public partial class OverlayWindow : Window
         }
 
         string name = ContactBox.Text.Trim();
-        if (_autoSyncContact && name != _currentChatContact)
+        if (_autoSyncContact &&
+            !_isSyncingRecentSessionSelection &&
+            !string.Equals(name, _currentChatContact, StringComparison.OrdinalIgnoreCase))
         {
             _autoSyncContact = false;
+            UpdateAutoSyncToggleUi();
         }
 
         // 切换联系人时，彻底清空上一人的历史缓存，杜绝数据污染与残留
@@ -104,10 +107,11 @@ public partial class OverlayWindow : Window
         {
             var settings = _settingsStore.Load();
             using var provider = CompositeChatHistoryProvider.CreateDefault(settings);
-            string? active = await provider.GetActiveContactNameAsync();
-            if (!string.IsNullOrWhiteSpace(active) && active != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, active))
+            var sessions = await provider.GetRecentSessionsAsync(maxCount: 50);
+            var (detected, _) = await DetectBestActiveContactAsync(sessions, provider, forceAutoDetect: true);
+            if (!string.IsNullOrWhiteSpace(detected) && detected != _mySelfNickname && !TraceMemoClient.IsSystemContact(null, detected))
             {
-                return active;
+                return detected;
             }
         }
         catch
@@ -121,6 +125,7 @@ public partial class OverlayWindow : Window
     private async void SyncContactButton_Click(object sender, RoutedEventArgs e)
     {
         _autoSyncContact = true;
+        UpdateAutoSyncToggleUi();
         SyncContactButton.IsEnabled = false;
         SetPersonaStatus("正在探测当前对话好友...", isBusy: true);
 
@@ -134,15 +139,15 @@ public partial class OverlayWindow : Window
             // 2. 若窗口探测未成功，尝试从微信 4.x 本地数据库直读 (WCDB4) 或 TraceMemo 获取当前活跃单聊好友（已强力过滤服务通知与公众号）
             if (string.IsNullOrWhiteSpace(detectedName))
             {
-                var settings = new SettingsStore().Load();
+                var settings = _settingsStore.Load();
                 try
                 {
                     using var provider = CompositeChatHistoryProvider.CreateDefault(settings);
                     detectedName = await provider.GetActiveContactNameAsync();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 忽略本地数据库或服务不可用异常
+                    AppLog.Warn("OverlayWindow.Persona", "探测当前活跃单聊好友失败", ex);
                 }
             }
 
@@ -506,7 +511,7 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        var settings = new SettingsStore().Load();
+        var settings = _settingsStore.Load();
         FetchHistoryButton.IsEnabled = false;
         FetchHistoryButton.Content = "⏳ 刷新中...";
         SetPersonaStatus($"正在从微信本地数据库直读并解析「{name}」历史记录...", isBusy: true);
@@ -598,7 +603,7 @@ public partial class OverlayWindow : Window
         // 1. 若当前历史为空，或联系人发生变动，自动直连微信 4.x 本地数据库 (WCDB4) 或 TraceMemo 兜底读取最新记录，离线时自动回退本地 SQLite
         if (_history.Count == 0 || !string.Equals(_historyContactName, name, StringComparison.OrdinalIgnoreCase))
         {
-            var settings = new SettingsStore().Load();
+            var settings = _settingsStore.Load();
             SetPersonaStatus($"未检测到「{name}」缓存历史，正在从微信本地数据库直读历史记录...", isBusy: true, PersonaStatusKind.Busy);
 
             try
@@ -640,11 +645,17 @@ public partial class OverlayWindow : Window
         _distillCts = new CancellationTokenSource();
         DistillButton.IsEnabled = true;
         DistillButton.Content = "⏹ 停止蒸馏";
-        SetPersonaStatus($"🧬 正在调用【{_currentSkill.Icon} {_currentSkill.Name}】蒸馏视角，分析 {name} 的 {_history.Count} 条历史...", isBusy: true, PersonaStatusKind.Busy);
+        var sampledForRoute = PersonaDistiller.SampleRepresentativeHistory(_history);
+        string sampleContext = string.Join(" ", sampledForRoute.Select(m => m.Text));
+        _ = _currentSkill.GetSystemPromptForDistill(sampleContext, out string? routedDistillModule);
+        string routeNote = !string.IsNullOrWhiteSpace(routedDistillModule)
+            ? $"（🧭 已挂载: {routedDistillModule}）"
+            : string.Empty;
+        SetPersonaStatus($"🧬 正在调用【{_currentSkill.Icon} {_currentSkill.Name}】蒸馏视角{routeNote}，跨周期采样 {sampledForRoute.Count}/{_history.Count} 条有效历史...", isBusy: true, PersonaStatusKind.Busy);
 
         try
         {
-            var settings = new SettingsStore().Load();
+            var settings = _settingsStore.Load();
             using var provider = CreateAiProvider(settings, DefaultDistillTimeoutSeconds);
 
             Persona? existing = _personaStore.Load(name);
@@ -671,7 +682,7 @@ public partial class OverlayWindow : Window
             _personaStore.Save(persona);
             ShowPersona(persona);
             RefreshSavedPersonasCombo();
-            SetPersonaStatus($"✅「{name}」画像蒸馏成功并已保存！（应用【{_currentSkill.Icon} {_currentSkill.Name}】，提炼 {persona.Traits.Count} 项特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false, PersonaStatusKind.Success);
+            SetPersonaStatus($"✅「{name}」画像蒸馏成功并已保存！（应用【{_currentSkill.Icon} {_currentSkill.Name}】{routeNote}，提炼 {persona.Traits.Count} 项特质，基于 {persona.SourceMessageCount} 条历史）", isBusy: false, PersonaStatusKind.Success);
         }
         catch (OperationCanceledException)
         {

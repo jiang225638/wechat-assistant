@@ -229,6 +229,15 @@ public static class ThemeManager
         UpdateBrush(window, "StatusBusyBgBrush", isLight ? Color.FromArgb(0x18, 0x3B, 0x82, 0xF6) : Color.FromArgb(0x22, 0x3B, 0x82, 0xF6));
         UpdateBrush(window, "StatusBusyBorderBrush", isLight ? Color.FromArgb(0x44, 0x3B, 0x82, 0xF6) : Color.FromArgb(0x55, 0x3B, 0x82, 0xF6));
 
+        // 顶部【当前会话】高辨识度聚光灯卡片与选择器专属画刷
+        UpdateBrush(window, "SessionBarBgBrush", isLight ? Color.FromArgb(0xFF, 0xEF, 0xF6, 0xFF) : Color.FromArgb(0xFF, 0x1B, 0x26, 0x3B));
+        UpdateBrush(window, "SessionBarBorderBrush", isLight ? Color.FromArgb(0xFF, 0x60, 0xA5, 0xFA) : Color.FromArgb(0x99, 0x38, 0xBD, 0xF8));
+        UpdateBrush(window, "SessionComboBgBrush", isLight ? Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xFF, 0x0F, 0x17, 0x2A));
+        UpdateBrush(window, "SessionComboBorderBrush", isLight ? Color.FromArgb(0xFF, 0x3B, 0x82, 0xF6) : Color.FromArgb(0xCC, 0x38, 0xBD, 0xF8));
+        UpdateBrush(window, "SessionComboHoverBorderBrush", isLight ? Color.FromArgb(0xFF, 0x1D, 0x4E, 0xD8) : Color.FromArgb(0xFF, 0x7D, 0xD3, 0xFC));
+        UpdateBrush(window, "SessionBadgeBgBrush", isLight ? Color.FromArgb(0xFF, 0xDB, 0xEA, 0xFE) : Color.FromArgb(0x33, 0x38, 0xBD, 0xF8));
+        UpdateBrush(window, "SessionBadgeTextBrush", isLight ? Color.FromArgb(0xFF, 0x1D, 0x4E, 0xD8) : Color.FromArgb(0xFF, 0x38, 0xBD, 0xF8));
+
         NotifyWindowsThemeChanged(window);
     }
 

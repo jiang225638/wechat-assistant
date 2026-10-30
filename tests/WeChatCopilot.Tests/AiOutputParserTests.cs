@@ -243,6 +243,7 @@ public class AiOutputParserTests
         Assert.NotNull(s2.DimensionScores);
         Assert.Equal(95, s2.DimensionScores["信任赋能"]);
     }
+
     [Fact]
     public void ParseUnifiedAdvice_ChineseBracketsAndBullets_ParsedSuccessfully()
     {
@@ -266,5 +267,28 @@ public class AiOutputParserTests
         Assert.Equal(80, advice.Suggestions[1].GoalPushScore);
         Assert.Equal("顺水推舟", advice.Suggestions[2].Tone);
         Assert.Equal("没问题，周六见", advice.Suggestions[2].Text);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_WithThinkBlocks_StripsReasoningDraftAndParsesCleanly()
+    {
+        string raw =
+            "<think>\n" +
+            "用户在和她聊周末安排，我先草拟一下：\n" +
+            "[错误草稿] 这是一条思考中的废案 | 理由：思考草稿\n" +
+            "潜台词洞察：这是思考过程中的错误判断\n" +
+            "</think>\n" +
+            "=== 意图剖析 ===\n" +
+            "字面意思：答应周末见面\n" +
+            "潜台词洞察：期待你主动安排具体地点\n" +
+            "=== 回复建议 ===\n" +
+            "[借势推进] 那周六下午我带你去家宝藏咖啡馆 | 理由：直接敲定行程 | 推进力=90, 安全度=88";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, "好呀");
+
+        Assert.Equal("期待你主动安排具体地点", advice.Subtext);
+        Assert.Single(advice.Suggestions);
+        Assert.Equal("借势推进", advice.Suggestions[0].Tone);
+        Assert.DoesNotContain(advice.Suggestions, s => s.Tone == "错误草稿");
     }
 }

@@ -47,8 +47,9 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         {
             return await Task.Run(GetActiveContactNameCore, cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            WeChatCopilot.Core.Diagnostics.AppLog.Warn("Wcdb4HistoryProvider", "获取当前活跃单聊联系人失败", ex);
             return null;
         }
     }
@@ -59,8 +60,9 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         {
             return await Task.Run(() => GetRecentSessionsCore(maxCount), cancellationToken).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            WeChatCopilot.Core.Diagnostics.AppLog.Warn("Wcdb4HistoryProvider", "获取最近会话列表失败", ex);
             return Array.Empty<WeChatSessionSummary>();
         }
     }

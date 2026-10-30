@@ -11,6 +11,11 @@ namespace WeChatCopilot.Core.Ai;
 /// </summary>
 public static class AiOutputParser
 {
+    // 剥离推理模型（如 DeepSeek-R1 / QwQ）输出的 <think>...</think> 思考块（含未闭合尾部）
+    private static readonly Regex ThinkBlockRegex = new(
+        @"<\s*(?:think|thinking)\b[^>]*>[\s\S]*?(?:<\s*/\s*(?:think|thinking)\s*>|$)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     // 行首编号（1. / 1、 / 1) ）
     private static readonly Regex NumberPrefix = new(@"^\d+\s*[\.、\)]\s*", RegexOptions.Compiled);
 
@@ -39,16 +44,28 @@ public static class AiOutputParser
         ("策略", "Strategy"),
     };
 
+    /// <summary>剥离推理模型输出的 &lt;think&gt;...&lt;/think&gt; 思考过程块，防止内部草稿污染结构化解析。</summary>
+    public static string StripThinkingBlocks(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
+
+        return ThinkBlockRegex.Replace(raw, string.Empty).Trim();
+    }
+
     /// <summary>解析回复建议：每行一条候选；不合格式的行降级为 Tone="候选"。</summary>
     public static IReadOnlyList<ReplySuggestion> ParseReplySuggestions(string? raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        string cleanedRaw = StripThinkingBlocks(raw);
+        if (string.IsNullOrWhiteSpace(cleanedRaw))
         {
             return Array.Empty<ReplySuggestion>();
         }
 
         var list = new List<ReplySuggestion>();
-        foreach (string rawLine in raw.Split('\n'))
+        foreach (string rawLine in cleanedRaw.Split('\n'))
         {
             string line = NumberPrefix.Replace(rawLine.Trim('\r', ' '), string.Empty);
             if (line.Length == 0)
@@ -83,10 +100,11 @@ public static class AiOutputParser
     /// <summary>解析潜台词六项标签；未出现的字段为空串。</summary>
     public static SubtextAnalysis ParseSubtext(string? raw)
     {
+        string cleanedRaw = StripThinkingBlocks(raw);
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (!string.IsNullOrWhiteSpace(raw))
+        if (!string.IsNullOrWhiteSpace(cleanedRaw))
         {
-            foreach (string rawLine in raw.Split('\n'))
+            foreach (string rawLine in cleanedRaw.Split('\n'))
             {
                 string line = rawLine.Trim('\r', ' ');
                 foreach ((string prefix, string key) in SubtextLabels)
@@ -114,13 +132,13 @@ public static class AiOutputParser
     }
 
     /// <summary>
-    /// <summary>
     /// 解析一体化 AI 建议响应：同时提取意图剖析（原话、字面、潜台词、心理、策略）、动态博弈维度与多风格回复建议（含多维战术得分）。
     /// 无论模型输出是否严格遵守分块标记，均能强力容错解析。
     /// </summary>
     public static UnifiedAiAdvice ParseUnifiedAdvice(string? raw, string? fallbackTargetQuote = null)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        string cleanedRaw = StripThinkingBlocks(raw);
+        if (string.IsNullOrWhiteSpace(cleanedRaw))
         {
             return new UnifiedAiAdvice(fallbackTargetQuote ?? string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Array.Empty<ReplySuggestion>());
         }
@@ -137,7 +155,7 @@ public static class AiOutputParser
 
         bool inSuggestionsSection = false;
 
-        foreach (string rawLine in raw.Split('\n'))
+        foreach (string rawLine in cleanedRaw.Split('\n'))
         {
             string line = rawLine.Trim('\r', ' ', '\t');
             if (line.Length == 0) continue;
@@ -237,7 +255,6 @@ public static class AiOutputParser
 
             if (!string.IsNullOrEmpty(tone) && !string.IsNullOrEmpty(rest))
             {
-
                 string text = string.Empty;
                 string reason = string.Empty;
                 var scores = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);

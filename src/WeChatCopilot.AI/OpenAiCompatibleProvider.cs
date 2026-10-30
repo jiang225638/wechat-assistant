@@ -14,13 +14,20 @@ namespace WeChatCopilot.AI;
 /// </summary>
 public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
 {
+    private static readonly SocketsHttpHandler s_sharedHandler = new()
+    {
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+        MaxConnectionsPerServer = 20
+    };
+
     private readonly HttpClient _http;
     private readonly Func<string> _apiKeyGetter;
     private bool _disposed;
 
     /// <param name="baseUrl">接口基址（含 /v1），如 https://api.deepseek.com/v1。</param>
     /// <param name="apiKeyGetter">返回明文 API Key 的委托（通常内部做 DPAPI 解密）。</param>
-    /// <param name="handler">可选自定义 handler（测试用）。</param>
+    /// <param name="handler">可选自定义 handler（测试用）。未指定时复用进程级共享 SocketsHttpHandler 连接池。</param>
     /// <param name="timeout">可选请求超时时间；未指定时默认 180 秒（3 分钟）。</param>
     public OpenAiCompatibleProvider(
         string baseUrl,
@@ -31,7 +38,9 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
         ArgumentNullException.ThrowIfNull(apiKeyGetter);
 
-        _http = handler is null ? new HttpClient() : new HttpClient(handler);
+        _http = handler is null
+            ? new HttpClient(s_sharedHandler, disposeHandler: false)
+            : new HttpClient(handler);
         _http.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         _http.Timeout = timeout ?? TimeSpan.FromSeconds(180);
         _apiKeyGetter = apiKeyGetter;
@@ -49,11 +58,7 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
             model = request.Model,
             temperature = request.Temperature,
             max_tokens = request.MaxTokens,
-            messages = new[]
-            {
-                new { role = "system", content = request.SystemPrompt },
-                new { role = "user", content = request.UserPrompt }
-            }
+            messages = BuildMessagesPayload(request)
         };
 
         try
@@ -121,11 +126,7 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
             temperature = request.Temperature,
             max_tokens = request.MaxTokens,
             stream = true,
-            messages = new[]
-            {
-                new { role = "system", content = request.SystemPrompt },
-                new { role = "user", content = request.UserPrompt }
-            }
+            messages = BuildMessagesPayload(request)
         };
 
         using var msg = new HttpRequestMessage(HttpMethod.Post, "chat/completions");
@@ -170,6 +171,29 @@ public sealed class OpenAiCompatibleProvider : IAiProvider, IDisposable
                 }
             }
         }
+    }
+
+    private static List<object> BuildMessagesPayload(AiRequest request)
+    {
+        var list = new List<object>(2 + (request.HistoryMessages?.Count ?? 0))
+        {
+            new { role = "system", content = request.SystemPrompt }
+        };
+
+        if (request.HistoryMessages is { Count: > 0 })
+        {
+            foreach (var msg in request.HistoryMessages)
+            {
+                if (!string.IsNullOrWhiteSpace(msg.Content))
+                {
+                    string role = msg.Role is "assistant" or "user" or "system" ? msg.Role : "user";
+                    list.Add(new { role, content = msg.Content });
+                }
+            }
+        }
+
+        list.Add(new { role = "user", content = request.UserPrompt });
+        return list;
     }
 
     private static string? ExtractDeltaContent(string json)

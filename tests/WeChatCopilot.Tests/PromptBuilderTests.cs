@@ -5,7 +5,7 @@ namespace WeChatCopilot.Tests;
 
 public class PromptBuilderTests
 {
-    private static ChatMessage M(MessageRole r, string t) => new(r, t);
+    private static ChatMessage M(MessageRole r, string t, DateTime? ts = null) => new(r, t, ts);
 
     [Fact]
     public void BuildTranscript_FormatsRoles()
@@ -18,6 +18,26 @@ public class PromptBuilderTests
 
         Assert.Contains("[对方] 你好", transcript);
         Assert.Contains("[我] 在的", transcript);
+    }
+
+    [Fact]
+    public void BuildTranscript_WithTimestampsAndLongGap_FormatsTimestampAndGapMarker()
+    {
+        var t1 = new DateTime(2026, 5, 10, 10, 0, 0);
+        var t2 = new DateTime(2026, 5, 10, 10, 5, 0);
+        var t3 = new DateTime(2026, 5, 11, 14, 0, 0); // 间隔 1 天 3 小时 55 分
+
+        var transcript = PromptBuilder.BuildTranscript(new[]
+        {
+            M(MessageRole.Incoming, "早安", t1),
+            M(MessageRole.Outgoing, "早呀", t2),
+            M(MessageRole.Incoming, "昨天忙完了吗", t3),
+        });
+
+        Assert.Contains("[05-10 10:00] [对方] 早安", transcript);
+        Assert.Contains("[05-10 10:05] [我] 早呀", transcript);
+        Assert.Contains("间隔 1 天", transcript);
+        Assert.Contains("[05-11 14:00] [对方] 昨天忙完了吗", transcript);
     }
 
     [Fact]
@@ -156,6 +176,23 @@ public class PromptBuilderTests
         Assert.Contains("92分", req.UserPrompt);
         Assert.Contains("行吧，尽快给我答复。", req.UserPrompt);
         Assert.Contains("4 条", req.UserPrompt);
+    }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WhenLastMessageIsOutgoing_InjectsBattlefieldStateNote()
+    {
+        var settings = new AiSettings();
+        var msgs = new[]
+        {
+            M(MessageRole.Incoming, "今晚要去加班"),
+            M(MessageRole.Outgoing, "辛苦啦，注意休息")
+        };
+
+        var req = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 3, contactName: "小红");
+
+        Assert.Contains("今晚要去加班", req.UserPrompt);
+        Assert.Contains("最后一条消息由[我]发出", req.UserPrompt);
+        Assert.Contains("辛苦啦，注意休息", req.UserPrompt);
     }
 
     [Theory]
@@ -332,5 +369,4 @@ public class PromptBuilderTests
         Assert.Contains("战略与目的必须深藏在幕后", req.SystemPrompt);
         Assert.Contains("15~35 字", req.UserPrompt);
     }
-
 }

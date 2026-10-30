@@ -1,3 +1,4 @@
+using System.Text;
 using WeChatCopilot.Core.Abstractions;
 using WeChatCopilot.Core.Models;
 using WeChatCopilot.Windows.Interop;
@@ -81,8 +82,11 @@ public sealed class PollingWindowTracker : IWindowTracker
             }
         }
 
+        string title = GetWindowTitle(t.Handle);
+
         _target = t with
         {
+            Title = string.IsNullOrWhiteSpace(title) ? t.Title : title,
             Bounds = bounds,
             IsMinimized = minimized,
             IsVisible = visible,
@@ -90,6 +94,7 @@ public sealed class PollingWindowTracker : IWindowTracker
         };
 
         if (_last is not null
+            && _last.Title == _target.Title
             && _last.Bounds == bounds
             && _last.IsMinimized == minimized
             && _last.IsVisible == visible
@@ -100,6 +105,13 @@ public sealed class PollingWindowTracker : IWindowTracker
 
         _last = _target;
         TargetChanged?.Invoke(_target);
+    }
+
+    private static string GetWindowTitle(nint hwnd)
+    {
+        var sb = new StringBuilder(512);
+        NativeMethods.GetWindowText(hwnd, sb, sb.Capacity);
+        return sb.ToString();
     }
 
     public void Dispose() => Stop();

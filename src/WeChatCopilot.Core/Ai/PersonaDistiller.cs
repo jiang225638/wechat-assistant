@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using WeChatCopilot.Core.Abstractions;
+using WeChatCopilot.Core.Diagnostics;
 using WeChatCopilot.Core.Models;
 
 namespace WeChatCopilot.Core.Ai;
@@ -36,38 +37,23 @@ public static class PersonaDistiller
     /// <summary>map 分块大小（条/块）。</summary>
     public const int DefaultChunkSize = 40;
 
-    private const string DirectDistillSystemPrompt =
-        "你是资深认知操作系统架构师与心智蒸馏专家（基于女娲 Nuwa 心智蒸馏方法论）。用户会提供与联系人的真实聊天记录（[对方]=联系人发言，[我]=用户本人发言）。\n" +
-        "【极其重要的核心原则】：\n" +
-        "1. [对方] 是本次分析的唯一主角！你必须深入研究 [对方] 的言行模式，蒸馏其底层认知操作系统（HOW they think）而非仅停留在浅层表象。\n" +
-        "2. [我] 的发言纯属对话语境背景参考，严禁将 [我] 的性格偏好、说话方式、提出的邀约或观点当成 [对方] 的特征！\n" +
-        "3. 证据必须 100% 摘录 [对方] 亲口说过的原话，绝不允许引用 [我] 的原话！\n\n" +
-        "【女娲认知体系与专业六维对应蒸馏框架】（每个维度仅输出 1 行最佳精炼结论，禁止重复生成同一维度）：\n" +
-        "1. 沟通风格 (承载【表达DNA】：语气口癖、用词偏好、标点风格、反问习惯、长句vs短句、直接高效vs委婉客气)\n" +
-        "2. 性格能量 (承载【心智模型】：穿透表面看底层认知框架与第一性原理，需经受女娲三重验证：跨场景复现、具预测力、排他性；内倾vs外倾、理性逻辑T vs 感性共情F)\n" +
-        "3. 决策模式 (承载【决策启发式】：快速判断法则、面对分歧/选择/利益时的直觉行动准则与取舍优先级，如先算极限、先控风险或看人胜过看事)\n" +
-        "4. 情绪阈值 (承载【诚实边界与情绪防御】：面对未知、质疑、延误或压力时的防卫机制、情绪弹性与认知局限反应)\n" +
-        "5. 价值锚点 (承载【核心关切与底层信仰】：对方真正誓死捍卫的底层诉求，如确定性/性价比/被尊重/闭环/掌控感)\n" +
-        "6. 隐形雷区 (承载【反模式与价值观底线】：坚决不做的行为、排斥的话术与沟通绝对禁忌)\n\n" +
-        "输出格式要求（每项一行，严格使用竖线 | 分隔，不要输出开场白、问候语或解释）：\n" +
-        "维度 | 特质描述 | 评分: 0到100的量化分 | 置信度: 0.0到1.0 | 证据: 对方原话引用\n" +
-        "（说明：特质描述请体现女娲心智洞察精髓，可前缀【表达DNA】/【心智模型】/【决策启发式】等提炼；评分根据该项在0~100上的鲜明度打出真实量化分；证据引用对方原话，多条原话用;;分隔；置信度为0.0~1.0之间的小数）";
+    /// <summary>单次全局蒸馏默认代表性采样上限（240条有效对话，兼顾早期破冰、中期磨合与近期密集互动）。</summary>
+    public const int DefaultSampleMaxCount = 240;
 
-    private const string MapSystemPrompt =
-        "你是基于女娲(Nuwa)认知架构的对话观察提取器。用户会给你一段聊天记录（[对方]=联系人发言，[我]=用户本人发言）。\n" +
-        "【注意】：只观察和提炼 [对方] 的言行特征、心智模式、决策启发式与表达DNA，严禁把 [我] 的发言当成对方的特质！证据必须全部引用 [对方] 原话！\n" +
-        "严格只按以下格式输出，每项一行，不要输出其他内容：\n" +
-        "维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 对方原话引用\n" +
-        "维度从：沟通风格/性格能量/决策模式/情绪阈值/价值锚点/隐形雷区/心智模型/决策启发式/表达DNA/诚实边界/反模式/稳定属性/语言风格/性格心理/情绪模式/意图需求/关系动态/边界禁忌 中选取（优先选取前 6 项专业维度）。";
+    private static readonly HashSet<string> PurePlaceholderMessages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "[图片]", "[表情]", "[动画表情]", "[语音]", "[视频]", "[文件]", "[位置]", "[转账]", "[红包]", "[通话]"
+    };
 
     private const string ReduceSystemPrompt =
-        "你是女娲(Nuwa)心智蒸馏专家。用户会给你若干关于 [对方] 的观察特质行（格式：维度 | 特质 | 评分: s | 置信度: x | 证据: 原话）。\n" +
-        "请依据女娲认知架构合并为关于 [对方] 的结构化深度认知画像：\n" +
-        "1. 严格归纳合并为 6 个专业维度（沟通风格·表达DNA、性格能量·心智模型、决策模式·决策启发式、情绪阈值·诚实边界、价值锚点、隐形雷区·反模式），【每个维度只输出 1 行结论，禁止重复】；\n" +
-        "2. 心智模型需具备三重验证特质（跨场景复现、具备对新情境的预测力、非鸡汤套话），同义去重，保留最具洞察力的表述；\n" +
-        "3. 证据原话全部保留并去重，必须 100% 属于对方原话；\n" +
+        "【Reduce 阶段聚合归纳核心准则】：\n" +
+        "用户会给你若干关于 [对方] 的分块观察特质行（格式：维度 | 特质 | 评分: s | 置信度: x | 证据: 原话）。\n" +
+        "请依据当前激活的认知架构将多块观察合并为关于 [对方] 的结构化深度认知画像：\n" +
+        "1. 严格归纳合并为核心评估维度，【每个维度只输出 1 行结论，禁止重复】；\n" +
+        "2. 提炼跨场景复现、具备对新情境预测力的特质结论，同义去重，保留最具洞察力的表述；\n" +
+        "3. 证据原话全部保留核心代表句并去重，必须 100% 属于对方原话；\n" +
         "4. 综合评估给出明确的 0~100 评分（不同维度根据特质鲜明程度给出差异化评分，禁止全部打相同分值）；\n" +
-        "5. 若提供已有画像则增量合并。\n" +
+        "5. 若提供已有画像则结合最新观察合理演进。\n" +
         "严格只按以下格式输出，每项一行，不要输出其他内容：\n" +
         "维度 | 特质描述 | 评分: 0到100 | 置信度: 0.0到1.0 | 证据: 原话;;原话";
 
@@ -94,6 +80,52 @@ public static class PersonaDistiller
         }
 
         return chunks;
+    }
+
+    /// <summary>
+    /// 跨周期分层代表性采样：先过滤纯占位符（如 [动画表情]/[图片]），当有效历史消息超过 maxCount（默认 240 条）时，
+    /// 保留前中期均匀抽样的 30% 代表性消息（72条） + 最近 70% 完整连续消息（168条），防止早期破冰与长期性格基线丢失。
+    /// </summary>
+    public static IReadOnlyList<HistoryMessage> SampleRepresentativeHistory(
+        IReadOnlyList<HistoryMessage> history, int maxCount = DefaultSampleMaxCount)
+    {
+        if (history is null || history.Count == 0 || maxCount <= 0)
+        {
+            return Array.Empty<HistoryMessage>();
+        }
+
+        // 优先过滤无信息量的纯表情/图片占位符（若全都是占位符则保留原列表兜底）
+        var meaningful = history
+            .Where(m => !string.IsNullOrWhiteSpace(m.Text) && !PurePlaceholderMessages.Contains(m.Text.Trim()))
+            .ToList();
+        IReadOnlyList<HistoryMessage> source = meaningful.Count > 0 ? meaningful : history;
+
+        if (source.Count <= maxCount)
+        {
+            return source;
+        }
+
+        int recentCount = Math.Max(1, (int)(maxCount * 0.7));
+        int earlyQuota = maxCount - recentCount;
+        int earlyPoolCount = source.Count - recentCount;
+
+        var sampled = new List<HistoryMessage>(maxCount);
+        if (earlyQuota > 0 && earlyPoolCount > 0)
+        {
+            double step = (double)earlyPoolCount / earlyQuota;
+            for (int i = 0; i < earlyQuota; i++)
+            {
+                int idx = Math.Min((int)(i * step), earlyPoolCount - 1);
+                sampled.Add(source[idx]);
+            }
+        }
+
+        for (int i = earlyPoolCount; i < source.Count; i++)
+        {
+            sampled.Add(source[i]);
+        }
+
+        return sampled;
     }
 
     /// <summary>直接单次全局蒸馏请求（适用于聊天记录较集中或取最近历史场景）。</summary>
@@ -150,7 +182,12 @@ public static class PersonaDistiller
             : "（请精炼归纳出 5~6 个最具辨识度的核心维度，避免零散子维度）";
 
         sb.AppendLine($"请基于【{skill.Name}】认知蒸馏体系，输出针对「{contactName}」的结构化特质行{dimsGuide}。每行格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话引用。严禁将用户的提议/言行当成「{contactName}」的特质，证据必须100%摘录「{contactName}」的原话。");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
+
+        var representativeSample = SampleRepresentativeHistory(
+            history ?? Array.Empty<HistoryMessage>(), DefaultSampleMaxCount);
+        string contextSample = string.Join(" ", representativeSample.Select(m => m.Text));
+        string effectiveSystemPrompt = skill.GetSystemPromptForDistill(contextSample, out _);
+        return new AiRequest(effectiveSystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>map 请求：从一块历史提取观察特质。</summary>
@@ -179,7 +216,11 @@ public static class PersonaDistiller
         sb.AppendLine("聊天记录：");
         sb.AppendLine(Transcript(chunk, contactName, selfName));
         sb.AppendLine($"请提取对方特质观察项（基于【{skill.Name}】视角）。证据必须全部引用对方亲口原话，严禁引用用户原话。格式：维度 | 特质描述 | 评分: 0到100 | 可信度: 0.0到1.0 | 证据: 对方原话");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
+
+        string chunkSample = string.Join(" ",
+            (chunk ?? Array.Empty<HistoryMessage>()).Select(m => m.Text));
+        string effectiveSystemPrompt = skill.GetSystemPromptForDistill(chunkSample, out _);
+        return new AiRequest(effectiveSystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>reduce 请求：合并观察项（+可选已有画像）为最终 persona。</summary>
@@ -239,7 +280,12 @@ public static class PersonaDistiller
             : string.Empty;
 
         sb.AppendLine($"请依据【{skill.Name}】认知体系输出合并后的画像。{dimsGuide}请精炼归纳出 5~6 个最具辨识度的核心特质维度（禁止生成过多碎维度），每个维度严格仅输出 1 行，评分必须明确给出0到100分，证据100%引用对方原话。");
-        return new AiRequest(skill.SystemPrompt, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
+
+        string obsSample = string.Join(" ",
+            (observations ?? Array.Empty<PersonaTrait>()).Take(8).Select(t => $"{t.Dimension} {t.Attribute}"));
+        string routedSystem = skill.GetSystemPromptForDistill(obsSample, out _);
+        string reduceSystem = $"{routedSystem}\n\n{ReduceSystemPrompt}";
+        return new AiRequest(reduceSystem, sb.ToString(), settings.Model, settings.Temperature, MaxTokens: 2500);
     }
 
     /// <summary>
@@ -252,20 +298,21 @@ public static class PersonaDistiller
     /// <summary>带聊天历史校对的特质解析器：严格过滤己方（Outgoing）原话并归纳去重。</summary>
     public static IReadOnlyList<PersonaTrait> ParseTraits(string? raw, IReadOnlyList<HistoryMessage>? history)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        string cleanedRaw = AiOutputParser.StripThinkingBlocks(raw);
+        if (string.IsNullOrWhiteSpace(cleanedRaw))
         {
             return Array.Empty<PersonaTrait>();
         }
 
         // 1. 尝试 JSON 格式解析（部分模型倾向输出 JSON）
-        var jsonTraits = TryParseJsonTraits(raw, history);
+        var jsonTraits = TryParseJsonTraits(cleanedRaw, history);
         if (jsonTraits is { Count: > 0 })
         {
             return DeduplicateByDimension(jsonTraits, history);
         }
 
         var list = new List<PersonaTrait>();
-        foreach (string rawLine in raw.Split('\n'))
+        foreach (string rawLine in cleanedRaw.Split('\n'))
         {
             string line = rawLine.Trim('\r', ' ', '\t');
             if (line.Length == 0 || line.StartsWith("```") || Regex.IsMatch(line, @"^[\|\s\-:]+$"))
@@ -412,6 +459,7 @@ public static class PersonaDistiller
 
     /// <summary>
     /// 严防证据污染：对比历史消息收发方向，坚决剔除任何属于己方（Outgoing）的发言原话。
+    /// 注意：当检查 quote.Contains(outText) 时，要求 outText 长度 >= 6，防止用户发过“好的”、“哈哈”等短词误杀对方长原话。
     /// </summary>
     public static List<string> FilterEvidence(
         IEnumerable<string>? rawEvidence,
@@ -446,10 +494,10 @@ public static class PersonaDistiller
         var valid = new List<string>();
         foreach (var quote in list)
         {
-            // 检查是否属于用户自己的发言
+            // 检查是否属于用户自己的发言（短于 6 字的己方口头禅不做反向子串包含判定，避免误删对方长句）
             bool matchesUser = outgoingTexts.Any(outText =>
                 outText.Contains(quote, StringComparison.OrdinalIgnoreCase) ||
-                quote.Contains(outText, StringComparison.OrdinalIgnoreCase));
+                (outText.Length >= 6 && quote.Contains(outText, StringComparison.OrdinalIgnoreCase)));
 
             // 检查是否属于对方发言
             bool matchesOther = incomingTexts.Any(inText =>
@@ -720,8 +768,8 @@ public static class PersonaDistiller
             return new DistillResult(false, new Persona(contactName, Array.Empty<PersonaTrait>(), DateTime.Now, 0), "聊天历史记录为空。");
         }
 
-        // 选取最具代表性的最近 100 条历史进行分析（避免超长记录导致串行请求爆炸）
-        var sampleHistory = history.Count > 100 ? history.TakeLast(100).ToList() : history;
+        // 选取跨周期分层代表性的 240 条有效历史进行分析（过滤纯表情占位符，兼顾早期破冰 30% 与最近 70% 密集互动）
+        var sampleHistory = SampleRepresentativeHistory(history, maxCount: DefaultSampleMaxCount);
 
         // 优先尝试单次全局蒸馏（省去 2 次 Map + 1 次 Reduce 的串行等待；若失败或提取过少再自动回退 Map-Reduce）
         if (preferSinglePass)

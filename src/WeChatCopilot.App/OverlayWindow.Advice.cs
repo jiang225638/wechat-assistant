@@ -87,6 +87,49 @@ public partial class OverlayWindow : Window
         return new OpenAiCompatibleProvider(settings.Endpoint, () => key, timeout: TimeSpan.FromSeconds(timeoutSec));
     }
 
+    /// <summary>当对话缓冲为空时，自动尝试从内存历史、本地 SQLite 缓存或微信 DB 同步填充最近对话。</summary>
+    private async Task<bool> EnsureConversationLoadedAsync()
+    {
+        if (_conversation.Count > 0)
+        {
+            return true;
+        }
+
+        if (_currentHistoryMessages.Count > 0)
+        {
+            var recentFromMem = _currentHistoryMessages.TakeLast(25)
+                .Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp))
+                .ToList();
+            _conversation.Ingest(recentFromMem);
+            RefreshChatView();
+            return _conversation.Count > 0;
+        }
+
+        string target = ContactBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            target = _currentChatContact;
+        }
+
+        if (!string.IsNullOrWhiteSpace(target))
+        {
+            var cached = _sqliteStorage.GetMessages(target, limit: 30);
+            if (cached.Count > 0)
+            {
+                _currentHistoryMessages = cached;
+                var recentFromDb = cached.TakeLast(25)
+                    .Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp))
+                    .ToList();
+                _conversation.Ingest(recentFromDb);
+                RefreshChatView();
+                return _conversation.Count > 0;
+            }
+        }
+
+        await ReadConversationAsync(silent: true);
+        return _conversation.Count > 0;
+    }
+
     private AiRequest BuildCurrentAdviceRequest(
         AiSettings settings,
         out string targetContact,
@@ -128,6 +171,17 @@ public partial class OverlayWindow : Window
             contextCount = settings.ContextMessageCount;
         }
 
+        // 根据最近 5 条对话内容与用户回复意图，动态按需路由当前 Skill 匹配的 references 子模块
+        string contextQuery = string.Join(" ",
+            _conversation.Messages.TakeLast(5).Select(m => m.Text)
+            .Append(userIntent)
+            .Append(ultimateGoal ?? string.Empty));
+        string dynamicGuideline = activeSkill.GetGuidelineForQa(contextQuery, out string? routedAdviceModule);
+        _lastRoutedAdviceModule = routedAdviceModule;
+        DistillSkill routedSkill = !string.IsNullOrWhiteSpace(routedAdviceModule)
+            ? activeSkill with { AdviceGuideline = dynamicGuideline }
+            : activeSkill;
+
         return PromptBuilder.BuildUnifiedAdvice(
             settings,
             _conversation.Messages,
@@ -135,11 +189,13 @@ public partial class OverlayWindow : Window
             personaContext,
             targetContact,
             relationship: null,
-            activeSkill,
+            routedSkill,
             userIntent: userIntent,
             ultimateGoal: ultimateGoal,
             contextCount: contextCount);
     }
+
+    private string? _lastRoutedAdviceModule;
 
     private async void GenerateButton_Click(object sender, RoutedEventArgs e)
     {
@@ -149,13 +205,13 @@ public partial class OverlayWindow : Window
             return;
         }
 
-        if (_conversation.Count == 0)
+        if (!await EnsureConversationLoadedAsync())
         {
-            SetAiStatus("对话缓冲为空，请先在「当前对话」点击【⚡ 读取当前对话】。", isError: true);
+            SetAiStatus("对话缓冲为空，请先在上方选择会话或点击【刷新】同步聊天记录。", isError: true);
             return;
         }
 
-        var settings = new SettingsStore().Load();
+        var settings = _settingsStore.Load();
         AiRequest req = BuildCurrentAdviceRequest(
             settings,
             out string target,
@@ -165,7 +221,8 @@ public partial class OverlayWindow : Window
             out int count);
 
         string goalHint = !string.IsNullOrWhiteSpace(ultimateGoal) ? $"，战略导向【{ultimateGoal}】" : string.Empty;
-        SetAiStatus($"AI 正在结合【{activeSkill.Icon} {activeSkill.Name}】策略与对方画像{goalHint}，深度剖析意图并生成 {count} 条针对性回复建议...", isError: false);
+        string routeHint = !string.IsNullOrWhiteSpace(_lastRoutedAdviceModule) ? $"（🧭 已挂载: {_lastRoutedAdviceModule}）" : string.Empty;
+        SetAiStatus($"AI 正在结合【{activeSkill.Icon} {activeSkill.Name}】{routeHint}策略与对方画像{goalHint}，深度剖析意图并生成 {count} 条针对性回复建议...", isError: false);
         GenerateButton.Content = "⏹ 停止生成";
         GenerateButton.IsEnabled = true;
 
@@ -174,16 +231,56 @@ public partial class OverlayWindow : Window
             using var provider = CreateAiProvider(settings, DefaultAdviceTimeoutSeconds);
 
             _adviceCts = new CancellationTokenSource();
-            AiReply reply = await provider.CompleteAsync(req, _adviceCts.Token);
-            AiStatusBanner.Visibility = Visibility.Collapsed;
+            var sbStream = new StringBuilder();
+            var sw = Stopwatch.StartNew();
+            long lastUiUpdateMs = 0;
 
-            if (!reply.Success)
+            try
             {
-                SetAiStatus("AI 生成失败：" + reply.Error, isError: true);
-                return;
+                await foreach (string chunk in provider.CompleteStreamAsync(req, _adviceCts.Token))
+                {
+                    if (string.IsNullOrEmpty(chunk)) continue;
+                    sbStream.Append(chunk);
+
+                    if (sw.ElapsedMilliseconds - lastUiUpdateMs >= 120)
+                    {
+                        lastUiUpdateMs = sw.ElapsedMilliseconds;
+                        string currentRaw = sbStream.ToString();
+                        string stageDesc = currentRaw.Contains("回复建议")
+                            ? $"正在生成 {count} 条多风格实战回复建议..."
+                            : currentRaw.Contains("评估维度")
+                                ? "正在提炼动态博弈评估维度..."
+                                : currentRaw.Contains("意图剖析") || currentRaw.Contains("潜台词")
+                                    ? "正在穿透字面表象剖析潜台词与真实心理..."
+                                    : "正在深度推演对话脉络与博弈策略...";
+                        SetAiStatus($"AI 实时推演中（已接收 {currentRaw.Length} 字）：{stageDesc}", isError: false);
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception streamEx)
+            {
+                AppLog.Warn("OverlayWindow", "流式生成回复建议中断，自动回退非流式调用", streamEx);
             }
 
-            var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
+            string finalRaw = sbStream.ToString().Trim();
+            if (string.IsNullOrWhiteSpace(finalRaw))
+            {
+                AiReply reply = await provider.CompleteAsync(req, _adviceCts.Token);
+                if (!reply.Success)
+                {
+                    AiStatusBanner.Visibility = Visibility.Collapsed;
+                    SetAiStatus("AI 生成失败：" + reply.Error, isError: true);
+                    return;
+                }
+                finalRaw = reply.Text;
+            }
+
+            AiStatusBanner.Visibility = Visibility.Collapsed;
+            var advice = AiOutputParser.ParseUnifiedAdvice(finalRaw, targetStatement);
             ShowUnifiedAdvice(advice, target, activeSkill);
         }
         catch (OperationCanceledException)
@@ -193,7 +290,7 @@ public partial class OverlayWindow : Window
         }
         catch (Exception ex)
         {
-            WeChatCopilot.Core.Diagnostics.AppLog.Error("OverlayWindow", "生成回复建议异常", ex);
+            AppLog.Error("OverlayWindow", "生成回复建议异常", ex);
             AiStatusBanner.Visibility = Visibility.Collapsed;
             SetAiStatus("调用异常：" + ex.Message, isError: true);
         }
@@ -208,9 +305,9 @@ public partial class OverlayWindow : Window
 
     private async Task<UnifiedAiAdvice?> RegenerateAdviceFromDashboardAsync(CancellationToken ct)
     {
-        if (_conversation.Count == 0) return null;
+        if (!await EnsureConversationLoadedAsync()) return null;
 
-        var settings = new SettingsStore().Load();
+        var settings = _settingsStore.Load();
         AiRequest req = BuildCurrentAdviceRequest(
             settings,
             out string target,
@@ -253,7 +350,9 @@ public partial class OverlayWindow : Window
         var skill = activeSkill ?? _currentSkill;
         if (skill != null)
         {
-            AiAppliedSkillText.Text = $"{skill.Icon} {skill.Name}";
+            AiAppliedSkillText.Text = !string.IsNullOrWhiteSpace(_lastRoutedAdviceModule)
+                ? $"{skill.Icon} {skill.Name} · {_lastRoutedAdviceModule}"
+                : $"{skill.Icon} {skill.Name}";
             SubtextStrategyTitle.Text = $"⚡ {skill.Name} 实战破局策略与避坑指南";
         }
 
@@ -358,9 +457,9 @@ public partial class OverlayWindow : Window
                 btn.Content = "📤 填入";
                 btn.ClearValue(ForegroundProperty);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                AppLog.Warn("OverlayWindow", "填入建议至微信输入框失败", ex);
             }
         }
     }
@@ -378,9 +477,9 @@ public partial class OverlayWindow : Window
                 btn.Content = "📋 复制";
                 btn.ClearValue(ForegroundProperty);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                AppLog.Warn("OverlayWindow", "复制建议至剪贴板失败", ex);
             }
         }
     }

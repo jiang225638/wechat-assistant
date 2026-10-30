@@ -58,15 +58,31 @@ public static class StrategyPlaybookGenerator
             "7. 不要输出任何恭维、鸡汤或空泛套话；title 需含具体维度名，简洁（20 字以内，可带一个 emoji）。\n" +
             "8. 用中文回答。";
 
+        var recent = (history ?? Array.Empty<HistoryMessage>())
+            .Where(m => !string.IsNullOrWhiteSpace(m.Text))
+            .TakeLast(RecentMessageLimit)
+            .ToList();
+
+        string routingQuery = string.Join(" ",
+            traits.Take(6).Select(t => $"{t.Dimension} {t.Attribute}")
+            .Concat(recent.TakeLast(5).Select(m => m.Text))
+            .Append(persona.UltimateGoal ?? string.Empty)
+            .Append(sceneName));
+        string dynamicGuideline = skill.GetGuidelineForQa(routingQuery, out string? routedModule);
+
         var sb = new StringBuilder();
         sb.AppendLine($"【联系人】{persona.ContactName}");
         sb.AppendLine($"【交往身份】{sceneName}");
         sb.AppendLine($"【技能体系】{skill.Icon} {skill.Name}：{skill.Description}");
+        if (!string.IsNullOrWhiteSpace(routedModule))
+        {
+            sb.AppendLine($"【按需路由挂载专项子模块】{routedModule}");
+        }
         sb.AppendLine($"【终极目的】{(string.IsNullOrWhiteSpace(persona.UltimateGoal) ? "未设定" : persona.UltimateGoal)}");
         sb.AppendLine($"【样本规模】{persona.SourceMessageCount} 条历史消息");
         sb.AppendLine();
-        sb.AppendLine("【技能方法论摘要】");
-        sb.AppendLine(Truncate(skill.GetEffectiveAdviceGuideline(), 1200));
+        sb.AppendLine("【技能方法论摘要（含结构化路由子模块）】");
+        sb.AppendLine(Truncate(dynamicGuideline, 3200));
         sb.AppendLine();
         sb.AppendLine("【多维画像（维度 | 特质 | 评分 | 可信度 | 证据）】");
         foreach (var t in traits.OrderByDescending(t => t.Score))
@@ -77,10 +93,6 @@ public static class StrategyPlaybookGenerator
             sb.AppendLine($"- {t.Dimension} | {t.Attribute} | {t.ScoreInt}分 | 可信度 {t.ConfidenceText} | 证据: {evidence}");
         }
 
-        var recent = (history ?? Array.Empty<HistoryMessage>())
-            .Where(m => !string.IsNullOrWhiteSpace(m.Text))
-            .TakeLast(RecentMessageLimit)
-            .ToList();
         if (recent.Count > 0)
         {
             sb.AppendLine();
@@ -125,15 +137,16 @@ public static class StrategyPlaybookGenerator
     /// <summary>容错解析：兼容代码围栏、前后多余文字、content 为数组等情况。四张卡片缺一即视为失败。</summary>
     public static StrategyPlaybook? Parse(string? raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string cleanedRaw = AiOutputParser.StripThinkingBlocks(raw);
+        if (string.IsNullOrWhiteSpace(cleanedRaw)) return null;
 
-        int start = raw.IndexOf('{');
-        int end = raw.LastIndexOf('}');
+        int start = cleanedRaw.IndexOf('{');
+        int end = cleanedRaw.LastIndexOf('}');
         if (start < 0 || end <= start) return null;
 
         try
         {
-            using var doc = JsonDocument.Parse(raw[start..(end + 1)]);
+            using var doc = JsonDocument.Parse(cleanedRaw[start..(end + 1)]);
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return null;
 

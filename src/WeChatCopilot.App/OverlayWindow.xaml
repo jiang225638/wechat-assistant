@@ -87,6 +87,15 @@
         <SolidColorBrush x:Key="SendBtnInactiveBgBrush" Color="#2E3342" />
         <SolidColorBrush x:Key="SendBtnInactiveFgBrush" Color="#9CA3AF" />
 
+        <!--  顶部【当前会话】高辨识度聚光灯卡片与选择器专属画刷  -->
+        <SolidColorBrush x:Key="SessionBarBgBrush" Color="#1B263B" />
+        <SolidColorBrush x:Key="SessionBarBorderBrush" Color="#9938BDF8" />
+        <SolidColorBrush x:Key="SessionComboBgBrush" Color="#0F172A" />
+        <SolidColorBrush x:Key="SessionComboBorderBrush" Color="#CC38BDF8" />
+        <SolidColorBrush x:Key="SessionComboHoverBorderBrush" Color="#FF7DD3FC" />
+        <SolidColorBrush x:Key="SessionBadgeBgBrush" Color="#3338BDF8" />
+        <SolidColorBrush x:Key="SessionBadgeTextBrush" Color="#FF38BDF8" />
+
         <!--  扁平圆角按钮样式  -->
         <Style x:Key="FluentButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonBgBrush}" />
@@ -602,6 +611,137 @@
             </Setter>
         </Style>
 
+        <!--  顶部【当前会话】高辨识度专属选择器样式 (带高亮胶囊箭头与宽幅悬浮菜单)  -->
+        <Style x:Key="SessionSelectorComboBox" TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Background" Value="{DynamicResource SessionComboBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SessionComboBorderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Padding" Value="10,4,30,4" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MaxDropDownHeight" Value="310" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="templateRoot" SnapsToDevicePixels="True">
+                            <ToggleButton
+                                x:Name="toggleButton"
+                                Focusable="False"
+                                IsTabStop="False"
+                                ClickMode="Press"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border
+                                            x:Name="btnRoot"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="7"
+                                            SnapsToDevicePixels="True">
+                                            <Border
+                                                x:Name="chevronBadge"
+                                                Width="20"
+                                                Margin="0,3,3,3"
+                                                HorizontalAlignment="Right"
+                                                Background="{DynamicResource SessionBadgeBgBrush}"
+                                                CornerRadius="5">
+                                                <Path
+                                                    x:Name="arrow"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Data="M 0 0 L 4 4 L 8 0"
+                                                    Stroke="{DynamicResource SessionBadgeTextBrush}"
+                                                    StrokeThickness="1.8"
+                                                    StrokeStartLineCap="Round"
+                                                    StrokeEndLineCap="Round"
+                                                    StrokeLineJoin="Round"
+                                                    IsHitTestVisible="False" />
+                                            </Border>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="btnRoot" Property="BorderBrush" Value="{DynamicResource SessionComboHoverBorderBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="btnRoot" Property="BorderBrush" Value="{DynamicResource SessionComboHoverBorderBrush}" />
+                                                <Setter TargetName="arrow" Property="Data" Value="M 0 4 L 4 0 L 8 4" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter
+                                x:Name="contentPresenter"
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                TextElement.Foreground="{DynamicResource TextPrimaryBrush}"
+                                TextElement.FontWeight="Bold" />
+                            <Popup
+                                x:Name="PART_Popup"
+                                AllowsTransparency="True"
+                                Focusable="False"
+                                IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                Placement="Bottom"
+                                PopupAnimation="Slide">
+                                <Border
+                                    x:Name="dropDownBorder"
+                                    MinWidth="270"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                    Margin="0,4,0,6"
+                                    Padding="5"
+                                    Background="{DynamicResource CardBgBrush}"
+                                    BorderBrush="{DynamicResource SessionComboBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="8"
+                                    SnapsToDevicePixels="True">
+                                    <Border.Effect>
+                                        <DropShadowEffect
+                                            BlurRadius="14"
+                                            Direction="270"
+                                            Opacity="0.32"
+                                            ShadowDepth="4"
+                                            Color="#000000" />
+                                    </Border.Effect>
+                                    <ScrollViewer x:Name="DropDownScrollViewer" CanContentScroll="True">
+                                        <ItemsPresenter
+                                            x:Name="ItemsPresenter"
+                                            KeyboardNavigation.DirectionalNavigation="Contained"
+                                            SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="templateRoot" Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!--  现代悬浮提示 ToolTip 样式  -->
         <Style x:Key="FluentToolTip" TargetType="ToolTip">
             <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
@@ -1014,83 +1154,127 @@
                         TextWrapping="Wrap" />
                 </Border>
 
-                <!--  WX会话与数据中枢下拉栏（和“WX已就绪”同样风格）  -->
+                <!--  顶部【当前会话】高辨识度聚光灯切换栏（支持自动识别与一键直切）  -->
                 <Border
                     Margin="0,6,0,0"
-                    Padding="10,6"
-                    Background="{DynamicResource CardSubtleBgBrush}"
-                    BorderBrush="{DynamicResource BorderSubtleBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
+                    Padding="8,5"
+                    Background="{DynamicResource SessionBarBgBrush}"
+                    BorderBrush="{DynamicResource SessionBarBorderBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="9">
                     <Grid>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- 左侧：会话图标 + 当前会话名称 + 未读徽章 -->
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <!-- 列 0：专属会话身份徽章 -->
+                        <Border
+                            Grid.Column="0"
+                            Margin="0,0,6,0"
+                            Padding="6,3"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SessionBadgeBgBrush}"
+                            CornerRadius="6"
+                            ToolTip="当前锁定的微信沟通对象（支持自动识别微信窗口与一键下拉快切）">
                             <TextBlock
-                                Margin="0,0,6,0"
-                                VerticalAlignment="Center"
-                                FontSize="12"
-                                Text="💬" />
+                                FontSize="10.5"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource SessionBadgeTextBrush}"
+                                Text="👤 会话" />
+                        </Border>
+
+                        <!-- 列 1：一级内联高对比度会话选择器 -->
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                            <ComboBox
+                                x:Name="HubRecentSessionsCombo"
+                                Height="28"
+                                VerticalContentAlignment="Center"
+                                SelectionChanged="HubRecentSessionsCombo_SelectionChanged"
+                                Style="{StaticResource SessionSelectorComboBox}"
+                                ToolTip="点击一键切换当前会话好友（按最新消息倒序排列，含备注名、未读数与活跃时间），全标签页实时同步" />
                             <TextBlock
                                 x:Name="HubCurrentSessionText"
+                                Margin="10,0,30,0"
                                 VerticalAlignment="Center"
                                 FontSize="12"
-                                FontWeight="SemiBold"
+                                FontWeight="Bold"
                                 Foreground="{DynamicResource TextPrimaryBrush}"
-                                Text="当前会话：未选定"
+                                IsHitTestVisible="False"
+                                Text="正在自动识别..."
                                 TextTrimming="CharacterEllipsis"
-                                MaxWidth="195" />
+                                Visibility="Collapsed" />
+                        </Grid>
+
+                        <!-- 列 2：自动识别/手动锁定开关 -->
+                        <ToggleButton
+                            x:Name="AutoSyncToggleBtn"
+                            Grid.Column="2"
+                            Margin="6,0,0,0"
+                            Padding="7,4"
+                            Click="AutoSyncToggleBtn_Click"
+                            Content="⚡ 自动"
+                            FontSize="10.5"
+                            FontWeight="SemiBold"
+                            IsChecked="True"
+                            Style="{StaticResource FluentToggleButton}"
+                            ToolTip="已开启【自动识别当前会话】：切换微信聊天窗口或收发消息时自动跟随。点击可切换为手动锁定模式" />
+
+                        <!-- 列 3：立即重新识别与刷新按钮 -->
+                        <Button
+                            x:Name="HubRefreshBtn"
+                            Grid.Column="3"
+                            Margin="4,0,0,0"
+                            Padding="7,4"
+                            Click="HubRefreshBtn_Click"
+                            Content="🔄"
+                            FontSize="11"
+                            Style="{StaticResource FluentButton}"
+                            ToolTip="立即重新识别微信当前聊天好友并刷新消息与未读数" />
+
+                        <!-- 列 4：未读红点与关系洞察雷达折叠按钮 -->
+                        <StackPanel
+                            Grid.Column="4"
+                            Margin="4,0,0,0"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
                             <Border
                                 x:Name="HubUnreadBadge"
-                                Margin="6,0,0,0"
-                                Padding="5,1"
+                                Margin="0,0,4,0"
+                                Padding="5,2"
                                 VerticalAlignment="Center"
                                 Background="#22EF4444"
-                                BorderBrush="#44EF4444"
+                                BorderBrush="#55EF4444"
                                 BorderThickness="1"
                                 CornerRadius="8"
+                                Cursor="Hand"
+                                MouseLeftButtonUp="HubUnreadBadge_Click"
+                                ToolTip="点击展开未读消息雷达"
                                 Visibility="Collapsed">
                                 <TextBlock
                                     x:Name="HubUnreadBadgeText"
                                     FontSize="10"
                                     FontWeight="Bold"
                                     Foreground="#EF4444"
-                                    Text="🔴 0未读" />
+                                    Text="🔴 0" />
                             </Border>
+                            <ToggleButton
+                                x:Name="HubToggle"
+                                Padding="7,4"
+                                Checked="HubToggle_Changed"
+                                Content="📊 雷达 ▾"
+                                FontSize="10.5"
+                                Style="{StaticResource FluentToggleButton}"
+                                ToolTip="展开/折叠关系洞察雷达（冷热统计、未读跟进、约定备忘、全库检索）"
+                                Unchecked="HubToggle_Changed" />
                         </StackPanel>
-
-                        <!-- 刷新按钮 -->
-                        <Button
-                            x:Name="HubRefreshBtn"
-                            Grid.Column="1"
-                            Margin="0,0,6,0"
-                            Padding="6,2"
-                            Click="HubRefreshBtn_Click"
-                            Content="🔄 刷新"
-                            FontSize="10"
-                            Style="{StaticResource FluentButton}"
-                            ToolTip="重新扫描WX 4.x 本地数据库会话与未读数" />
-
-                        <!-- 展开/收起 ToggleButton（与“诊断 ▾”风格完全一致） -->
-                        <ToggleButton
-                            x:Name="HubToggle"
-                            Grid.Column="2"
-                            Padding="6,2"
-                            Checked="HubToggle_Changed"
-                            Content="会话中枢 ▾"
-                            FontSize="10"
-                            Style="{StaticResource FluentToggleButton}"
-                            ToolTip="展开/折叠WX会话与数据中枢（包含最近会话选择、关系冷热、未读雷达、约定备忘、全库检索）"
-                            Unchecked="HubToggle_Changed" />
                     </Grid>
                 </Border>
 
-                <!--  折叠的WX数据中枢面板  -->
+                <!--  折叠的关系洞察雷达面板（移除冗余的二级“会话”Tab，杜绝与下方“对话”Tab视觉混淆）  -->
                 <Border
                     x:Name="HubPanel"
                     Margin="0,6,0,0"
@@ -1107,28 +1291,28 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <!-- 子 Tab 胶囊栏 -->
+                        <!-- 隐藏保留旧版字段引用以兼容逻辑 -->
+                        <RadioButton
+                            x:Name="HubSubTabRecent"
+                            Click="HubSubTab_Click"
+                            Tag="0"
+                            Visibility="Collapsed" />
+
+                        <!-- 二级洞察工具切换栏（4列紧凑布局） -->
                         <Border
                             Grid.Row="0"
                             Margin="0,0,0,8"
                             Padding="2"
-                            Background="{DynamicResource TabBarBgBrush}"
+                            Background="{DynamicResource CardSubtleBgBrush}"
                             BorderBrush="{DynamicResource BorderSubtleBrush}"
                             BorderThickness="1"
                             CornerRadius="6">
-                            <UniformGrid Rows="1">
-                                <RadioButton
-                                    x:Name="HubSubTabRecent"
-                                    Click="HubSubTab_Click"
-                                    Content="💬 会话"
-                                    IsChecked="True"
-                                    Style="{StaticResource SettingSubTabRadio}"
-                                    Tag="0"
-                                    ToolTip="最近会话快速点选切换" />
+                            <UniformGrid Columns="4" Rows="1">
                                 <RadioButton
                                     x:Name="HubSubTabHeat"
                                     Click="HubSubTab_Click"
                                     Content="📊 冷热"
+                                    IsChecked="True"
                                     Style="{StaticResource SettingSubTabRadio}"
                                     Tag="1"
                                     ToolTip="关系冷热看板与互动统计" />
@@ -1156,45 +1340,11 @@
                             </UniformGrid>
                         </Border>
 
-                        <!-- 子视图 0: 💬 最近会话选择 -->
-                        <Grid x:Name="HubViewRecent" Grid.Row="1" Visibility="Visible">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <Grid Margin="0,0,0,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    FontSize="11"
-                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                    Text="快速切换:"
-                                    Margin="0,0,6,0" />
-                                <ComboBox
-                                    x:Name="HubRecentSessionsCombo"
-                                    Grid.Column="1"
-                                    Height="28"
-                                    Padding="8,0,24,0"
-                                    VerticalContentAlignment="Center"
-                                    FontSize="11.5"
-                                    SelectionChanged="HubRecentSessionsCombo_SelectionChanged"
-                                    ToolTip="直接从WX 4.x 本地数据库读取最近单聊列表（按最新消息严格时间倒序，含备注名、未读数与时间），点击秒级切换并自动加载对话" />
-                            </Grid>
-                            <TextBlock
-                                Grid.Row="1"
-                                Margin="0,4,0,0"
-                                FontSize="10.5"
-                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                LineHeight="15"
-                                Text="💡 提示：在上方下拉框点选任意好友，即可在【对话】、【建议】、【画像】与【AI问答】中同步切换沟通对象，并立即载入其完整历史气泡与认知画像。"
-                                TextWrapping="Wrap" />
-                        </Grid>
+                        <!-- 子视图 0 (已升级至顶栏内联选择器，此处折叠保留兼容) -->
+                        <Grid x:Name="HubViewRecent" Grid.Row="1" Visibility="Collapsed" />
 
                         <!-- 子视图 1: 📊 关系冷热看板与互动统计 -->
-                        <ScrollViewer x:Name="HubViewHeat" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <ScrollViewer x:Name="HubViewHeat" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Visible">
                             <StackPanel Margin="0,2,2,4">
                                 <Grid Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
@@ -1474,7 +1624,8 @@
                                 Grid.Column="1"
                                 Margin="8,0,0,0"
                                 Checked="AutoReadButton_Changed"
-                                Content="自动读取: 关"
+                                Content="自动读取: 开"
+                                IsChecked="True"
                                 Style="{StaticResource FluentToggleButton}"
                                 Unchecked="AutoReadButton_Changed" />
 

@@ -10,13 +10,48 @@ namespace WeChatCopilot.App;
 
 public partial class OverlayWindow : Window
 {
-    // ===================== 顶部微信数据中枢 (会话 / 冷热 / 未读雷达 / 约定 / 检索) =====================
+    // ===================== 顶部当前会话切换栏 & 关系洞察雷达 (冷热 / 未读 / 约定 / 检索) =====================
+
+    private async void AutoSyncToggleBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _autoSyncContact = AutoSyncToggleBtn.IsChecked == true;
+        UpdateAutoSyncToggleUi();
+
+        if (_autoSyncContact)
+        {
+            // 开启自动识别时，立即确保后台轮询运行并执行一次强制主动识别
+            if (!_autoRead)
+            {
+                _autoRead = true;
+                if (AutoReadButton != null)
+                {
+                    AutoReadButton.IsChecked = true;
+                    AutoReadButton.Content = "自动读取: 开";
+                }
+                _autoReadTimer.Start();
+            }
+
+            await ReadConversationAsync(silent: false, forceAutoDetect: true);
+        }
+        else
+        {
+            string lockedTarget = !string.IsNullOrWhiteSpace(_currentChatContact) ? _currentChatContact : "当前对象";
+            StatusText.Text = $"📌 已手动锁定当前会话：{lockedTarget}";
+        }
+    }
+
+    private void HubUnreadBadge_Click(object sender, MouseButtonEventArgs e)
+    {
+        HubToggle.IsChecked = true;
+        HubSubTabRadar.IsChecked = true;
+        HubSubTab_Click(HubSubTabRadar, new RoutedEventArgs());
+    }
 
     private void HubToggle_Changed(object sender, RoutedEventArgs e)
     {
         bool isExpanded = HubToggle.IsChecked == true;
         HubPanel.Visibility = isExpanded ? Visibility.Visible : Visibility.Collapsed;
-        HubToggle.Content = isExpanded ? "会话中枢 ▴" : "会话中枢 ▾";
+        HubToggle.Content = isExpanded ? "📊 雷达 ▴" : "📊 雷达 ▾";
 
         if (isExpanded)
         {
@@ -47,8 +82,6 @@ public partial class OverlayWindow : Window
         switch (tag)
         {
             case "0":
-                HubViewRecent.Visibility = Visibility.Visible;
-                break;
             case "1":
                 HubViewHeat.Visibility = Visibility.Visible;
                 RefreshHeatStats();
@@ -72,7 +105,7 @@ public partial class OverlayWindow : Window
         HubRefreshBtn.IsEnabled = false;
         try
         {
-            await RefreshRecentSessionsAsync(autoSelectActive: false);
+            await ReadConversationAsync(silent: false, forceAutoDetect: _autoSyncContact);
             RefreshHeatStats();
             RefreshCommitments();
         }
@@ -183,14 +216,22 @@ public partial class OverlayWindow : Window
             }
             else
             {
-                ContactBox.Text = target;
                 _currentChatContact = target;
-                await ReadConversationAsync(silent: false);
+                _isSyncingRecentSessionSelection = true;
+                try
+                {
+                    ContactBox.Text = target;
+                }
+                finally
+                {
+                    _isSyncingRecentSessionSelection = false;
+                }
+                await ReadConversationAsync(silent: false, forceAutoDetect: false);
             }
 
-            // 切换回会话面板
-            HubSubTabRecent.IsChecked = true;
-            HubSubTab_Click(HubSubTabRecent, new RoutedEventArgs());
+            // 切换到冷热看板查看该对象的统计
+            HubSubTabHeat.IsChecked = true;
+            HubSubTab_Click(HubSubTabHeat, new RoutedEventArgs());
         }
     }
 

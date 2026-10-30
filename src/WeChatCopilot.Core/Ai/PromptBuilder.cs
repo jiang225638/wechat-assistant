@@ -25,7 +25,7 @@ public static class PromptBuilder
         "想要的回应：结合其价值锚点，对方潜意识里最希望得到什么样的答复与承诺\n" +
         "建议策略：针对其性格特征与雷区，建议我方采取的最佳沟通与破解策略（具体到语气、切入点与措辞）";
 
-    /// <summary>把消息列表转写为 "[对方] xxx / [我] xxx" 的多行文本（取最近 maxMessages 条）。</summary>
+    /// <summary>把消息列表转写为 "[对方] xxx / [我] xxx" 的多行文本（取最近 maxMessages 条，自动携带时间戳与长断联间隔标记）。</summary>
     public static string BuildTranscript(IReadOnlyList<ChatMessage> messages, int maxMessages = 30)
     {
         if (messages is null || messages.Count == 0)
@@ -35,15 +35,37 @@ public static class PromptBuilder
 
         int start = Math.Max(0, messages.Count - maxMessages);
         var sb = new StringBuilder();
+        DateTime? prevTimestamp = null;
+
         for (int i = start; i < messages.Count; i++)
         {
-            string who = messages[i].Role switch
+            var msg = messages[i];
+            if (prevTimestamp.HasValue && msg.Timestamp.HasValue)
+            {
+                TimeSpan gap = msg.Timestamp.Value - prevTimestamp.Value;
+                if (gap.TotalHours >= 2)
+                {
+                    string gapDesc = gap.TotalDays >= 1
+                        ? $"间隔 {(int)gap.TotalDays} 天 {gap.Hours} 小时"
+                        : $"间隔 {gap.TotalHours:F1} 小时";
+                    sb.AppendLine($"--- （{gapDesc}） ---");
+                }
+            }
+
+            if (msg.Timestamp.HasValue)
+            {
+                prevTimestamp = msg.Timestamp;
+            }
+
+            string who = msg.Role switch
             {
                 MessageRole.Incoming => "对方",
                 MessageRole.Outgoing => "我",
                 _ => "未知"
             };
-            sb.AppendLine($"[{who}] {CleanMessageTextForAi(messages[i].Text)}");
+
+            string timePrefix = msg.Timestamp.HasValue ? $"[{msg.Timestamp.Value:MM-dd HH:mm}] " : string.Empty;
+            sb.AppendLine($"{timePrefix}[{who}] {CleanMessageTextForAi(msg.Text)}");
         }
 
         return sb.ToString();
@@ -102,7 +124,6 @@ public static class PromptBuilder
 
         return new AiRequest(SubtextSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
     }
-
 
     /// <summary>获取不同社交关系定位下的专属沟通准则指导。</summary>
     public static string GetRelationshipGuideline(string? rel)
@@ -166,7 +187,21 @@ public static class PromptBuilder
         if (effectiveContextCount <= 0) effectiveContextCount = 10;
 
         var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
-        string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
+        string targetStatement = latestIncoming is not null ? CleanMessageTextForAi(latestIncoming.Text) : "（无具体消息）";
+
+        // 检测最后一条消息是否由[我]发出（例如用户已回复一句但对方未回，或想继续追发/破冰）
+        var trailingOutgoing = new List<string>();
+        for (int i = messages.Count - 1; i >= 0; i--)
+        {
+            if (messages[i].Role == MessageRole.Outgoing)
+            {
+                trailingOutgoing.Insert(0, CleanMessageTextForAi(messages[i].Text));
+            }
+            else if (messages[i].Role == MessageRole.Incoming)
+            {
+                break;
+            }
+        }
 
         string skillName = skill.Name;
         string skillIcon = skill.Icon;
@@ -269,11 +304,19 @@ public static class PromptBuilder
 
         sb.AppendLine();
         sb.AppendLine($"【🎯 对方最新发言】：\n“{targetStatement}”");
+        if (trailingOutgoing.Count > 0)
+        {
+            string myLastSent = string.Join(" / ", trailingOutgoing);
+            sb.AppendLine($"【⚡ 当前最新战局状态（重要：最后一条消息由[我]发出）】：");
+            sb.AppendLine($"在对方上述发言之后，[我]已经发出了：“{myLastSent}”（对方暂未回复或双方刚结束上一轮互动）。");
+            sb.AppendLine("（⚠️ 关键战术提醒：请勿机械地把对方上一句话当成刚刚收到的未读消息去重复回答！请结合[我]已经发出的内容，给出自然的后续跟进补充、无压力破冰新话题、或推进下一步行动的建议。）");
+        }
         sb.AppendLine();
         sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】（严格执行微信真人感 15~35 字「接招+抛钩」对话准则，绝不冷场，严禁长篇大论、油腻段子与客服式问卷）：");
 
         return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7, MaxTokens: 2500);
     }
+
     /// <summary>清洗单条消息中的多媒体标记（如结构化表情/图片/分享卡片），转换为简洁自然文本供 AI 分析。</summary>
     public static string CleanMessageTextForAi(string? rawText)
     {
@@ -284,5 +327,4 @@ public static class PromptBuilder
         res = System.Text.RegularExpressions.Regex.Replace(res, @"\[分享卡片:\s*url=[^|]*\|title=([^|]*)\|[^\]]*\]", "[分享: $1]");
         return res;
     }
-
 }
