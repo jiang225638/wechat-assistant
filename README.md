@@ -8,12 +8,12 @@
 ![UI](https://img.shields.io/badge/WPF-Fluent%20Dark%20%26%20Light-2D7D9A)
 ![Database](https://img.shields.io/badge/Database-SQLite%20(WAL)-blue?logo=sqlite)
 ![Engine](https://img.shields.io/badge/WeChat%20Engine-WCDB%204.0%20Direct-success?logo=wechat)
-![Tests](https://img.shields.io/badge/Tests-200%20Passed-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-233%20Passed-brightgreen?logo=xunit)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Privacy](https://img.shields.io/badge/Privacy-Local--First%20%7C%20DPAPI-success)
 
 **为WX PC 端量身打造的贴边悬浮式 AI 智能沟通副驾**  
-无感贴边跟随 · WX4.x数据库直读 · 自由拖拽缩放 · WX会话数据中枢 · 同层级智能沉浮 · 明暗双主题 · SQLite本地持久化 · 技能文件夹绑定 · AI问答对话军师 · 多维画像全景放大看板
+无感贴边跟随 · 微信 4.x 本地直读 · Spotlight 会话智能识别 · 自由拖拽缩放 · 微信会话数据中枢 · 同层级智能沉浮 · 明暗双主题 · SQLite 本地持久化 · 技能文件夹递归绑定 · AI 问答对话军师 · 多维画像全景放大看板
 
 [界面预览](#-软件界面精选预览) • [核心特性](#-核心特性) • [系统架构](#-系统架构) • [快速开始](#-快速开始) • [打包发布](#-打包发布-exe-安装文件) • [设置与功能指南](#-设置与功能指南) • [快捷键指南](#-快捷键指南) • [项目结构](#-项目结构) • [隐私与安全](#-隐私与安全)
 
@@ -26,52 +26,67 @@
 **WeChat Copilot** 是一款专为 Windows 平台WX PC 端量身定制的**全域智能对话辅助桌面工具**。以轻量无边框的现代 Fluent 悬浮窗形态，自动贴合WX聊天窗口边缘，随WX窗口平滑移动与跨屏漫游；同时支持鼠标在边框任意拖拽自由缩放尺寸与明暗双主题无缝热重载。
 
 项目严格遵循 **“本地优先 (Local-First)”** 与 **“只读不代发”** 的严苛安全原则：
-- **WX 4.x 原生 WCDB4 解密直连（纯只读游标零风控）**：**内置 WCDB 4.0 原生只读解密与解析引擎**，直接读取本机 SQLite/WCDB 数据库，秒级提取长历史聊天记录与通讯录备注，彻底取消外部 HTTP API 依赖与屏幕视觉 OCR 抓屏，零进程注入、零内存 Hook、零封号风险；
-- **WX会话与数据中枢（Tab 上方下拉中枢栏）**：集成【💬 最近会话快速切换】、【📊 关系冷热看板与互动统计】、【🔔 未读主动提醒与破冰跟进雷达】、【🗓️ 聊天关键事件、约定与承诺备忘】与【🔍 跨会话全库关键词检索】5 大高阶功能；
-- **冷链路（深度认知与心智蒸馏）**：基于可插拔的 **Skill 认知蒸馏方法论**（职场商业协同、亲密关系心理、麦肯锡结构化逻辑等），生成动态自适应的多维雷达图谱与长效画像；
+- **WX 4.x 原生 WCDB4 解密直连（纯只读游标零风控）**：**内置 WCDB 4.0 原生只读解密与解析引擎**，自动探测账号目录与 64 位密钥，直接读取本机 SQLite/WCDB 数据库，秒级提取长历史聊天记录与通讯录备注，彻底取消外部 HTTP API 依赖与屏幕视觉 OCR 抓屏，零进程注入、零内存 Hook、零封号风险；
+- **WX会话与数据中枢（Tab 上方下拉中枢栏）**：集成【💬 最近会话快速切换与 Spotlight 会话自动识别】、【📊 关系冷热看板与互动统计】、【🔔 未读主动提醒与破冰跟进雷达】、【🗓️ 聊天关键事件、约定与承诺备忘】与【🔍 跨会话全库关键词检索】5 大高阶功能；
+- **冷链路（深度认知与心智蒸馏）**：基于可插拔的 **Skill 认知蒸馏方法论**（职场商业协同、亲密关系心理、麦肯锡结构化逻辑等），结合 240 条长跨度分层抽样算法与结构化路由机制，生成动态自适应的多维雷达图谱与长效画像；
 - **🤖 AI 对话军师（Antigravity 交互体系）**：主界面全新内嵌 AI 问答 Tab，支持融合本地画像与真实聊天记录进行多轮实时研判，配备多历史会话独立抽屉式管理与快捷探针指令；
 - **SQLite 轻量化本地关系数据库**：引入 `Microsoft.Data.Sqlite` 开启 WAL 高并发模式。消息带 SHA256 唯一指纹幂等去重；在离线或无WX运行状态下依然能随时秒级加载历史、蒸馏画像与查阅记录；
 - **Antigravity 风格技能文件夹绑定**：支持绑定工作区或指定目录，递归自动发现所有 `SKILL.md`，支持热重扫与物理安全删除；
-- **多维画像全景放大看板**：提供全屏/大窗口深度研判体验，顶部动态提炼主导特质卡片，融合全景雷达图、量化得分对比柱状图、特质走势折线图与左右对照证据清单，支持一键导出 Markdown 分析报告。
+- **多维画像全景放大看板**：提供全屏/大窗口深度研判体验，顶部动态提炼主导特质卡片，融合全景雷达图、量化得分对比柱状图、特质走势折线图与左右对照证据清单，内嵌 AI 定制实战沟通破局策略与避坑指南报告（配备三层弹性容错解析引擎，确保持久稳定输出），支持一键导出 Markdown 分析报告。
 
 ---
 
 ## 🖼️ 软件界面精选预览
 
-### 1. 贴边悬浮主界面四大核心 Tab
+### 1. 贴边悬浮主界面四大核心 Tab 与会话数据中枢
 
-| 💬 贴边对话与引用气泡识别 (对话 Tab) | ✨ 意图驱动与博弈建议卡片 (建议 Tab) |
+| 💬 贴边对话与 Spotlight 识别 (对话 Tab) | ✨ 意图驱动与博弈建议卡片 (建议 Tab) |
 | :---: | :---: |
-| 自动吸附WX边缘，富文本引用、图片预览与表情识别 | 终极目的锚定、多候选回复、量化推进力与画像安全度 |
-| ![贴边对话与气泡识别](pic/Snipaste_2026-10-28_17-25-09.png) | ![策略建议与回复方案](pic/Snipaste_2026-10-28_17-25-33.png) |
+| 自动吸附微信边缘，Spotlight 会话自动识别，双色气泡与表情呈现 | 终极目的锚定、多候选回复、量化推进力与画像安全度 |
+| ![贴边对话与 Spotlight 识别](pic/Snipaste_2026-11-02_10-37-51.png) | ![策略建议与回复方案](pic/Snipaste_2026-11-02_10-37-55.png) |
 
 | 👤 多维心智特质画像 (画像 Tab) | 🤖 AI 问答对话军师 (AI问答 Tab) |
 | :---: | :---: |
-| 一键蒸馏多维特质，自适应多维认知雷达图谱与证据链 | Antigravity 交互美学，融合本地画像与真实聊天多轮研判 |
-| ![多维心智特质画像](pic/Snipaste_2026-10-28_17-25-59.png) | ![AI问答军师](pic/Snipaste_2026-10-28_17-26-14.png) |
+| 一键蒸馏多维特质，自适应认知雷达图谱、量化卡片与亲口原话证据链 | Antigravity 交互美学，融合本地画像与真实聊天多轮实时研判 |
+| ![多维心智特质画像](pic/Snipaste_2026-11-02_10-38-00.png) | ![AI问答军师](pic/Snipaste_2026-11-02_10-38-20.png) |
+
+| 🌐 微信会话数据中枢 (Data Hub 折叠中枢栏) |
+| :---: |
+| 关系冷热看板（温度指数与密切度评定）、互动统计比例、平均时延、未读雷达与约定备忘 |
+| ![微信会话数据中枢](pic/Snipaste_2026-11-02_10-40-09.png) |
 
 ---
 
-### 2. 双全景深度研判大看板 (复合图表全屏分析)
+### 2. 双全景深度研判大看板 (复合图表全屏分析与实战破局手册)
 
-| ⚔️ 话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow) | 🔍 联系人多维画像全景放大看板 (PersonaAnalyticsWindow) |
+| ⚔️ 话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow) |
+| :---: |
+| 多方案全景重叠雷达、动态维度分组对决柱状图、战略博弈双轴象限图与战局立体沙盘推演 |
+| ![话语力量与博弈推演全景大看板](pic/Snipaste_2026-11-02_10-39-10.png) |
+
+| 🔍 联系人多维画像全景看板 - 图表总览 (Tab 1) | 🔍 特质与原始证据左右对照清单 (Tab 2) |
 | :---: | :---: |
-| 多方案重叠雷达、动态维度柱状对决、博弈双轴象限与沙盘推演 | 4 大动态主导特质卡片、全景认知雷达、得分对比柱状与走势折线 |
-| ![话语力量与博弈推演全景大看板](pic/Snipaste_2026-10-28_17-25-42.png) | ![多维画像全景放大看板](pic/Snipaste_2026-10-28_17-26-07.png) |
+| 4 大动态主导特质卡片、全景认知雷达、得分对比柱状与走势折线 | 观察层推断 vs 原始亲口对话事实证据链逐条严谨印证对照 |
+| ![多维画像全景图表看板](pic/Snipaste_2026-11-02_10-39-29.png) | ![特质证据对照清单](pic/Snipaste_2026-11-02_10-39-34.png) |
+
+| ⚡ AI 定制实战沟通破局策略与避坑指南 (Tab 3) |
+| :---: |
+| 深度拆解核心主导心智诉求底色、顺势借力抓手与推进法则、心理敏感穴坑与避坑红线、定制示范破局话术 |
+| ![实战沟通破局策略与避坑指南](pic/Snipaste_2026-11-02_10-39-39.png) |
 
 ---
 
 ### 3. 全新集成设置中心与系统指南 (6 大专区)
 
-| 🤖 AI 模型与服务设置 | 💬 本地WX与数据库 (WCDB4 直连) | 🧬 技能中心 (Skill Studio) |
+| 🤖 AI 模型与服务设置 | 💬 本地微信与数据库 (WCDB4 直连) | 🧬 技能中心 (Skill Studio) |
 | :---: | :---: | :---: |
-| OpenAI 兼容接口配置与 DPAPI 硬件级加密 | WX 4.x 数据库直连、自动嗅探与只读游标测试 | Antigravity 风格技能文件夹递归绑定与热重扫 |
-| ![AI模型设置](pic/Snipaste_2026-10-28_17-26-23.png) | ![本地WX直连](pic/Snipaste_2026-10-28_17-26-33.png) | ![技能中心](pic/Snipaste_2026-10-28_17-26-41.png) |
+| OpenAI 兼容接口配置与 DPAPI 硬件级加密 | 微信 4.x 数据库直连、自动嗅探与只读游标测试 | Antigravity 风格技能文件夹递归绑定与热重扫 |
+| ![AI模型设置](pic/Snipaste_2026-11-02_10-38-32.png) | ![本地微信直连](pic/Snipaste_2026-11-02_10-38-37.png) | ![技能中心](pic/Snipaste_2026-11-02_10-38-45.png) |
 
 | 🎯 画像目的与战略管理 | 🎨 偏好与系统设置 (明暗主题) | ❓ 全局快捷键与指南 |
 | :---: | :---: | :---: |
 | 为好友配置专属终极战略目的 (Chat Objective) | Fluent 深浅主题热重载、语境跨度与透明度调节 | 快捷键一览、WCDB4 直连与本地优先安全说明 |
-| ![画像战略目的](pic/Snipaste_2026-10-28_17-26-49.png) | ![偏好与系统设置](pic/Snipaste_2026-10-28_17-26-53.png) | ![快捷键与指南](pic/Snipaste_2026-10-28_17-26-59.png) |
+| ![画像战略目的](pic/Snipaste_2026-11-02_10-38-51.png) | ![偏好与系统设置](pic/Snipaste_2026-11-02_10-38-56.png) | ![快捷键与指南](pic/Snipaste_2026-11-02_10-38-59.png) |
 
 ---
 
@@ -79,6 +94,7 @@
 
 ### 1. 📌 智能贴边吸附、同层级沉浮与自由缩放拖拽 (Companion Layer & Resizing)
 - **WX窗口自适应定位**：支持WX主窗口（`WeChatMainWndForPC`）与独立单聊窗口（`ChatWnd`），自动吸附贴边。
+- **Spotlight 自动会话识别**：智能跟随当前微信前台焦点窗口，自动切换对应单聊好友，无需手动选人。
 - **智能生命周期感知（协同隐藏与唤醒）**：全面感知WX最小化（`-`）与点击右上角 `X` 隐藏至系统托盘（`SW_HIDE`）；WX收起时副驾同步隐藏，用户从托盘或任务栏唤出WX时毫秒级自动恢复重现。
 - **智能前台感知与动态 Z-Order（同层级沉浮）**：告别霸道全局置顶！副驾在跟随模式下与WX保持同一 Z 轴层级（紧随WX之后且不抢输入焦点）。当切到全屏浏览器、VS Code 或 Office 时，副驾随WX同步沉降至后台，绝不遮挡其他工作；切回WX时毫秒级协同回到前台；点击“🔓 已固定”可维持全局置顶与任意拖拽。
 - **平滑无抖跟随**：实时感知WX窗口移动、缩放与跨多显示器拖拽，毫秒级平滑跟随。
@@ -103,6 +119,9 @@
   - 💼 **职场与商业认知 (`workplace`)**：提炼交付导向、推进能动性、权衡决策法、职业防备心、利益诉求导向与职场禁忌；
   - ❤️ **亲密关系与情感偏好 (`intimacy`)**：提炼情感表达、依恋安全感、推进节奏、情绪敏感度、核心情感需求与亲密禁忌雷区；
   - 🎯 **麦肯锡逻辑视角 (`logical`)**：提炼结构化表达、事实求证度、因果推导严密、辩论抗逆力、逻辑闭环度与逻辑反模式。
+- **通用渐进式披露路由机制**：
+  - 无论新增或切换任意专业 Skill，系统自适应提炼其核心心智维度、观察切角与战术禁忌，无需硬编码即可无缝赋能【建议】、【画像】与【AI 对话】全链路；
+  - 采用 **240 条长跨度分层时序采样算法**（覆盖破冰期、互动转折期与近期态势），告别信息死角与局部偏见。
 - **Antigravity 风格技能文件夹绑定**：
   - 彻底抛弃繁琐的单文件导入与手动表单，支持直接绑定本地技能文件夹；
   - 系统自动递归扫描所有子目录下的 `SKILL.md` / `skill.md` 技能定义；
@@ -110,10 +129,10 @@
   - 自定义技能删除时同步安全清理底层物理文件与缓存，刷新绝不复现。
 - **画像全景深度分析看板 (`PersonaAnalyticsWindow`)**：
   - 配备现代化顶部全景边框（支持全屏拖拽、双击缩放、最小化 `─`、最大化/还原 `🗖`、关闭 `✕`）；
-  - **顶部 4 大动态主导特质卡片**：自动提炼【第一主导维度】、【协同支柱维度】、【心理敏感/洼地维度】与【心智张力极差与加权均分】，绝不写死维度，随技能与画像动态计算；
-  - **多图表联动呈现**：全景多维认知雷达图谱、各维度量化得分对比柱状图、特质波动与梯度走势折线图；
-  - **全维度特质与原始证据左右对照清单**：左侧清晰展现特质推断，右侧逐项印证亲口原话引用；
-  - **AI 定制实战破局策略与避坑指南**：结合画像证据、当前技能体系、终极目的与最近真实对话，由大模型针对该联系人生成定制化四卡片策略报告（带 SHA256 内容指纹缓存、一键重新生成与本地模板即时兜底）；
+  - **顶部 4 大动态主导特质卡片**：自动提炼【第一主导维度】、【协同支柱维度】、【心理敏感/洼地维度】与【心智张力极差与加权均分】，随技能与画像动态计算；
+  - **多图表联动呈现 (Tab 1)**：全景多维认知雷达图谱、各维度量化得分对比柱状图、特质波动与梯度走势折线图；
+  - **全维度特质与原始证据左右对照清单 (Tab 2)**：左侧清晰展现特质推断，右侧逐项印证亲口原话引用；
+  - **AI 定制实战破局策略与避坑指南 (Tab 3)**：结合画像证据、当前技能体系、终极目的与最近真实对话，由大模型针对该联系人生成定制化四卡片策略报告；内嵌三层弹性容错解析引擎（严格 JSON -> 宽松段落提取 -> Markdown 分块兜底），确保护航每次生成。
   - 支持一键复制完整 Markdown 分析报告与导出文本。
 
 ### 5. 🤖 AI 问答军师与 Antigravity 交互体系 (AI Chat Advisor & Antigravity UX)
@@ -165,7 +184,7 @@
 - **DPAPI 硬件级加密**：API Key 与WX数据库密钥仅通过 Windows DPAPI 本地加密存储，磁盘无明文。
 - **纯文件只读游标**：WCDB4 直连引擎采用纯文件只读游标（Read-Only WAL Cursor），不扫描WX进程内存、不注入 DLL、不 Hook 任何系统函数，从根源确保WX账号零风险。
 - **无第三方云端中转**：除直连用户配置的大模型端点外，绝无任何开发者云端遥测与数据回传。
-- **全方位测试守护**：**200 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
+- **全方位测试守护**：**233 项自动化单测**守护核心业务算法、WCDB4 解密与解析、关系冷热指标、未读雷达、约定提炼、全库检索、提示词组装、策略手册生成、SQLite 持久化、AI 问答会话模型与 XAML 静态/动态资源契约。
 
 ---
 
@@ -177,7 +196,7 @@ flowchart TD
         Overlay["贴边悬浮主窗口 (OverlayWindow - Fluent Dark & Light)\n【💬 对话】 【✨ 建议】 【👤 画像】 【🤖 AI问答】 【⚙️ 设置】"]
         Hub["WX会话与数据中枢 (OverlayWindow.Hub.cs)\n【会话快选】 【关系冷热】 【未读雷达】 【约定备忘】 【全库检索】"]
         AdviceAnalytics["话语力量与博弈推演全景大看板 (AdviceAnalyticsWindow)\n【重叠雷达】 【分组柱状】 【双轴象限】 【沙盘对决】"]
-        PersonaAnalytics["联系人画像深度分析全景看板 (PersonaAnalyticsWindow)\n【动态主导特质】 【全景大雷达】 【分值柱状】 【走势折线】 【左右对照证据】"]
+        PersonaAnalytics["联系人画像深度分析全景看板 (PersonaAnalyticsWindow)\n【动态主导特质】 【全景大雷达】 【分值柱状】 【走势折线】 【左右对照证据】 【破局指南】"]
         Theme["动态主题管理器 (ThemeManager)"]
     end
 
@@ -197,13 +216,13 @@ flowchart TD
         Wcdb4Engine["WCDB4 本地数据库只读引擎 (Wcdb4HistoryProvider)\n【纯只读游标零风险】 【免开任何外部服务】"]
         Decoder["消息与会话解码器 (Wcdb4MessageDecoder)\n【压缩与加密清洗】 【群聊/系统号过滤】"]
         KeyRoot["密钥与目录探测 (WeChatDbKeyAndRootProvider)\n【自动嗅探 4.x 数据目录与 64 位密钥】"]
-        Distiller["人格蒸馏器 (PersonaDistiller)\nMap-Reduce 蒸馏 & 证据链去重"]
+        Distiller["人格蒸馏器 (PersonaDistiller)\n240条分层抽样 & 结构化路由 & 证据链去重"]
     end
 
     subgraph AI["🤖 AI 智能层 (WeChatCopilot.AI & Core)"]
         Prompt["动态提示词工程 (PromptBuilder)\n目的 × 画像 × Skill × 意图 多维战略装配"]
         Client["OpenAI 兼容客户端 (AiClient)\nDeepSeek / Qwen / Kimi / Ollama 等"]
-        Parser["输出容错解析器 (AiOutputParser)\n动态维度提炼 & 推进力/安全度量化解析"]
+        Parser["输出容错解析器 (AiOutputParser & ResilientJsonParser)\n动态维度提炼 & 推进力/安全度量化 & 策略手册三层弹性解析"]
     end
 
     Wcdb4Engine --> Decoder --> AnalyticsSvc --> Hub
@@ -232,19 +251,22 @@ flowchart TD
 
 ```text
 e:\huanmai\myprod
-├── pic/                                  # 软件高清界面截图目录
-│   ├── Snipaste_2026-10-28_17-25-09.png  # 对话 Tab：实时对话气泡、引用回复与富媒体呈现
-│   ├── Snipaste_2026-10-28_17-25-33.png  # 建议 Tab：终极目的驱动、多方案卡片与量化推进力
-│   ├── Snipaste_2026-10-28_17-25-42.png  # 放大看板：话语力量与博弈推演全景复合大看板
-│   ├── Snipaste_2026-10-28_17-25-59.png  # 画像 Tab：特质蒸馏、多维认知雷达图谱与证据链
-│   ├── Snipaste_2026-10-28_17-26-07.png  # 放大看板：联系人多维画像全景复合图表放大看板
-│   ├── Snipaste_2026-10-28_17-26-14.png  # AI问答 Tab：对话军师、深度研判指令与 Antigravity 交互
-│   ├── Snipaste_2026-10-28_17-26-23.png  # 设置 Tab：AI 模型与接口配置 (DPAPI 硬件级加密)
-│   ├── Snipaste_2026-10-28_17-26-33.png  # 设置 Tab：本地 WX 4.x 数据库直连与密钥探测 (WCDB4)
-│   ├── Snipaste_2026-10-28_17-26-41.png  # 设置 Tab：技能中心 (Skill Studio 文件夹绑定)
-│   ├── Snipaste_2026-10-28_17-26-49.png  # 设置 Tab：联系人终极战略目的管理 (Chat Objective)
-│   ├── Snipaste_2026-10-28_17-26-53.png  # 设置 Tab：偏好与 Fluent 明暗双主题动态热重载
-│   └── Snipaste_2026-10-28_17-26-59.png  # 设置 Tab：全局快捷键速查与架构安全指南
+├── pic/                                  # 软件最新高清界面截图目录
+│   ├── Snipaste_2026-11-02_10-37-51.png  # 对话 Tab：实时贴边气泡、Spotlight 会话自动识别与表情呈现
+│   ├── Snipaste_2026-11-02_10-37-55.png  # 建议 Tab：终极目的导向、多回复方案卡片与量化推进力
+│   ├── Snipaste_2026-11-02_10-38-00.png  # 画像 Tab：特质蒸馏、自适应多维认知雷达图谱与证据链
+│   ├── Snipaste_2026-11-02_10-38-20.png  # AI问答 Tab：对话军师、深度研判指令与 Antigravity 交互
+│   ├── Snipaste_2026-11-02_10-38-32.png  # 设置 Tab：AI 模型与接口配置 (DPAPI 硬件级加密)
+│   ├── Snipaste_2026-11-02_10-38-37.png  # 设置 Tab：微信 4.x 数据库直连与密钥探测 (WCDB4)
+│   ├── Snipaste_2026-11-02_10-38-45.png  # 设置 Tab：技能中心 (Skill Studio 文件夹递归绑定)
+│   ├── Snipaste_2026-11-02_10-38-51.png  # 设置 Tab：联系人终极战略目的管理 (Chat Objective)
+│   ├── Snipaste_2026-11-02_10-38-56.png  # 设置 Tab：偏好与 Fluent 明暗双主题动态热重载
+│   ├── Snipaste_2026-11-02_10-38-59.png  # 设置 Tab：全局快捷键速查与架构安全指南
+│   ├── Snipaste_2026-11-02_10-39-10.png  # 放大看板：话语力量与博弈推演全景复合大看板
+│   ├── Snipaste_2026-11-02_10-39-29.png  # 放大看板：多维画像看板 Tab 1 - 4大主导特质与全景多图表
+│   ├── Snipaste_2026-11-02_10-39-34.png  # 放大看板：多维画像看板 Tab 2 - 观察层 vs 推断层证据链左右对照
+│   ├── Snipaste_2026-11-02_10-39-39.png  # 放大看板：多维画像看板 Tab 3 - AI 实战沟通破局策略与避坑指南
+│   └── Snipaste_2026-11-02_10-40-09.png  # 数据中枢：微信会话数据中枢 (关系冷热、未读雷达与约定备忘)
 │
 ├── src/
 │   ├── WeChatCopilot.App/        # 应用程序主工程 (WPF + XAML + Fluent 主题)
@@ -295,13 +317,13 @@ e:\huanmai\myprod
 │       └── Security/DpapiProtector.cs # Windows DPAPI 硬件级敏感数据加解密
 │
 ├── tests/
-│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (200 项测试全覆盖)
+│   └── WeChatCopilot.Tests/      # xUnit 自动化测试工程 (233 项测试全覆盖)
 │       ├── WeChatAnalyticsServiceTests.cs # 关系冷热、未读雷达、约定承诺抽取与全库检索测试
 │       ├── Wcdb4MessageDecoderTests.cs   # WCDB4 消息反序列化、会话排序过滤与备注解析测试
 │       ├── CompositeChatHistoryProviderTests.cs # 复合提供者通道测试
 │       ├── WeChatDbKeyAndRootProviderTests.cs # 数据库目录与密钥提供器测试
 │       ├── WeChatRichMediaTests.cs       # 微信 .dat 异或加密图片反解、表情映射与富媒体测试
-│       ├── StrategyPlaybookGeneratorTests.cs # 实战策略手册生成、JSON 容错解析与缓存键测试
+│       ├── StrategyPlaybookGeneratorTests.cs # 实战策略手册生成、三层容错解析与缓存键测试
 │       ├── AiQaAndCustomRelationshipTests.cs # AI问答界面结构、会话持久化与看板契约验证
 │       ├── SqliteStorageTests.cs         # SQLite 表初始化、消息去重排序、画像与技能持久化测试
 │       ├── SkillStoreTests.cs            # 技能绑定、递归扫描发现与物理安全删除测试
@@ -342,7 +364,7 @@ e:\huanmai\myprod
 git clone git@github.com:jiang225638/wechat-assistant.git
 cd wechat-assistant
 
-# 2. 运行自动化测试 (200 项测试全绿)
+# 2. 运行自动化测试 (233 项测试全绿)
 dotnet test
 
 # 3. 编译主程序 (Release)
@@ -489,19 +511,19 @@ powershell -ExecutionPolicy Bypass -File .\build_package.ps1 -IncludeSingleFile:
 dotnet test
 ```
 
-测试覆盖概览（**200 项全通过**）：
+测试覆盖概览（**233 项全通过**）：
 - `WeChatAnalyticsServiceTests`：关系冷热指数与等级研判、未读雷达排序过滤、约定承诺提炼（聚会/交付/表态）、大小写不敏感全库检索测试；
 - `WeChatDbKeyAndRootProviderTests`：xwechat_files 活跃账号目录自动发现、DPAPI/AES-256-GCM 密钥库提取与 ASCII Junction 桥接探测测试；
 - `Wcdb4MessageDecoderTests`：WX 4.x Zstd 压缩包解压、XML 卡片/表情/引用回复结构化解析、活跃单聊清洗过滤与会话排序测试；
 - `CompositeChatHistoryProviderTests`：WCDB4 直连与本地 SQLite 离线双层降级通道及聚合统计测试；
 - `OpenAiCompatibleProviderTests`：OpenAI 兼容端点网络探测、超时配置与异常容错测试；
-- `StrategyPlaybookGeneratorTests`：AI 实战破局策略与避坑指南请求组装、JSON 容错解析、缓存键失效以及建议分值如实展示（不伪造缺失分）测试；
+- `StrategyPlaybookGeneratorTests`：AI 实战破局策略与避坑指南请求组装、三层弹性容错解析（严格JSON/宽松段落/Markdown备选）、缓存键失效以及建议分值如实展示（不伪造缺失分）测试；
 - `AiQaAndCustomRelationshipTests`：AI 问答主界面结构、会话存储与加载、Antigravity 交互组件契约、画像分析看板纯净契约验证；
 - `SqliteStorageTests`：SQLite 数据库初始化与 WAL 模式、消息 SHA256 指纹幂等去重、按时间顺序检索、画像与战略目的存取以及键值配置测试；
 - `SkillStoreTests`：Antigravity 风格技能文件夹绑定、多层递归自动扫描、Markdown YAML 元数据解析、当前技能持久化与物理安全删除测试；
 - `PersonaStoreTests`：画像本地持久化、SQLite 优先读取与已有旧版 JSON 文件的透明双向自动迁移测试；
 - `OverlayWindowXamlResourceTests`：**XAML 静态与动态资源契约自动巡检**，守护 `OverlayWindow`、`AdviceAnalyticsWindow`、`PersonaAnalyticsWindow` 资源完整性与 `ThemeManager` 画刷全覆盖；
-- `PersonaDistillerTests`：多技能心智蒸馏、自定义 Skill 动态装配、事实证据链过滤、可信度解析与 Map-Reduce 去重；
+- `PersonaDistillerTests`：多技能心智蒸馏、240条分层抽样算法、自定义 Skill 通用结构化路由、事实证据链过滤、可信度解析与 Map-Reduce 去重；
 - `AiOutputParserTests`：一体化 AI 建议多风格容错解析、动态博弈维度提取、推进力与安全度量化评分；
 - `PromptBuilderTests`：多轮语境深度拼接、角色标注、动态博弈维度提示词工程与装配；
 - `SettingsStoreTests` & `DpapiProtectorTests`：本地数据加解密、主题模式读写与用户隔离验证。
