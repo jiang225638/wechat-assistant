@@ -140,4 +140,49 @@ public class WeChatRichMediaTests
         string transcript = PromptBuilder.CleanMessageTextForAi(rawCard);
         Assert.Equal("[分享: 科技前沿深度报道]", transcript);
     }
+
+    [Fact]
+    public void StripMediaMarkupAndCleanForAi_WithLongCdnUrlAndMd5_CleanlyStripsToAnimatedEmoji()
+    {
+        string realEmojiWithCdn = "[动画表情: md5=c92d957f2bbc71b32ba0b57e910d2619&cdn=http://wxapp.tc.qq.com/262/20304/stodownload?m=c92d957f2bbc71b32ba0b57e910d2619&filekey=30340201010420301e020201060402535a0410c92d957f2bbc71b32ba0b57e910d261902024f58040d00000004627466730000000132&hy=SZ&storeid=2691f1c19000309de084e9d470000010600004f50535a20c67bc1e69c21e3b&bizid=1023]";
+
+        string cleanFromDecoder = Wcdb4MessageDecoder.StripMediaMarkup(realEmojiWithCdn);
+        string cleanFromPromptBuilder = PromptBuilder.CleanMessageTextForAi(realEmojiWithCdn);
+
+        Assert.Equal("[动画表情]", cleanFromDecoder);
+        Assert.Equal("[动画表情]", cleanFromPromptBuilder);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_CleansTargetQuote_WhenAnimatedEmojiHasMd5AndCdn()
+    {
+        string realEmojiWithCdn = "[动画表情: md5=c92d957f2bbc71b32ba0b57e910d2619&cdn=http://wxapp.tc.qq.com/262/20304/stodownload?m=c92d957f]";
+        string rawAiOutput = "=== 意图剖析 ===\n语境脉络：双方互动试探期\n字面意思：发了一个表情\n潜台词洞察：暂无深聊打算，保持基本礼貌\n真实心理：试探边界\n破局心法：轻松接招\n=== 动态博弈评估维度 ===\n评估维度：情绪共鸣, 安全感\n=== 回复建议 ===\n[幽默调侃] 哈哈，干嘛发这个表情？ | 理由：接招 | 得分：情绪共鸣=80, 安全感=85 | 推进力=70, 安全度=90";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(rawAiOutput, fallbackTargetQuote: realEmojiWithCdn);
+
+        Assert.Equal("[动画表情]", advice.TargetQuote);
+    }
+
+    [Fact]
+    public void ChatMessage_TimestampFormatting_ProvidesExpectedTimeTextAndHeaderLabel()
+    {
+        var msgNoTime = new ChatMessage(MessageRole.Incoming, "你好呀");
+        Assert.False(msgNoTime.HasTime);
+        Assert.Empty(msgNoTime.TimeText);
+        Assert.Equal("对方", msgNoTime.HeaderLabel);
+
+        var now = DateTime.Now;
+        var todayTime = new DateTime(now.Year, now.Month, now.Day, 11, 47, 0, DateTimeKind.Local);
+        var msgToday = new ChatMessage(MessageRole.Outgoing, "还别说，真瞌睡", todayTime);
+        Assert.True(msgToday.HasTime);
+        Assert.Equal($"{now:yyyy-MM-dd} 11:47", msgToday.TimeText);
+        Assert.Equal($"我 · {now:yyyy-MM-dd} 11:47", msgToday.HeaderLabel);
+
+        var otherDay = new DateTime(now.Year, 10, 28, 17, 25, 0, DateTimeKind.Local);
+        var msgOtherDay = new ChatMessage(MessageRole.Incoming, "今天午饭看着不错呢", otherDay);
+        Assert.True(msgOtherDay.HasTime);
+        Assert.Equal($"{now.Year}-10-28 17:25", msgOtherDay.TimeText);
+        Assert.Equal($"对方 · {now.Year}-10-28 17:25", msgOtherDay.HeaderLabel);
+    }
 }

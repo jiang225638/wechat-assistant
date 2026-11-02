@@ -238,8 +238,9 @@ public partial class AdviceAnalyticsWindow : Window
 
     private void PopulateSandtable()
     {
-        SandtableTargetQuoteText.Text = !string.IsNullOrWhiteSpace(_advice.TargetQuote)
-            ? $"“{_advice.TargetQuote}”"
+        string cleanQuote = WeChatCopilot.Core.Ai.PromptBuilder.CleanMessageTextForAi(_advice.TargetQuote);
+        SandtableTargetQuoteText.Text = !string.IsNullOrWhiteSpace(cleanQuote)
+            ? $"“{cleanQuote}”"
             : "（无具体原话）";
 
         SandtableContextFlowText.Text = !string.IsNullOrWhiteSpace(_advice.ContextFlowSummary)
@@ -1183,7 +1184,7 @@ public partial class AdviceAnalyticsWindow : Window
             sb.AppendLine("## 🧠 一、战局立体推演沙盘");
             sb.AppendLine();
             sb.AppendLine($"### 1. 对方最新发言");
-            sb.AppendLine($"> {_advice.TargetQuote ?? "（无具体原话）"}");
+            sb.AppendLine($"> {WeChatCopilot.Core.Ai.PromptBuilder.CleanMessageTextForAi(_advice.TargetQuote) ?? "（无具体原话）"}");
             sb.AppendLine();
             sb.AppendLine($"### 2. 战局态势与语境阶段");
             sb.AppendLine(_advice.ContextFlowSummary ?? "双方处于多轮交互博弈推进期。");

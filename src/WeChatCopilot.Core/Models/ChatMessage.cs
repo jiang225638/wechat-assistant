@@ -29,6 +29,25 @@ public sealed record ChatMessage(MessageRole Role, string Text, DateTime? Timest
         _ => "未知"
     };
 
+    /// <summary>是否存在有效时间戳。</summary>
+    public bool HasTime => Timestamp.HasValue;
+
+    /// <summary>友好格式化时间（完整年月日，如 "2026-11-02 11:47"）。若无时间戳则为空。</summary>
+    public string TimeText
+    {
+        get
+        {
+            if (!Timestamp.HasValue) return string.Empty;
+            var dt = Timestamp.Value.Kind == DateTimeKind.Utc
+                ? Timestamp.Value.ToLocalTime()
+                : Timestamp.Value;
+            return dt.ToString("yyyy-MM-dd HH:mm");
+        }
+    }
+
+    /// <summary>气泡头部标题（包含发送方标签与时间戳，如 "我 · 11:47" 或 "对方 · 11:47"）。</summary>
+    public string HeaderLabel => HasTime ? $"{SenderLabel} · {TimeText}" : SenderLabel;
+
     /// <summary>气泡对齐方向。</summary>
     public string BubbleAlignment => IsIncoming ? "Left" : "Right";
 

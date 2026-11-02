@@ -158,7 +158,7 @@ public partial class OverlayWindow : Window
 
         var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming)
             ?? _conversation.Messages.LastOrDefault();
-        targetStatement = latestIncoming?.Text ?? string.Empty;
+        targetStatement = PromptBuilder.CleanMessageTextForAi(latestIncoming?.Text ?? string.Empty);
 
         int contextCount = 10;
         if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
@@ -173,7 +173,7 @@ public partial class OverlayWindow : Window
 
         // 根据最近 5 条对话内容与用户回复意图，动态按需路由当前 Skill 匹配的 references 子模块
         string contextQuery = string.Join(" ",
-            _conversation.Messages.TakeLast(5).Select(m => m.Text)
+            _conversation.Messages.TakeLast(5).Select(m => PromptBuilder.CleanMessageTextForAi(m.Text))
             .Append(userIntent)
             .Append(ultimateGoal ?? string.Empty));
         string dynamicGuideline = activeSkill.GetGuidelineForQa(contextQuery, out string? routedAdviceModule);
@@ -369,8 +369,9 @@ public partial class OverlayWindow : Window
             ContextFlowBorder.Visibility = Visibility.Collapsed;
         }
 
-        SubtextTargetText.Text = !string.IsNullOrWhiteSpace(advice.TargetQuote)
-            ? $"“{advice.TargetQuote}”"
+        string cleanQuote = PromptBuilder.CleanMessageTextForAi(advice.TargetQuote);
+        SubtextTargetText.Text = !string.IsNullOrWhiteSpace(cleanQuote)
+            ? $"“{cleanQuote}”"
             : "（无具体原话）";
 
         SubtextSubtextText.Text = !string.IsNullOrWhiteSpace(advice.Subtext)

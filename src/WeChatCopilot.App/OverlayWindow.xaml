@@ -1705,22 +1705,41 @@
                                                     </Style>
                                                 </Border.Style>
                                                 <StackPanel>
-                                                    <TextBlock
-                                                        Margin="0,0,0,4"
-                                                        FontSize="10"
-                                                        FontWeight="Bold"
-                                                        Text="{Binding SenderLabel}">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{DynamicResource ChatIncomingBadgeBrush}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsIncoming}" Value="False">
-                                                                        <Setter Property="Foreground" Value="{DynamicResource ChatOutgoingBadgeBrush}" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
+                                                    <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
+                                                        <TextBlock
+                                                            FontSize="10"
+                                                            FontWeight="Bold"
+                                                            Text="{Binding SenderLabel}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ChatIncomingBadgeBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsIncoming}" Value="False">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource ChatOutgoingBadgeBrush}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock
+                                                            Margin="6,0,0,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="9.5"
+                                                            Opacity="0.75"
+                                                            Text="{Binding TimeText}"
+                                                            Visibility="{Binding HasTime, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource ChatIncomingBadgeBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsIncoming}" Value="False">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource ChatOutgoingBadgeBrush}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
                                                     <TextBlock
                                                         FontSize="12.5"
                                                         LineHeight="18"

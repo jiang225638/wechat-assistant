@@ -303,7 +303,7 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine($"【🎯 对方最新发言】：\n“{targetStatement}”");
+        sb.AppendLine($"【🎯 对方最新发言】：\n“{CleanMessageTextForAi(targetStatement)}”");
         if (trailingOutgoing.Count > 0)
         {
             string myLastSent = string.Join(" / ", trailingOutgoing);
@@ -322,8 +322,16 @@ public static class PromptBuilder
     {
         if (string.IsNullOrWhiteSpace(rawText)) return string.Empty;
         string res = rawText.Replace("\r", "").Replace("\n", " ").Trim();
-        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[动画表情:\s*md5=[^\]]*\]", "[动画表情]");
-        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[图片:\s*md5=[^\]]*\]", "[图片]");
+        if (res.Contains("<msg", StringComparison.OrdinalIgnoreCase) && res.Contains("<emoji", StringComparison.OrdinalIgnoreCase))
+        {
+            res = System.Text.RegularExpressions.Regex.Replace(res, @"<msg>[\s\S]*?<emoji[\s\S]*?</msg>", "[动画表情]");
+        }
+        else if (res.Contains("<msg", StringComparison.OrdinalIgnoreCase) && res.Contains("<img", StringComparison.OrdinalIgnoreCase))
+        {
+            res = System.Text.RegularExpressions.Regex.Replace(res, @"<msg>[\s\S]*?<img[\s\S]*?</msg>", "[图片]");
+        }
+        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[动画表情(?::\s*[^\]]*)?\]", "[动画表情]");
+        res = System.Text.RegularExpressions.Regex.Replace(res, @"\[图片(?::\s*[^\]]*)?\]", "[图片]");
         res = System.Text.RegularExpressions.Regex.Replace(res, @"\[分享卡片:\s*url=[^|]*\|title=([^|]*)\|[^\]]*\]", "[分享: $1]");
         return res;
     }

@@ -45,6 +45,15 @@ public static class PersonaDistiller
         "[图片]", "[表情]", "[动画表情]", "[语音]", "[视频]", "[文件]", "[位置]", "[转账]", "[红包]", "[通话]"
     };
 
+    private static bool IsPlaceholderMessage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        string trimmed = text.Trim();
+        if (PurePlaceholderMessages.Contains(trimmed)) return true;
+        string cleaned = PromptBuilder.CleanMessageTextForAi(trimmed);
+        return PurePlaceholderMessages.Contains(cleaned);
+    }
+
     private const string ReduceSystemPrompt =
         "【Reduce 阶段聚合归纳核心准则】：\n" +
         "用户会给你若干关于 [对方] 的分块观察特质行（格式：维度 | 特质 | 评分: s | 置信度: x | 证据: 原话）。\n" +
@@ -96,7 +105,7 @@ public static class PersonaDistiller
 
         // 优先过滤无信息量的纯表情/图片占位符（若全都是占位符则保留原列表兜底）
         var meaningful = history
-            .Where(m => !string.IsNullOrWhiteSpace(m.Text) && !PurePlaceholderMessages.Contains(m.Text.Trim()))
+            .Where(m => !string.IsNullOrWhiteSpace(m.Text) && !IsPlaceholderMessage(m.Text))
             .ToList();
         IReadOnlyList<HistoryMessage> source = meaningful.Count > 0 ? meaningful : history;
 

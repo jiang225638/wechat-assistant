@@ -138,6 +138,7 @@ public static class AiOutputParser
     public static UnifiedAiAdvice ParseUnifiedAdvice(string? raw, string? fallbackTargetQuote = null)
     {
         string cleanedRaw = StripThinkingBlocks(raw);
+        fallbackTargetQuote = PromptBuilder.CleanMessageTextForAi(fallbackTargetQuote);
         if (string.IsNullOrWhiteSpace(cleanedRaw))
         {
             return new UnifiedAiAdvice(fallbackTargetQuote ?? string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, Array.Empty<ReplySuggestion>());
@@ -197,7 +198,7 @@ public static class AiOutputParser
                 }
                 if (prefix is "目标原话" or "原话")
                 {
-                    if (!string.IsNullOrWhiteSpace(val)) targetQuote = val;
+                    if (!string.IsNullOrWhiteSpace(val)) targetQuote = PromptBuilder.CleanMessageTextForAi(val);
                     continue;
                 }
                 if (prefix is "字面意思" or "字面")
@@ -302,6 +303,7 @@ public static class AiOutputParser
         {
             targetQuote = fallbackTargetQuote;
         }
+        targetQuote = PromptBuilder.CleanMessageTextForAi(targetQuote);
 
         // 若解析出的回复包含维度分，但顶部未声明动态维度列表，自动从所有回复的字典键汇集维度
         if (dynamicDims.Count == 0 && suggestions.Count > 0)

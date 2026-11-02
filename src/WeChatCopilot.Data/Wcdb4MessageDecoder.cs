@@ -990,8 +990,16 @@ public static class Wcdb4MessageDecoder
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
         string res = text;
-        res = Regex.Replace(res, @"\[动画表情:\s*md5=[^\]]*\]", "[动画表情]");
-        res = Regex.Replace(res, @"\[图片:\s*md5=[^\]]*\]", "[图片]");
+        if (res.Contains("<msg", StringComparison.OrdinalIgnoreCase) && res.Contains("<emoji", StringComparison.OrdinalIgnoreCase))
+        {
+            res = Regex.Replace(res, @"<msg>[\s\S]*?<emoji[\s\S]*?</msg>", "[动画表情]");
+        }
+        else if (res.Contains("<msg", StringComparison.OrdinalIgnoreCase) && res.Contains("<img", StringComparison.OrdinalIgnoreCase))
+        {
+            res = Regex.Replace(res, @"<msg>[\s\S]*?<img[\s\S]*?</msg>", "[图片]");
+        }
+        res = Regex.Replace(res, @"\[动画表情(?::\s*[^\]]*)?\]", "[动画表情]");
+        res = Regex.Replace(res, @"\[图片(?::\s*[^\]]*)?\]", "[图片]");
         res = Regex.Replace(res, @"\[分享卡片:\s*url=[^|]*\|title=([^|]*)\|[^\]]*\]", "[分享] $1");
         return res;
     }
