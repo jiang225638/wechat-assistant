@@ -185,4 +185,104 @@ public class WeChatRichMediaTests
         Assert.Equal($"{now.Year}-10-28 17:25", msgOtherDay.TimeText);
         Assert.Equal($"对方 · {now.Year}-10-28 17:25", msgOtherDay.HeaderLabel);
     }
+
+    [Fact]
+    public void ChatMessage_SenderLabel_DisplaysWeChatRemarkOrNickname()
+    {
+        // 传入自定义 SenderName（如备注名或微信昵称）
+        var msgPartnerRemark = new ChatMessage(MessageRole.Incoming, "老江套路我😡", DateTime.Now, SenderName: "小夏姑娘");
+        Assert.Equal("小夏姑娘", msgPartnerRemark.SenderLabel);
+
+        var msgPartnerNick = new ChatMessage(MessageRole.Incoming, "今天午饭看着不错呢", DateTime.Now, SenderName: "Raelin");
+        Assert.Equal("Raelin", msgPartnerNick.SenderLabel);
+
+        var msgSelf = new ChatMessage(MessageRole.Outgoing, "真想给你一顿儿搓", DateTime.Now, SenderName: "老江");
+        Assert.Equal("老江", msgSelf.SenderLabel);
+
+        // 未传或为空时优雅回退
+        var msgFallbackIncoming = new ChatMessage(MessageRole.Incoming, "测试", DateTime.Now, SenderName: " ");
+        Assert.Equal("对方", msgFallbackIncoming.SenderLabel);
+
+        var msgFallbackOutgoing = new ChatMessage(MessageRole.Outgoing, "测试", DateTime.Now, SenderName: null);
+        Assert.Equal("我", msgFallbackOutgoing.SenderLabel);
+    }
+
+    [Fact]
+    public void ExtractLatestIncomingTurn_ExtractsMultiBurstAndChronologicalTrailingOutgoing()
+    {
+        var t1 = new DateTime(2026, 11, 3, 16, 16, 53, DateTimeKind.Local);
+        var t2 = new DateTime(2026, 11, 3, 16, 17, 17, DateTimeKind.Local);
+        var t3 = new DateTime(2026, 11, 3, 16, 17, 27, DateTimeKind.Local);
+        var t4 = new DateTime(2026, 11, 3, 16, 19, 33, DateTimeKind.Local);
+        var t5 = new DateTime(2026, 11, 3, 16, 19, 39, DateTimeKind.Local);
+
+        var msgs = new List<ChatMessage>
+        {
+            new(MessageRole.Incoming, "俺妥妥老实人", t1, "Raelin"),
+            new(MessageRole.Incoming, "老江套路我😡", t2, "Raelin"),
+            new(MessageRole.Incoming, "[动画表情: md5=e675&cdn=http://...]", t3, "Raelin"),
+            new(MessageRole.Outgoing, "[破涕为笑]真想给你一顿儿搓", t4, "老江"),
+            new(MessageRole.Outgoing, "小夏太可爱了", t5, "老江")
+        };
+
+        string turn = PromptBuilder.ExtractLatestIncomingTurn(
+            msgs,
+            out DateTime? incomingTime,
+            out IReadOnlyList<ChatMessage> trailingOutgoing,
+            out DateTime? outgoingTime);
+
+        // 验证完整合并同一回合的所有发言（含表情与文字）
+        Assert.Equal("俺妥妥老实人 / 老江套路我😡 / [动画表情]", turn);
+        Assert.Equal(t3, incomingTime);
+
+        // 验证准确识别对话末尾由[我]发出的后续消息列表与时序
+        Assert.Equal(2, trailingOutgoing.Count);
+        Assert.Equal("[破涕为笑]真想给你一顿儿搓", trailingOutgoing[0].Text);
+        Assert.Equal("小夏太可爱了", trailingOutgoing[1].Text);
+        Assert.Equal(t5, outgoingTime);
+
+        // 验证一体化请求构建包含正确的时序分步与角色铁律，坚决禁止角色颠倒
+        var req = PromptBuilder.BuildUnifiedAdvice(
+            new AiSettings(),
+            msgs,
+            count: 3,
+            contactName: "Raelin");
+
+        Assert.Contains("角色立场与发言归属核心铁律", req.SystemPrompt);
+        Assert.Contains("严禁把【我】发出的言语当成【对方】的话去剖析", req.SystemPrompt);
+        Assert.Contains("1️⃣ 第一步：【对方（Raelin）】先发出了上述最新发言：“俺妥妥老实人 / 老江套路我😡 / [动画表情]”", req.UserPrompt);
+        Assert.Contains("2️⃣ 第二步：随后【我（用户本人）】回复了：“[破涕为笑]真想给你一顿儿搓 / 小夏太可爱了”", req.UserPrompt);
+        Assert.Contains("3️⃣ 战术推演任务：请站在【我（用户本人）】的立场，先深度剖析第 1️⃣ 步中【对方（Raelin）】该发言回合的真实潜台词", req.UserPrompt);
+    }
+
+    [Fact]
+    public void Wcdb4MessageDecoder_ResolveContactPreferredName_And_ExtractSelfDisplayName()
+    {
+        var sessions = new List<Wcdb4SessionItem>
+        {
+            new("wxid_raelin", "夏天的风", "小夏 (Raelin)", "raelin_wechat", 1760000000),
+            new("wxid_toonflow", "Toonflow", "", "toonflow_id", 1760001000)
+        };
+
+        // 1. 联系人有备注时优先返回备注
+        string? nameWithRemark = Wcdb4MessageDecoder.ResolveContactPreferredName(sessions, "wxid_raelin");
+        Assert.Equal("小夏 (Raelin)", nameWithRemark);
+
+        // 2. 联系人无备注时返回昵称
+        string? nameWithoutRemark = Wcdb4MessageDecoder.ResolveContactPreferredName(sessions, "wxid_toonflow");
+        Assert.Equal("Toonflow", nameWithoutRemark);
+
+        // 3. 从 contact 表与 displayNames 中提取自身账号名称
+        string contactsJson = """
+        [
+            {"username":"wxid_4ev1rkdk0jgm22","nick_name":"江上清风","remark":""},
+            {"username":"wxid_raelin","nick_name":"夏天的风","remark":"小夏 (Raelin)"}
+        ]
+        """;
+        string? selfName = Wcdb4MessageDecoder.ExtractSelfDisplayName(
+            new[] { "wxid_4ev1rkdk0jgm22" },
+            null,
+            contactsJson);
+        Assert.Equal("江上清风", selfName);
+    }
 }

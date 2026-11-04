@@ -95,20 +95,23 @@ public partial class OverlayWindow : Window
             return true;
         }
 
-        if (_currentHistoryMessages.Count > 0)
-        {
-            var recentFromMem = _currentHistoryMessages.TakeLast(25)
-                .Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp))
-                .ToList();
-            _conversation.Ingest(recentFromMem);
-            RefreshChatView();
-            return _conversation.Count > 0;
-        }
-
         string target = ContactBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(target))
         {
             target = _currentChatContact;
+        }
+
+        string partnerName = ResolvePartnerDisplayName(target, _lastResolvedContactDisplayName);
+        string selfName = ResolveSelfDisplayName(_lastResolvedSelfDisplayName);
+
+        if (_currentHistoryMessages.Count > 0)
+        {
+            var recentFromMem = _currentHistoryMessages.TakeLast(25)
+                .Select(m => CreateChatMessage(m, partnerName, selfName))
+                .ToList();
+            _conversation.Ingest(recentFromMem);
+            RefreshChatView();
+            return _conversation.Count > 0;
         }
 
         if (!string.IsNullOrWhiteSpace(target))
@@ -118,7 +121,7 @@ public partial class OverlayWindow : Window
             {
                 _currentHistoryMessages = cached;
                 var recentFromDb = cached.TakeLast(25)
-                    .Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp))
+                    .Select(m => CreateChatMessage(m, partnerName, selfName))
                     .ToList();
                 _conversation.Ingest(recentFromDb);
                 RefreshChatView();
@@ -156,9 +159,11 @@ public partial class OverlayWindow : Window
         string userIntent = AiIntentBox.Text.Trim();
         ultimateGoal = personaContext?.UltimateGoal;
 
-        var latestIncoming = _conversation.Messages.LastOrDefault(m => m.Role == MessageRole.Incoming)
-            ?? _conversation.Messages.LastOrDefault();
-        targetStatement = PromptBuilder.CleanMessageTextForAi(latestIncoming?.Text ?? string.Empty);
+        targetStatement = PromptBuilder.ExtractLatestIncomingTurn(
+            _conversation.Messages,
+            out _,
+            out _,
+            out _);
 
         int contextCount = 10;
         if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&

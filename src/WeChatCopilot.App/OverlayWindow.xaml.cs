@@ -76,9 +76,13 @@ public partial class OverlayWindow : Window
     private bool _isSyncingRecentSessionSelection;
     private bool _isSyncingSkillSelection;
     private string _currentChatContact = string.Empty;
+    private IReadOnlyList<WeChatSessionSummary> _recentSessions = Array.Empty<WeChatSessionSummary>();
     private IReadOnlyList<HistoryMessage> _currentHistoryMessages = Array.Empty<HistoryMessage>();
     private string _historyContactName = string.Empty;
     private string? _mySelfNickname;
+    private string? _detectedSelfNickname;
+    private string? _lastResolvedContactDisplayName;
+    private string? _lastResolvedSelfDisplayName;
     private Persona? _currentLoadedPersona;
     private DistillSkill _currentSkill = DistillSkillPresets.Intimacy;
     private const int MaxRadarDimensions = 6;
@@ -177,6 +181,11 @@ public partial class OverlayWindow : Window
         if (!string.IsNullOrWhiteSpace(savedSettings.SelfNickname))
         {
             _mySelfNickname = savedSettings.SelfNickname.Trim();
+        }
+        string? savedDetected = _sqliteStorage.GetSetting("detected_self_nickname");
+        if (!string.IsNullOrWhiteSpace(savedDetected))
+        {
+            _detectedSelfNickname = savedDetected.Trim();
         }
 
         ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Light");

@@ -57,18 +57,124 @@ public static class PromptBuilder
                 prevTimestamp = msg.Timestamp;
             }
 
-            string who = msg.Role switch
+            string who;
+            if (msg.Role == MessageRole.Incoming)
             {
-                MessageRole.Incoming => "对方",
-                MessageRole.Outgoing => "我",
-                _ => "未知"
-            };
+                who = !string.IsNullOrWhiteSpace(msg.SenderName) && msg.SenderName != "对方"
+                    ? $"对方({msg.SenderName.Trim()})"
+                    : "对方";
+            }
+            else if (msg.Role == MessageRole.Outgoing)
+            {
+                who = !string.IsNullOrWhiteSpace(msg.SenderName) && msg.SenderName != "我"
+                    ? $"我({msg.SenderName.Trim()})"
+                    : "我";
+            }
+            else
+            {
+                who = "未知";
+            }
 
-            string timePrefix = msg.Timestamp.HasValue ? $"[{msg.Timestamp.Value:MM-dd HH:mm}] " : string.Empty;
+            string timePrefix = string.Empty;
+            if (msg.Timestamp.HasValue)
+            {
+                var dt = msg.Timestamp.Value.Kind == DateTimeKind.Utc
+                    ? msg.Timestamp.Value.ToLocalTime()
+                    : msg.Timestamp.Value;
+                timePrefix = $"[{dt:MM-dd HH:mm}] ";
+            }
+
             sb.AppendLine($"{timePrefix}[{who}] {CleanMessageTextForAi(msg.Text)}");
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// 从最近消息列表中提取对方最新的连续发言回合（自动合并同一轮中的多条文本、图片与表情，如“俺妥妥老实人 / 老江套路我😡 [动画表情]”），
+    /// 以及紧随其后由[我]发出的后续消息列表（用于判断时序先后与跟进状态）。
+    /// </summary>
+    public static string ExtractLatestIncomingTurn(
+        IReadOnlyList<ChatMessage> messages,
+        out DateTime? latestIncomingTime,
+        out IReadOnlyList<ChatMessage> trailingOutgoing,
+        out DateTime? trailingOutgoingTime)
+    {
+        latestIncomingTime = null;
+        trailingOutgoingTime = null;
+
+        if (messages == null || messages.Count == 0)
+        {
+            trailingOutgoing = Array.Empty<ChatMessage>();
+            return "（无具体消息）";
+        }
+
+        // 1. 收集对话末尾连续由[我]发出的消息（trailing outgoing）
+        var trailingList = new List<ChatMessage>();
+        int lastIncomingIndex = -1;
+
+        for (int i = messages.Count - 1; i >= 0; i--)
+        {
+            if (messages[i].Role == MessageRole.Incoming)
+            {
+                lastIncomingIndex = i;
+                break;
+            }
+            if (messages[i].Role == MessageRole.Outgoing)
+            {
+                trailingList.Insert(0, messages[i]);
+            }
+        }
+
+        trailingOutgoing = trailingList;
+        if (trailingList.Count > 0)
+        {
+            trailingOutgoingTime = trailingList.Last().Timestamp;
+        }
+
+        // 2. 若完全没有对方消息，回退到最后一条消息
+        if (lastIncomingIndex < 0)
+        {
+            var last = messages.Last();
+            latestIncomingTime = last.Timestamp;
+            return CleanMessageTextForAi(last.Text);
+        }
+
+        // 3. 回溯收集属于同一轮次（连续发送且时间间隔小于30分钟，最多取最近5条）的对方消息序列
+        var incomingBurst = new List<ChatMessage> { messages[lastIncomingIndex] };
+        latestIncomingTime = messages[lastIncomingIndex].Timestamp;
+
+        for (int j = lastIncomingIndex - 1; j >= 0 && incomingBurst.Count < 5; j--)
+        {
+            var prev = messages[j];
+            if (prev.Role != MessageRole.Incoming)
+            {
+                break;
+            }
+
+            if (prev.Timestamp.HasValue && incomingBurst[0].Timestamp.HasValue)
+            {
+                var diff = incomingBurst[0].Timestamp!.Value - prev.Timestamp.Value;
+                if (Math.Abs(diff.TotalMinutes) > 30)
+                {
+                    break;
+                }
+            }
+
+            incomingBurst.Insert(0, prev);
+        }
+
+        var cleanedSegments = incomingBurst
+            .Select(m => CleanMessageTextForAi(m.Text))
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToList();
+
+        if (cleanedSegments.Count == 0)
+        {
+            return "（无具体消息）";
+        }
+
+        return string.Join(" / ", cleanedSegments);
     }
 
     /// <summary>
@@ -101,8 +207,11 @@ public static class PromptBuilder
     /// <summary>构建"潜台词分析"请求：六项标签固定格式，与 <see cref="AiOutputParser.ParseSubtext"/> 对应。</summary>
     public static AiRequest BuildSubtextAnalysis(AiSettings settings, IReadOnlyList<ChatMessage> messages, Persona? persona = null)
     {
-        var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
-        string targetStatement = latestIncoming is not null ? latestIncoming.Text.Replace("\n", " ") : "（无具体消息）";
+        string targetStatement = ExtractLatestIncomingTurn(
+            messages,
+            out DateTime? latestIncomingTime,
+            out _,
+            out _);
 
         var sb = new StringBuilder();
         sb.AppendLine("完整对话流背景（[对方]=对方消息，[我]=用户自己消息）：");
@@ -119,7 +228,10 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”");
+        string timeHint = latestIncomingTime.HasValue
+            ? $" (发送时间: {(latestIncomingTime.Value.Kind == DateTimeKind.Utc ? latestIncomingTime.Value.ToLocalTime() : latestIncomingTime.Value):MM-dd HH:mm})"
+            : string.Empty;
+        sb.AppendLine($"【🎯 本次重点深度剖析的目标发言】：\n“{targetStatement}”{timeHint}");
         sb.AppendLine("请结合上述对话背景与对方的人格特征，穿透字面表象，严格按格式输出 6 项深层潜台词剖析：");
 
         return new AiRequest(SubtextSystemPrompt, sb.ToString(), settings.Model, settings.Temperature);
@@ -186,22 +298,11 @@ public static class PromptBuilder
         int effectiveContextCount = contextCount ?? (settings?.ContextMessageCount ?? 10);
         if (effectiveContextCount <= 0) effectiveContextCount = 10;
 
-        var latestIncoming = messages.LastOrDefault(m => m.Role == MessageRole.Incoming) ?? messages.LastOrDefault();
-        string targetStatement = latestIncoming is not null ? CleanMessageTextForAi(latestIncoming.Text) : "（无具体消息）";
-
-        // 检测最后一条消息是否由[我]发出（例如用户已回复一句但对方未回，或想继续追发/破冰）
-        var trailingOutgoing = new List<string>();
-        for (int i = messages.Count - 1; i >= 0; i--)
-        {
-            if (messages[i].Role == MessageRole.Outgoing)
-            {
-                trailingOutgoing.Insert(0, CleanMessageTextForAi(messages[i].Text));
-            }
-            else if (messages[i].Role == MessageRole.Incoming)
-            {
-                break;
-            }
-        }
+        string targetStatement = ExtractLatestIncomingTurn(
+            messages,
+            out DateTime? latestIncomingTime,
+            out IReadOnlyList<ChatMessage> trailingOutgoing,
+            out DateTime? trailingOutgoingTime);
 
         string skillName = skill.Name;
         string skillIcon = skill.Icon;
@@ -215,6 +316,11 @@ public static class PromptBuilder
         sysSb.AppendLine("你的核心使命是穿透对话表象，结合【当前对话对象的终极战略目的】、【对方已知的人格画像特质】、【当前作战Skill】以及【用户期望的回复意图】，进行真正分层立体的战局研判与战术推演。");
         sysSb.AppendLine($"你需要综合研判近期多轮对话脉络与博弈演进，穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出承前启后、量身定制的多风格回复建议。");
         sysSb.AppendLine("严禁任何千篇一律、死板说教或浮于表面的无效闲聊！必须根据上述四大要素，实时动态提炼针对本场博弈的专属评估维度，并量化推演每一条回复方案的话语力量与战略推进力。");
+        sysSb.AppendLine();
+        sysSb.AppendLine("【⚠️ 角色立场与发言归属核心铁律（绝不可混淆颠倒）】：");
+        sysSb.AppendLine("1. 对话中的【对方】代表微信好友（被分析对象）；【我】代表当前使用微信的用户本人（你所辅助的咨询者）。");
+        sysSb.AppendLine("2. 你的唯一立场是充当【我（用户本人）】的贴身军师，深度分析【对方】发来的话语心理，并为【我】生成发给【对方】的回复建议。");
+        sysSb.AppendLine("3. 严禁角色颠倒！严禁把【我】发出的言语当成【对方】的话去剖析，严禁把【我】的话当成被分析主体，严禁为对方生成回复来回答【我】！");
         sysSb.AppendLine();
         sysSb.AppendLine($"【⚔️ 本作战流派的核心战略准则】：\n{tactics}");
 
@@ -264,7 +370,8 @@ public static class PromptBuilder
         // 2. 编排 UserPrompt
         var sb = new StringBuilder();
         string targetName = !string.IsNullOrWhiteSpace(contactName) ? contactName : (persona?.ContactName ?? "对方");
-        sb.AppendLine($"当前对话对象：{targetName}");
+        sb.AppendLine($"当前对话对象：{targetName}（对方）");
+        sb.AppendLine($"咨询者立场：我（用户本人）");
         sb.AppendLine($"当前指导作战技能：【{skillIcon} {skillName}】");
 
         if (!string.IsNullOrWhiteSpace(effectiveGoal))
@@ -303,14 +410,35 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine($"【🎯 对方最新发言】：\n“{CleanMessageTextForAi(targetStatement)}”");
+        string incomingTimeStr = string.Empty;
+        if (latestIncomingTime.HasValue)
+        {
+            var dt = latestIncomingTime.Value.Kind == DateTimeKind.Utc ? latestIncomingTime.Value.ToLocalTime() : latestIncomingTime.Value;
+            incomingTimeStr = $" (发送时间: {dt:MM-dd HH:mm})";
+        }
+
+        sb.AppendLine($"【🎯 对方（{targetName}）最新发言回合】：\n“{CleanMessageTextForAi(targetStatement)}”{incomingTimeStr}");
+
         if (trailingOutgoing.Count > 0)
         {
-            string myLastSent = string.Join(" / ", trailingOutgoing);
-            sb.AppendLine($"【⚡ 当前最新战局状态（重要：最后一条消息由[我]发出）】：");
-            sb.AppendLine($"在对方上述发言之后，[我]已经发出了：“{myLastSent}”（对方暂未回复或双方刚结束上一轮互动）。");
-            sb.AppendLine("（⚠️ 关键战术提醒：请勿机械地把对方上一句话当成刚刚收到的未读消息去重复回答！请结合[我]已经发出的内容，给出自然的后续跟进补充、无压力破冰新话题、或推进下一步行动的建议。）");
+            string outgoingTimeStr = string.Empty;
+            if (trailingOutgoingTime.HasValue)
+            {
+                var dt = trailingOutgoingTime.Value.Kind == DateTimeKind.Utc ? trailingOutgoingTime.Value.ToLocalTime() : trailingOutgoingTime.Value;
+                outgoingTimeStr = $" (发送时间: {dt:MM-dd HH:mm})";
+            }
+
+            string myLastSent = string.Join(" / ", trailingOutgoing.Select(m => CleanMessageTextForAi(m.Text)));
+            sb.AppendLine($"【⚡ 战局时序先后脉络（严格按发生先后顺序研判，最后一条消息由[我]发出，绝不可颠倒混乱！）】：");
+            sb.AppendLine($"  1️⃣ 第一步：【对方（{targetName}）】先发出了上述最新发言：“{CleanMessageTextForAi(targetStatement)}”{incomingTimeStr}；");
+            sb.AppendLine($"  2️⃣ 第二步：随后【我（用户本人）】回复了：“{myLastSent}”{outgoingTimeStr}（目前对方暂未回）；");
+            sb.AppendLine($"  3️⃣ 战术推演任务：请站在【我（用户本人）】的立场，先深度剖析第 1️⃣ 步中【对方（{targetName}）】该发言回合的真实潜台词与深层心理；再结合第 2️⃣ 步【我】刚发出的内容，为【我】量身提供后续自然的破冰接茬、话题跟进或推进终极目的的高情商回复建议（⚠️ 严禁角色颠倒，严禁反向分析【我】自己的话，严禁替对方回答【我】）！");
         }
+        else
+        {
+            sb.AppendLine("（战局状态：对方刚发来上述发言，【我】尚未回复。请站在【我（用户本人）】的立场，深度剖析对方心理并为【我】生成回复【对方】的建议。）");
+        }
+
         sb.AppendLine();
         sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】（严格执行微信真人感 15~35 字「接招+抛钩」对话准则，绝不冷场，严禁长篇大论、油腻段子与客服式问卷）：");
 

@@ -34,6 +34,8 @@ public static class Wcdb4MessageDecoder
     private static readonly Regex s_referMsgBlockRegex = new(@"<refermsg\b[^>]*>(.*?)</refermsg>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_referContentRegex = new(@"<content>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</content>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_referTypeRegex = new(@"<type>(\d+)</type>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_referFromUsrRegex = new(@"<(?:fromusr|chatusr)>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</(?:fromusr|chatusr)>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex s_referDisplayNameRegex = new(@"<displayname>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</displayname>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_emojiMd5Regex = new(@"md5=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_emojiCdnRegex = new(@"cdnurl=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex s_imgMd5Regex = new(@"md5=[""']([^""']+)[""']", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -405,6 +407,256 @@ public static class Wcdb4MessageDecoder
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 根据输入的联系人查询词（或 wxid），解析该联系人的首选显示名称：如果有备注名则优先返回备注名，否则返回微信昵称。
+    /// </summary>
+    public static string? ResolveContactPreferredName(IReadOnlyList<Wcdb4SessionItem> sessions, string? query)
+    {
+        string trimmed = (query ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+        {
+            return null;
+        }
+
+        if (sessions.Count > 0)
+        {
+            Wcdb4SessionItem? matched = null;
+
+            foreach (var s in sessions)
+            {
+                if (string.Equals(s.Remark, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(s.Nickname, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(s.Username, trimmed, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(s.Alias, trimmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    matched = s;
+                    break;
+                }
+            }
+
+            if (matched is null)
+            {
+                foreach (var s in sessions)
+                {
+                    if ((!string.IsNullOrEmpty(s.Remark) && s.Remark.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(s.Nickname) && s.Nickname.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(s.Alias) && s.Alias.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                        s.Username.Contains(trimmed, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matched = s;
+                        break;
+                    }
+                }
+            }
+
+            if (matched is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(matched.Remark))
+                {
+                    return matched.Remark.Trim();
+                }
+
+                if (!string.IsNullOrWhiteSpace(matched.Nickname) &&
+                    !string.Equals(matched.Nickname.Trim(), matched.Username, StringComparison.OrdinalIgnoreCase))
+                {
+                    return matched.Nickname.Trim();
+                }
+            }
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// 从 contact 表或 wcdb_get_display_names 结果中提取当前登录微信账号自身的显示名称（优先备注名，其次微信昵称）。
+    /// </summary>
+    public static string? ExtractSelfDisplayName(
+        IReadOnlyList<string> myUsernameCandidates,
+        string? displayNamesJson,
+        string? contactRowsJson)
+    {
+        if (myUsernameCandidates is null || myUsernameCandidates.Count == 0)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(contactRowsJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(contactRowsJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var el in doc.RootElement.EnumerateArray())
+                    {
+                        string u = PickString(el, "username", "user_name", "userName", "m_nsUsrName");
+                        if (!MatchesMyCandidate(u, myUsernameCandidates))
+                        {
+                            continue;
+                        }
+
+                        string remark = PickString(el, "remark", "remark_name", "remarkName");
+                        if (!string.IsNullOrWhiteSpace(remark) && !MatchesMyCandidate(remark, myUsernameCandidates))
+                        {
+                            return remark.Trim();
+                        }
+
+                        string nick = PickString(el, "nick_name", "nickName", "nickname", "m_nsNickName");
+                        if (!string.IsNullOrWhiteSpace(nick) && !MatchesMyCandidate(nick, myUsernameCandidates))
+                        {
+                            return nick.Trim();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayNamesJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(displayNamesJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                    {
+                        if (!MatchesMyCandidate(prop.Name, myUsernameCandidates))
+                        {
+                            continue;
+                        }
+
+                        string val = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString() ?? "" : "";
+                        if (!string.IsNullOrWhiteSpace(val) && !MatchesMyCandidate(val, myUsernameCandidates))
+                        {
+                            return val.Trim();
+                        }
+                    }
+                }
+                else if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var el in doc.RootElement.EnumerateArray())
+                    {
+                        string u = PickString(el, "username", "user_name", "userName", "m_nsUsrName");
+                        if (!MatchesMyCandidate(u, myUsernameCandidates))
+                        {
+                            continue;
+                        }
+
+                        string remark = PickString(el, "remark", "remark_name", "remarkName");
+                        if (!string.IsNullOrWhiteSpace(remark) && !MatchesMyCandidate(remark, myUsernameCandidates))
+                        {
+                            return remark.Trim();
+                        }
+
+                        string n = PickString(el, "nickname", "displayName", "display_name", "name");
+                        if (!string.IsNullOrWhiteSpace(n) && !MatchesMyCandidate(n, myUsernameCandidates))
+                        {
+                            return n.Trim();
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 尝试从消息行（例如引用回复消息 &lt;refermsg&gt; 块）中提取当前登录用户自身的微信显示名称。
+    /// </summary>
+    public static string? TryExtractSelfDisplayNameFromRow(JsonElement row, IReadOnlyList<string> myUsernameCandidates)
+    {
+        if (row.ValueKind != JsonValueKind.Object || myUsernameCandidates.Count == 0)
+        {
+            return null;
+        }
+
+        string content = string.Empty;
+        if (TryGetPropertyIgnoreCase(row, out var compressEl,
+            "compress_content", "compressContent", "compressed_content",
+            "msg_compress_content", "msgCompressContent", "WCDB_CT_compress_content", "WCDB_CT_compressContent"))
+        {
+            content = DecodeJsonValue(compressEl);
+        }
+
+        if (string.IsNullOrWhiteSpace(content) &&
+            TryGetPropertyIgnoreCase(row, out var msgEl,
+                "message_content", "messageContent", "content", "msg_content", "msgContent", "WCDB_CT_message_content"))
+        {
+            content = DecodeJsonValue(msgEl);
+        }
+
+        if (string.IsNullOrWhiteSpace(content) || !content.Contains("<refermsg", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        Match mRefer = s_referMsgBlockRegex.Match(content);
+        if (!mRefer.Success)
+        {
+            return null;
+        }
+
+        string referXml = mRefer.Groups[1].Value;
+        var fromMatches = s_referFromUsrRegex.Matches(referXml);
+        bool isFromMe = false;
+        foreach (Match mFrom in fromMatches)
+        {
+            string fromUsr = mFrom.Groups[1].Value.Trim();
+            if (MatchesMyCandidate(fromUsr, myUsernameCandidates))
+            {
+                isFromMe = true;
+                break;
+            }
+        }
+
+        if (!isFromMe)
+        {
+            return null;
+        }
+
+        Match mDisp = s_referDisplayNameRegex.Match(referXml);
+        if (!mDisp.Success)
+        {
+            return null;
+        }
+
+        string disp = System.Net.WebUtility.HtmlDecode(mDisp.Groups[1].Value).Trim();
+        if (!string.IsNullOrWhiteSpace(disp) && !MatchesMyCandidate(disp, myUsernameCandidates))
+        {
+            return disp;
+        }
+
+        return null;
+    }
+
+    private static bool MatchesMyCandidate(string? username, IReadOnlyList<string> myCandidates)
+    {
+        if (string.IsNullOrWhiteSpace(username) || myCandidates.Count == 0)
+        {
+            return false;
+        }
+
+        string right = username.Trim().ToLowerInvariant();
+        foreach (string candidate in myCandidates)
+        {
+            string left = (candidate ?? string.Empty).Trim().ToLowerInvariant();
+            if (left.Length == 0) continue;
+            if (left == right || left.StartsWith(right + "_") || right.StartsWith(left + "_"))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

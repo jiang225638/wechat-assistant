@@ -180,6 +180,7 @@ public partial class OverlayWindow : Window
 
     private void UpdateSessionsUiAndUnreadBadge(IReadOnlyList<WeChatSessionSummary> sessions)
     {
+        _recentSessions = sessions ?? Array.Empty<WeChatSessionSummary>();
         _isSyncingRecentSessionSelection = true;
         try
         {
@@ -188,7 +189,7 @@ public partial class OverlayWindow : Window
                 HubRecentSessionsCombo.ItemsSource = sessions;
             }
 
-            int totalUnread = sessions.Sum(s => s.UnreadCount);
+            int totalUnread = sessions != null ? sessions.Sum(s => s.UnreadCount) : 0;
             if (HubUnreadBadge != null && HubUnreadBadgeText != null)
             {
                 if (totalUnread > 0)
@@ -204,7 +205,7 @@ public partial class OverlayWindow : Window
 
             if (HubUnreadList != null && RadarEmptyNotice != null)
             {
-                var unreadItems = WeChatAnalyticsService.BuildUnreadRadar(sessions);
+                var unreadItems = WeChatAnalyticsService.BuildUnreadRadar(sessions ?? Array.Empty<WeChatSessionSummary>());
                 HubUnreadList.ItemsSource = unreadItems;
                 RadarEmptyNotice.Visibility = unreadItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
@@ -531,9 +532,21 @@ public partial class OverlayWindow : Window
             if (history.Success && history.Messages.Count > 0)
             {
                 _currentHistoryMessages = history.Messages;
-                var recent = history.Messages.TakeLast(25).Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp)).ToList();
+                if (!string.IsNullOrWhiteSpace(history.ContactDisplayName))
+                {
+                    _lastResolvedContactDisplayName = history.ContactDisplayName;
+                }
+                if (!string.IsNullOrWhiteSpace(history.SelfDisplayName))
+                {
+                    _lastResolvedSelfDisplayName = history.SelfDisplayName;
+                }
+
+                string partnerName = ResolvePartnerDisplayName(contact, history.ContactDisplayName);
+                string selfName = ResolveSelfDisplayName(history.SelfDisplayName);
+
+                var recent = history.Messages.TakeLast(25).Select(m => CreateChatMessage(m, partnerName, selfName)).ToList();
                 var lastMsg = recent.LastOrDefault();
-                string signature = $"{contact}|{history.Messages.Count}|{lastMsg?.Timestamp?.Ticks ?? 0}|{lastMsg?.Text}";
+                string signature = $"{contact}|{partnerName}|{selfName}|{history.Messages.Count}|{lastMsg?.Timestamp?.Ticks ?? 0}|{lastMsg?.Text}";
 
                 if (!silent || contactSwitchedByAuto || _conversation.Count == 0 || signature != _lastSyncedMessageSignature)
                 {
@@ -548,7 +561,7 @@ public partial class OverlayWindow : Window
 
                 if (!silent)
                 {
-                    StatusText.Text = $"已从 {history.SourceName} 同步「{contact}」最新 {recent.Count} 条记录";
+                    StatusText.Text = $"已从 {history.SourceName} 同步「{partnerName}」最新 {recent.Count} 条记录";
                     StatusDot.Fill = (SolidColorBrush)FindResource("GreenBrush");
                 }
                 return;
@@ -559,9 +572,12 @@ public partial class OverlayWindow : Window
             if (cached.Count > 0)
             {
                 _currentHistoryMessages = cached;
-                var recent = cached.TakeLast(25).Select(m => new ChatMessage(m.Role, m.Text, m.Timestamp)).ToList();
+                string partnerName = ResolvePartnerDisplayName(contact, _lastResolvedContactDisplayName);
+                string selfName = ResolveSelfDisplayName(_lastResolvedSelfDisplayName);
+
+                var recent = cached.TakeLast(25).Select(m => CreateChatMessage(m, partnerName, selfName)).ToList();
                 var lastMsg = recent.LastOrDefault();
-                string signature = $"{contact}|cached|{cached.Count}|{lastMsg?.Timestamp?.Ticks ?? 0}|{lastMsg?.Text}";
+                string signature = $"{contact}|{partnerName}|{selfName}|cached|{cached.Count}|{lastMsg?.Timestamp?.Ticks ?? 0}|{lastMsg?.Text}";
 
                 if (!silent || contactSwitchedByAuto || _conversation.Count == 0 || signature != _lastSyncedMessageSignature)
                 {
@@ -575,7 +591,7 @@ public partial class OverlayWindow : Window
 
                 if (!silent)
                 {
-                    StatusText.Text = $"已从本地离线缓存加载「{contact}」最近 {recent.Count} 条记录";
+                    StatusText.Text = $"已从本地离线缓存加载「{partnerName}」最近 {recent.Count} 条记录";
                 }
                 return;
             }
@@ -623,5 +639,99 @@ public partial class OverlayWindow : Window
             ChatBubbleList.ItemsSource = _conversation.Messages.ToList();
             ChatScrollViewer.ScrollToEnd();
         }
+    }
+
+    private string ResolvePartnerDisplayName(string? contact, string? providerContactName = null)
+    {
+        string target = (contact ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(target))
+        {
+            return !string.IsNullOrWhiteSpace(providerContactName) ? providerContactName.Trim() : "对方";
+        }
+
+        var sessions = _recentSessions ?? (HubRecentSessionsCombo?.ItemsSource as IReadOnlyList<WeChatSessionSummary>);
+        if (sessions != null && sessions.Count > 0)
+        {
+            var matched = sessions.FirstOrDefault(s =>
+                string.Equals(s.Username, target, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.Remark, target, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.Nickname, target, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.DisplayName, target, StringComparison.OrdinalIgnoreCase));
+
+            if (matched is null)
+            {
+                matched = sessions.FirstOrDefault(s =>
+                    (!string.IsNullOrEmpty(s.Remark) && s.Remark.Contains(target, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(s.Nickname) && s.Nickname.Contains(target, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(s.DisplayName) && s.DisplayName.Contains(target, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (matched is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(matched.Remark)) return matched.Remark.Trim();
+                if (!string.IsNullOrWhiteSpace(matched.Nickname) && !string.Equals(matched.Nickname, matched.Username, StringComparison.OrdinalIgnoreCase))
+                {
+                    return matched.Nickname.Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(matched.DisplayName)) return matched.DisplayName.Trim();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(providerContactName))
+        {
+            return providerContactName.Trim();
+        }
+
+        return target;
+    }
+
+    private string ResolveSelfDisplayName(string? providerSelfName = null)
+    {
+        if (!string.IsNullOrWhiteSpace(providerSelfName))
+        {
+            _detectedSelfNickname = providerSelfName.Trim();
+            _ = Task.Run(() => _sqliteStorage.SetSetting("detected_self_nickname", _detectedSelfNickname));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_mySelfNickname))
+        {
+            return _mySelfNickname.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(_detectedSelfNickname))
+        {
+            return _detectedSelfNickname.Trim();
+        }
+
+        string? cached = Wcdb4HistoryProvider.CachedSelfDisplayName;
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            return cached.Trim();
+        }
+
+        return "我";
+    }
+
+    private ChatMessage CreateChatMessage(HistoryMessage m, string? partnerDisplayName = null, string? selfDisplayName = null)
+    {
+        string sender = m.Role == MessageRole.Incoming
+            ? (!string.IsNullOrWhiteSpace(partnerDisplayName) ? partnerDisplayName.Trim() : "对方")
+            : (!string.IsNullOrWhiteSpace(selfDisplayName) ? selfDisplayName.Trim() : "我");
+        return new ChatMessage(m.Role, m.Text, m.Timestamp, sender);
+    }
+
+    private void RebuildConversationSenderLabels()
+    {
+        if (_conversation.Count == 0) return;
+        string partnerName = ResolvePartnerDisplayName(ContactBox.Text.Trim(), _lastResolvedContactDisplayName);
+        string selfName = ResolveSelfDisplayName(_lastResolvedSelfDisplayName);
+
+        var updated = _conversation.Messages
+            .Select(m => m with { SenderName = m.Role == MessageRole.Incoming ? partnerName : selfName })
+            .ToList();
+
+        _conversation.Clear();
+        _conversation.Ingest(updated);
+        RefreshChatView();
     }
 }

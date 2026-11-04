@@ -9,11 +9,15 @@ namespace WeChatCopilot.Core.Abstractions;
 /// <param name="Messages">按时间升序排列的历史消息列表。</param>
 /// <param name="Error">失败时的诊断信息。</param>
 /// <param name="SourceName">实际命中的数据源名称（例如 "WCDB4 本地直读" 或 "TraceMemo API"）。</param>
+/// <param name="ContactDisplayName">解析出的对方显示名称（备注优先，无备注则为微信名称）。</param>
+/// <param name="SelfDisplayName">解析出的当前登录微信账号自身显示名称（备注优先，无备注则为微信名称）。</param>
 public sealed record ChatHistoryResult(
     bool Success,
     IReadOnlyList<HistoryMessage> Messages,
     string? Error,
-    string SourceName = "");
+    string SourceName = "",
+    string? ContactDisplayName = null,
+    string? SelfDisplayName = null);
 
 /// <summary>
 /// 本地聊天数据库连接自检状态。

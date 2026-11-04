@@ -7,7 +7,8 @@ namespace WeChatCopilot.Core.Models;
 /// <param name="Role">收发方向（对方/自己/未知）。</param>
 /// <param name="Text">消息文本（多行气泡含换行）。</param>
 /// <param name="Timestamp">可选消息发送时间（来自本地数据库或历史缓存）。</param>
-public sealed record ChatMessage(MessageRole Role, string Text, DateTime? Timestamp = null)
+/// <param name="SenderName">可选发送方显示名称（优先备注名，其次微信昵称）。</param>
+public sealed record ChatMessage(MessageRole Role, string Text, DateTime? Timestamp = null, string? SenderName = null)
 {
     /// <summary>去重键：方向 + 归一化文本。表达式属性，不参与 record 相等性比较。</summary>
     public string Key => $"{(int)Role}\u0001{MessageNormalizer.Normalize(Text)}";
@@ -21,13 +22,15 @@ public sealed record ChatMessage(MessageRole Role, string Text, DateTime? Timest
     /// <summary>是否为自己发出（右气泡）。</summary>
     public bool IsOutgoing => Role == MessageRole.Outgoing;
 
-    /// <summary>发送方标签。</summary>
-    public string SenderLabel => Role switch
-    {
-        MessageRole.Incoming => "对方",
-        MessageRole.Outgoing => "我",
-        _ => "未知"
-    };
+    /// <summary>发送方标签（有备注/昵称则优先展示，否则降级为 对方/我）。</summary>
+    public string SenderLabel => !string.IsNullOrWhiteSpace(SenderName)
+        ? SenderName.Trim()
+        : Role switch
+        {
+            MessageRole.Incoming => "对方",
+            MessageRole.Outgoing => "我",
+            _ => "未知"
+        };
 
     /// <summary>是否存在有效时间戳。</summary>
     public bool HasTime => Timestamp.HasValue;

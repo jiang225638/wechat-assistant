@@ -299,9 +299,15 @@ public static class AiOutputParser
             }
         }
 
-        if (string.IsNullOrWhiteSpace(targetQuote) && !string.IsNullOrWhiteSpace(fallbackTargetQuote))
+        if (string.IsNullOrWhiteSpace(targetQuote) ||
+            ((targetQuote == "[动画表情]" || targetQuote == "[图片]") &&
+             !string.IsNullOrWhiteSpace(fallbackTargetQuote) &&
+             fallbackTargetQuote != "[动画表情]" && fallbackTargetQuote != "[图片]"))
         {
-            targetQuote = fallbackTargetQuote;
+            if (!string.IsNullOrWhiteSpace(fallbackTargetQuote))
+            {
+                targetQuote = fallbackTargetQuote;
+            }
         }
         targetQuote = PromptBuilder.CleanMessageTextForAi(targetQuote);
 

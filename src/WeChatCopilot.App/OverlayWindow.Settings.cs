@@ -903,6 +903,8 @@ public partial class OverlayWindow : Window
             s.SelfNickname = _mySelfNickname;
             _settingsStore.Save(s);
         }
+
+        RebuildConversationSenderLabels();
     }
 
     private void OpenDataDirectory_Click(object sender, RoutedEventArgs e)

@@ -14,6 +14,21 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
     private static string s_cachedAccountRoot = string.Empty;
     private static DateTime s_cachedContactsAt = DateTime.MinValue;
     private static string? s_cachedContactRowsJson;
+    private static string? s_cachedSelfDisplayName;
+
+    /// <summary>
+    /// 最近一次从本地微信数据库中识别到的当前登录账号自身显示名称（优先备注名，其次微信昵称）。
+    /// </summary>
+    public static string? CachedSelfDisplayName
+    {
+        get
+        {
+            lock (s_cacheLock)
+            {
+                return s_cachedSelfDisplayName;
+            }
+        }
+    }
 
     private readonly AiSettings _settings;
 
@@ -104,7 +119,7 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         string nativeSessionDb = GetNativeSessionDbPath(accountRoot, sessionDbPath);
         long handle = interop.EnsureAccountOpen(nativeSessionDb, key, wxid);
 
-        var sessions = LoadHydratedSessions(interop, handle, accountRoot);
+        var sessions = LoadHydratedSessions(interop, handle, accountRoot, wxid: wxid);
         string? targetUsername = Wcdb4MessageDecoder.ResolveSessionUsername(sessions, contactName);
         if (string.IsNullOrWhiteSpace(targetUsername))
         {
@@ -115,11 +130,17 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
                 SourceName);
         }
 
+        string? contactDisplayName = Wcdb4MessageDecoder.ResolveContactPreferredName(sessions, contactName);
+
         string rawAccountName = Path.GetFileName(accountRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         string[] myCandidates = new[] { wxid, rawAccountName, WeChatDbKeyAndRootProvider.CleanAccountDirName(rawAccountName) }
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+        string? selfDisplayName = !string.IsNullOrWhiteSpace(_settings.SelfNickname)
+            ? _settings.SelfNickname.Trim()
+            : CachedSelfDisplayName;
 
         var batches = interop.FetchMessageBatchesJson(handle, targetUsername, maxRows: 2000);
         var parsedMessages = new List<(HistoryMessage Msg, int Index)>();
@@ -137,6 +158,16 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
 
                 foreach (var row in doc.RootElement.EnumerateArray())
                 {
+                    if (string.IsNullOrWhiteSpace(selfDisplayName))
+                    {
+                        string? extractedSelf = Wcdb4MessageDecoder.TryExtractSelfDisplayNameFromRow(row, myCandidates);
+                        if (!string.IsNullOrWhiteSpace(extractedSelf))
+                        {
+                            selfDisplayName = extractedSelf;
+                            UpdateCachedSelfDisplayName(extractedSelf);
+                        }
+                    }
+
                     var msg = Wcdb4MessageDecoder.ParseMessageRow(row, myCandidates);
                     if (msg is not null)
                     {
@@ -155,7 +186,7 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
             .Select(x => x.Msg)
             .ToList();
 
-        return new ChatHistoryResult(true, sorted, null, SourceName);
+        return new ChatHistoryResult(true, sorted, null, SourceName, contactDisplayName, selfDisplayName);
     }
 
     private string? GetActiveContactNameCore()
@@ -179,8 +210,8 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         string nativeSessionDb = GetNativeSessionDbPath(accountRoot, sessionDbPath);
         long handle = interop.EnsureAccountOpen(nativeSessionDb, key, wxid);
 
-        var sessions = LoadHydratedSessions(interop, handle, accountRoot, activeOnly: true);
-        return Wcdb4MessageDecoder.SelectActiveSingleChatContact(sessions, _settings.SelfNickname);
+        var sessions = LoadHydratedSessions(interop, handle, accountRoot, activeOnly: true, wxid: wxid);
+        return Wcdb4MessageDecoder.SelectActiveSingleChatContact(sessions, _settings.SelfNickname ?? CachedSelfDisplayName);
     }
 
     private IReadOnlyList<WeChatSessionSummary> GetRecentSessionsCore(int maxCount)
@@ -204,8 +235,8 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         string nativeSessionDb = GetNativeSessionDbPath(accountRoot, sessionDbPath);
         long handle = interop.EnsureAccountOpen(nativeSessionDb, key, wxid);
 
-        var sessions = LoadHydratedSessions(interop, handle, accountRoot, activeOnly: maxCount <= 40);
-        return Wcdb4MessageDecoder.BuildRecentSessionSummaries(sessions, _settings.SelfNickname, maxCount);
+        var sessions = LoadHydratedSessions(interop, handle, accountRoot, activeOnly: maxCount <= 40, wxid: wxid);
+        return Wcdb4MessageDecoder.BuildRecentSessionSummaries(sessions, _settings.SelfNickname ?? CachedSelfDisplayName, maxCount);
     }
 
     private ChatConnectionStatus TestConnectionCore()
@@ -228,7 +259,7 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
 
         string nativeSessionDb = GetNativeSessionDbPath(accountRoot, sessionDbPath);
         long handle = interop.EnsureAccountOpen(nativeSessionDb, key, wxid);
-        var sessions = LoadHydratedSessions(interop, handle, accountRoot);
+        var sessions = LoadHydratedSessions(interop, handle, accountRoot, wxid: wxid);
 
         return new ChatConnectionStatus(
             true,
@@ -243,7 +274,8 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
         Wcdb4NativeInterop interop,
         long handle,
         string accountRoot,
-        bool activeOnly = false)
+        bool activeOnly = false,
+        string wxid = "")
     {
         string sessionsJson = interop.GetSessionsJson(handle);
         var rawSessions = Wcdb4MessageDecoder.ParseSessionsJson(sessionsJson);
@@ -268,16 +300,30 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
 
         string? contactRowsJson = GetCachedOrQueryContactsJson(interop, handle, accountRoot);
 
-        // 提取候选人的用户名列表，批量获取显示名
+        string rawAccountName = Path.GetFileName(accountRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string[] myCandidates = new[] { wxid, rawAccountName, WeChatDbKeyAndRootProvider.CleanAccountDirName(rawAccountName) }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        // 提取候选人的用户名列表（同时附带当前登录账号 wxid），批量获取显示名
         string[] candidateUsernames = targetSessions
             .Take(40)
             .Select(s => s.Username)
+            .Concat(myCandidates)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         string? displayNamesJson = candidateUsernames.Length > 0
             ? interop.GetDisplayNamesJson(handle, JsonSerializer.Serialize(candidateUsernames))
             : null;
+
+        string? selfDisplay = Wcdb4MessageDecoder.ExtractSelfDisplayName(myCandidates, displayNamesJson, contactRowsJson);
+        if (!string.IsNullOrWhiteSpace(selfDisplay))
+        {
+            UpdateCachedSelfDisplayName(selfDisplay);
+        }
 
         var enriched = Wcdb4MessageDecoder.EnrichSessions(
             targetSessions,
@@ -286,6 +332,19 @@ public sealed class Wcdb4HistoryProvider : IChatHistoryProvider
             includeAllContacts: !activeOnly);
 
         return enriched;
+    }
+
+    private static void UpdateCachedSelfDisplayName(string selfDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(selfDisplayName))
+        {
+            return;
+        }
+
+        lock (s_cacheLock)
+        {
+            s_cachedSelfDisplayName = selfDisplayName.Trim();
+        }
     }
 
     private static string? GetCachedOrQueryContactsJson(Wcdb4NativeInterop interop, long handle, string accountRoot)
