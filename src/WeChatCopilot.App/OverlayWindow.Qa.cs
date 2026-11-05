@@ -57,8 +57,9 @@ public partial class OverlayWindow : Window
                 ? _currentQaSession.ContactName
                 : (_historyContactName ?? "未指定联系人");
         }
-        QaTargetContactText.Text = target;
-        QaTargetContactText.ToolTip = $"当前问答目标联系人：{target}";
+        string partnerName = ResolvePartnerDisplayName(target, _lastResolvedContactDisplayName);
+        QaTargetContactText.Text = partnerName;
+        QaTargetContactText.ToolTip = $"当前问答目标联系人：{partnerName} (原始标识: {target})";
 
         int traitCount = 0;
         if (!string.IsNullOrEmpty(target))
@@ -67,14 +68,25 @@ public partial class OverlayWindow : Window
             traitCount = p?.Traits?.Count ?? 0;
         }
         QaPersonaBadgeText.Text = traitCount > 0 ? $"画像: {traitCount}项特质" : "无画像特质";
-        QaPersonaBadgeText.ToolTip = traitCount > 0 ? $"已成功关联本地「{target}」的 {traitCount} 个多维特质" : "本地暂无该联系人的画像特质";
+        QaPersonaBadgeText.ToolTip = traitCount > 0 ? $"已成功关联本地「{partnerName}」的 {traitCount} 个多维特质" : "本地暂无该联系人的画像特质";
 
         int msgCount = 0;
         if (!string.IsNullOrEmpty(target))
         {
-            msgCount = _history.Count > 0 && string.Equals(_historyContactName, target, StringComparison.OrdinalIgnoreCase)
-                ? _history.Count
-                : _sqliteStorage.GetMessageCount(target);
+            if (_currentHistoryMessages.Count > 0 &&
+                (string.Equals(_currentChatContact, target, StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(ContactBox.Text.Trim(), target, StringComparison.OrdinalIgnoreCase)))
+            {
+                msgCount = _currentHistoryMessages.Count;
+            }
+            else if (_history.Count > 0 && string.Equals(_historyContactName, target, StringComparison.OrdinalIgnoreCase))
+            {
+                msgCount = _history.Count;
+            }
+            else
+            {
+                msgCount = _sqliteStorage.GetMessageCount(target);
+            }
         }
         QaHistoryBadgeText.Text = msgCount > 0 ? $"记录: {msgCount}条" : "无聊天记录";
         QaHistoryBadgeText.ToolTip = msgCount > 0 ? $"已关联本地历史数据库中 {msgCount} 条真实聊天记录" : "本地暂无聊天记录";
@@ -816,24 +828,96 @@ public partial class OverlayWindow : Window
                 }
             }
 
-            // 3. 收集近期真实聊天记录事实依据 (Grounding Chat History)
+            // 3. 收集近期真实聊天记录事实依据 (Grounding Chat History)，注入现实时钟锚点与时态判定
+            string partnerName = ResolvePartnerDisplayName(contact, _lastResolvedContactDisplayName);
+            string selfName = ResolveSelfDisplayName(_lastResolvedSelfDisplayName);
+            DateTime now = DateTime.Now;
+            string timePeriod = GetDayPeriod(now.Hour);
+            string dayOfWeekStr = GetDayOfWeekChinese(now.DayOfWeek);
+
             var sbGroundingHistory = new StringBuilder();
             int historyCount = 0;
             if (includeHistory && !string.IsNullOrEmpty(contact))
             {
-                var hist = _history.Count > 0 && string.Equals(_historyContactName, contact, StringComparison.OrdinalIgnoreCase)
-                    ? _history.TakeLast(25).ToList()
-                    : _sqliteStorage.GetMessages(contact, 25).ToList();
-
-                historyCount = hist.Count;
-                if (hist.Count > 0)
+                var messages = GetFreshestQaChatMessages(contact, maxCount: 35);
+                historyCount = messages.Count;
+                if (messages.Count > 0)
                 {
-                    sbGroundingHistory.AppendLine($"【联系人「{contact}」近期真实聊天记录（按时间先后）：】");
-                    foreach (var m in hist)
+                    sbGroundingHistory.AppendLine($"【🕒 当前现实时间基准】：{now:yyyy-MM-dd HH:mm}（星期{dayOfWeekStr} {timePeriod}）");
+                    sbGroundingHistory.AppendLine($"（⚠️ 铁律：所有回复构思与心理研判必须基于当前时间【{now:yyyy-MM-dd HH:mm}】！当前是{timePeriod}，严禁编造“昨晚/隔天/刚醒/晚安”等脱离时空的陈词滥调！）");
+                    sbGroundingHistory.AppendLine();
+                    sbGroundingHistory.AppendLine($"【💬 与联系人「对方({partnerName})」近期真实聊天记录（按时间先后）：】");
+
+                    DateTime? prevTimestamp = null;
+                    for (int i = 0; i < messages.Count; i++)
                     {
-                        string sender = m.Role == MessageRole.Outgoing ? "我" : contact;
-                        string timeStr = m.Timestamp.HasValue ? $"[{m.Timestamp.Value:MM-dd HH:mm}] " : "";
-                        sbGroundingHistory.AppendLine($"{timeStr}{sender}: {m.Text}");
+                        var m = messages[i];
+                        if (prevTimestamp.HasValue && m.Timestamp.HasValue)
+                        {
+                            var prevLocal = prevTimestamp.Value.Kind == DateTimeKind.Utc ? prevTimestamp.Value.ToLocalTime() : prevTimestamp.Value;
+                            var curLocal = m.Timestamp.Value.Kind == DateTimeKind.Utc ? m.Timestamp.Value.ToLocalTime() : m.Timestamp.Value;
+                            var gap = curLocal - prevLocal;
+
+                            if (curLocal.Date != prevLocal.Date)
+                            {
+                                sbGroundingHistory.AppendLine($"--- （跨天至次日 {curLocal:yyyy-MM-dd} {GetDayPeriod(curLocal.Hour)}，间隔 {gap.TotalHours:F1} 小时） ---");
+                            }
+                            else if (gap.TotalHours >= 2)
+                            {
+                                sbGroundingHistory.AppendLine($"--- （话题间隔 {gap.TotalHours:F1} 小时） ---");
+                            }
+                        }
+
+                        if (m.Timestamp.HasValue)
+                        {
+                            prevTimestamp = m.Timestamp;
+                        }
+
+                        string who = m.Role == MessageRole.Outgoing
+                            ? $"我({selfName})"
+                            : $"对方({partnerName})";
+
+                        string timePrefix = string.Empty;
+                        if (m.Timestamp.HasValue)
+                        {
+                            var dt = m.Timestamp.Value.Kind == DateTimeKind.Utc ? m.Timestamp.Value.ToLocalTime() : m.Timestamp.Value;
+                            timePrefix = $"[{dt:MM-dd HH:mm}] ";
+                        }
+
+                        sbGroundingHistory.AppendLine($"{timePrefix}{who}: {PromptBuilder.CleanMessageTextForAi(m.Text)}");
+                    }
+
+                    var lastMsg = messages.Last();
+                    sbGroundingHistory.AppendLine();
+                    sbGroundingHistory.AppendLine("【⚡ 最新交互时态与等待状态（核心判定准则）】：");
+                    if (lastMsg.Timestamp.HasValue)
+                    {
+                        var lastLocal = lastMsg.Timestamp.Value.Kind == DateTimeKind.Utc ? lastMsg.Timestamp.Value.ToLocalTime() : lastMsg.Timestamp.Value;
+                        var elapsed = now - lastLocal;
+
+                        if (lastLocal.Date == now.Date)
+                        {
+                            string minStr = elapsed.TotalMinutes < 1 ? "刚刚" : $"距今仅 {(int)elapsed.TotalMinutes} 分钟";
+                            sbGroundingHistory.AppendLine($"- 最后一条消息：发出于今天 {lastLocal:HH:mm}（{minStr}，属于今天【{timePeriod}】的实时交互！）");
+                            sbGroundingHistory.AppendLine($"  ⚠️ 核心时空约束：当前处于今天【{timePeriod}】的真实对话进行时，绝不可称其为“昨晚/凌晨/隔天”，绝不可建议用户说“刚睡醒/昨晚困了”！");
+                        }
+                        else if (lastLocal.Date == now.Date.AddDays(-1))
+                        {
+                            sbGroundingHistory.AppendLine($"- 最后一条消息：发出于昨天 {lastLocal:HH:mm}（距今已过去 {(int)elapsed.TotalHours} 小时）");
+                        }
+                        else
+                        {
+                            sbGroundingHistory.AppendLine($"- 最后一条消息：发出于 {lastLocal:yyyy-MM-dd HH:mm}（距今已有 {(int)elapsed.TotalDays} 天）");
+                        }
+                    }
+
+                    if (lastMsg.Role == MessageRole.Outgoing)
+                    {
+                        sbGroundingHistory.AppendLine($"- 发送状态：最后一条消息是由【我({selfName})】发出的，对方尚未回复。当前属于等待对方回信或由我自然跟进的节点，严禁把【我】说的话误当成对方说的，严禁替对方回复【我】！");
+                    }
+                    else
+                    {
+                        sbGroundingHistory.AppendLine($"- 发送状态：最后一条消息是由【对方({partnerName})】发出的，当前处于【我】准备接话/回复对方的等待状态。");
                     }
                 }
             }
@@ -861,14 +945,19 @@ public partial class OverlayWindow : Window
             }
             string systemPrompt = $"【当前激活技能体系（{_currentSkill.Icon} {_currentSkill.Name}）】：\n{skillGuideline}\n\n" +
 $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情商沟通博弈的资深私人AI军师（Antigravity Copilot）。
-用户正在与联系人【{contact}】进行沟通，并就现实互动向你寻求谋划和指导。
+用户正在与联系人【{partnerName}】进行微信日常沟通，并就现实互动向你寻求谋划和指导。
 你有当前联系人的实名画像数据与聊天记录作为事实依据。
 
-你的核心准则：
-1. 【直奔本质，拒绝AI空话】：讲人情大白话，绝不使用“操作系统”、“自洽闭环”等空洞学术黑话。
-2. 【严格依托事实依据】：深入结合其特质分数高低与亲口原话，精准点中对方的心理痛点和需求。
-3. 【给出实战拿来即用的话术与行动方案】：当用户询问回复建议时，给出清晰、可直接复制的高情商示范，并简短点拨背后的心理机制。
-4. 【结构清晰美观】：使用重点突出、条理分明的 Markdown 样式排版。";
+【🛡️ 核心时空感知与角色立场铁律（绝不可违背）】：
+1. 【严格遵循当下真实时钟】：以提供事实中的【当前现实时间】与【最新交互时态】为唯一时间基准。若当前是上午，绝不可穿越时空编造“昨晚困了/凌晨喝多了/刚睡醒/晚安”等颠倒时空的回复！若消息发生在几分钟或几十分钟前，属于同个时段的连续实时对话；
+2. 【严格区分角色立场】：
+   - 【对方】代表微信好友（被分析对象：{partnerName}）；【我】代表当前使用微信的用户本人（咨询者：{selfName}）；
+   - 必须站在【我】的贴身军师视角，剖析【对方】的心思，为【我】提供回复【对方】的建议；
+   - 严禁把【我】发出的消息当成【对方】的消息去分析，严禁替对方回答【我】；
+3. 【直奔本质，拒绝AI空话】：讲人情大白话，绝不使用“操作系统”、“自洽闭环”等空洞学术黑话；
+4. 【微信真人日常口语（15~35字）】：日常微信沟通绝非写小作文或公文，示范回复应极其自然、松弛、生活化，杜绝客服感、说教感与油腻套路，采用「接招+抛钩」让对方轻松接话；
+5. 【严格依托事实依据】：深入结合对方画像特质高低与亲口原话，精准点中对方的心理痛点与需求；
+6. 【排版清晰】：使用结构分明、重点突出的 Markdown 样式排版。";
 
             var sbUserPrompt = new StringBuilder();
             if (sbGroundingPersona.Length > 0)
@@ -1050,4 +1139,66 @@ $@"你是一位精通人情世故、人际心理学、潜台词洞悉与高情�
             QaMessagesScrollViewer.ScrollToEnd();
         }
     }
+private IReadOnlyList<ChatMessage> GetFreshestQaChatMessages(string contact, int maxCount = 35)
+    {
+        string partnerName = ResolvePartnerDisplayName(contact, _lastResolvedContactDisplayName);
+        string selfName = ResolveSelfDisplayName(_lastResolvedSelfDisplayName);
+
+        // 1. 若当前对话缓冲中有该联系人的消息，优先使用（最实时新鲜）
+        if (_conversation.Count > 0 &&
+            (string.Equals(_currentChatContact, contact, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(ContactBox.Text.Trim(), contact, StringComparison.OrdinalIgnoreCase)))
+        {
+            return _conversation.Messages.TakeLast(maxCount).ToList();
+        }
+
+        // 2. 内存中的当前历史列表
+        if (_currentHistoryMessages.Count > 0 &&
+            (string.Equals(_currentChatContact, contact, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(ContactBox.Text.Trim(), contact, StringComparison.OrdinalIgnoreCase)))
+        {
+            return _currentHistoryMessages.TakeLast(maxCount)
+                .Select(m => CreateChatMessage(m, partnerName, selfName))
+                .ToList();
+        }
+
+        // 3. 画像模块加载的联系人历史
+        if (_history.Count > 0 && string.Equals(_historyContactName, contact, StringComparison.OrdinalIgnoreCase))
+        {
+            return _history.TakeLast(maxCount)
+                .Select(m => CreateChatMessage(m, partnerName, selfName))
+                .ToList();
+        }
+
+        // 4. 本地离线 SQLite 数据库
+        var cached = _sqliteStorage.GetMessages(contact, maxCount);
+        if (cached.Count > 0)
+        {
+            return cached.Select(m => CreateChatMessage(m, partnerName, selfName)).ToList();
+        }
+
+        return Array.Empty<ChatMessage>();
+    }
+
+    private static string GetDayPeriod(int hour) => hour switch
+    {
+        >= 5 and < 9 => "清晨/早晨",
+        >= 9 and < 12 => "上午",
+        >= 12 and < 14 => "中午",
+        >= 14 and < 18 => "下午",
+        >= 18 and < 23 => "傍晚/晚上",
+        _ => "深夜/凌晨"
+    };
+
+    private static string GetDayOfWeekChinese(DayOfWeek dow) => dow switch
+    {
+        DayOfWeek.Monday => "一",
+        DayOfWeek.Tuesday => "二",
+        DayOfWeek.Wednesday => "三",
+        DayOfWeek.Thursday => "四",
+        DayOfWeek.Friday => "五",
+        DayOfWeek.Saturday => "六",
+        DayOfWeek.Sunday => "日",
+        _ => ""
+    };
 }

@@ -369,4 +369,24 @@ public class PromptBuilderTests
         Assert.Contains("战略与目的必须深藏在幕后", req.SystemPrompt);
         Assert.Contains("15~35 字", req.UserPrompt);
     }
+
+    [Fact]
+    public void BuildTranscript_ConvertsUtcToLocalTime_AndFormatsCustomSenderNames()
+    {
+        // 模拟 UTC 02:20 (在北京时间 UTC+8 下对应上午 10:20)
+        var utcTimestamp = new DateTime(2026, 11, 5, 2, 20, 0, DateTimeKind.Utc);
+        var localExpect = utcTimestamp.ToLocalTime().ToString("MM-dd HH:mm");
+
+        var msgs = new[]
+        {
+            new ChatMessage(MessageRole.Incoming, "老江套路我😡", utcTimestamp, "Raelin"),
+            new ChatMessage(MessageRole.Outgoing, "小夏太可爱了", utcTimestamp.AddMinutes(2), "老江")
+        };
+
+        var transcript = PromptBuilder.BuildTranscript(msgs);
+
+        // 验证 UTC 时间戳被正确转换为本地时间格式输出，防止大模型误判为凌晨
+        Assert.Contains($"[{localExpect}] [对方(Raelin)] 老江套路我😡", transcript);
+        Assert.Contains("[我(老江)] 小夏太可爱了", transcript);
+    }
 }

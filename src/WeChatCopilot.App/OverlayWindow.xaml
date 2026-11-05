@@ -3321,6 +3321,24 @@
                     <!--  底部：Antigravity 风格统一输入卡片  -->
                     <StackPanel Grid.Row="2">
 
+                        <!-- 常驻快捷研判胶囊栏（横向滚动，全会话周期可用） -->
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource FluentButton}" Height="24" Padding="8,0" Margin="0,0,6,0" FontSize="11" Click="QaPromptPill_Click" Tag="请结合对方画像特质与最近发言，帮我深度洞察对方没说出口的潜台词和当下真实心理想法？" ToolTip="点击快速剖析对方最新发言潜台词">
+                                    <TextBlock Text="🔍 剖析潜台词" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Button>
+                                <Button Style="{StaticResource FluentButton}" Height="24" Padding="8,0" Margin="0,0,6,0" FontSize="11" Click="QaPromptPill_Click" Tag="结合对方心智特质与近期聊天，提供3个不同风格（幽默推拉/真诚共鸣/高位利他）的高情商示范回复，并简要点拨底层逻辑。" ToolTip="点击获取3条高情商回复方案">
+                                    <TextBlock Text="💬 3条回复建议" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Button>
+                                <Button Style="{StaticResource FluentButton}" Height="24" Padding="8,0" Margin="0,0,6,0" FontSize="11" Click="QaPromptPill_Click" Tag="结合目前双方话题走向与战略目的，如何顺着当下话题自然推进邀约或关系升温？" ToolTip="点击获取关系推进建议">
+                                    <TextBlock Text="🚩 推进邀约升级" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Button>
+                                <Button Style="{StaticResource FluentButton}" Height="24" Padding="8,0" Margin="0,0,6,0" FontSize="11" Click="QaPromptPill_Click" Tag="根据最近聊天频率、字数与语气，客观评估对方目前对我的好感度与心理防线处在什么阶段？" ToolTip="点击评估好感度与互动热度">
+                                    <TextBlock Text="📊 评估好感度" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+
                         <!-- 输入框与工具操作统一卡片 (Antigravity 风格：多行高视野输入框在上，融合开关与发送按钮同列在下) -->
                         <Border
                             Background="{DynamicResource InputBgBrush}"
