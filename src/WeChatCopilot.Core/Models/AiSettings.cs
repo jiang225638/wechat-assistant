@@ -34,7 +34,7 @@ public sealed record AiSettings
     public int TimeoutSeconds { get; set; } = 180;
 
     /// <summary>对话语境分析跨度（条数），默认 10 条（约 3~6 轮完整交互，兼顾情感走向与即时性）。</summary>
-    public int ContextMessageCount { get; set; } = 10;
+    public int ContextMessageCount { get; set; } = 20;
 
     /// <summary>外观主题模式："Light" (默认浅色), "Dark" (深色), "System" (跟随系统)。</summary>
     public string ThemeMode { get; set; } = "Light";

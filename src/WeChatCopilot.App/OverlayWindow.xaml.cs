@@ -92,7 +92,6 @@ public partial class OverlayWindow : Window
     private string? _lastAdviceContactName;
     private DistillSkill? _lastAdviceSkill;
     private string? _lastAdviceGoal;
-    private string? _lastAdviceIntent;
 
     public OverlayWindow()
     {
@@ -189,19 +188,6 @@ public partial class OverlayWindow : Window
         }
 
         ThemeManager.ApplyTheme(this, savedSettings.ThemeMode ?? "Light");
-
-        if (AiContextCountCombo != null)
-        {
-            int savedCount = savedSettings.ContextMessageCount > 0 ? savedSettings.ContextMessageCount : 10;
-            foreach (ComboBoxItem item in AiContextCountCombo.Items)
-            {
-                if (item.Tag is string tagStr && int.TryParse(tagStr, out int c) && c == savedCount)
-                {
-                    AiContextCountCombo.SelectedItem = item;
-                    break;
-                }
-            }
-        }
 
         InitHotkeys();
         InitTray();

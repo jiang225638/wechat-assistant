@@ -291,4 +291,157 @@ public class AiOutputParserTests
         Assert.Equal("借势推进", advice.Suggestions[0].Tone);
         Assert.DoesNotContain(advice.Suggestions, s => s.Tone == "错误草稿");
     }
+
+    [Fact]
+    public void ParseUnifiedAdvice_FiltersOutTrailingNotesAndClampsToMaxSuggestions()
+    {
+        string raw =
+            "=== 意图剖析 ===\n" +
+            "目标原话：今天兼职几点收工啊？\n" +
+            "字面意思：询问兼职下班时间\n" +
+            "潜台词洞察：寻找共同时间窗口\n" +
+            "真实心理：希望后续安排见面\n" +
+            "破局心法：轻松调侃，顺水推舟\n" +
+            "\n" +
+            "=== 动态博弈评估维度 ===\n" +
+            "评估维度：邀约推进力, 舒适安全度, 情绪共鸣度\n" +
+            "\n" +
+            "=== 回复建议 ===\n" +
+            "1. [轻快调侃推拉] 我这急得跟等开饭似的，周六你几点方便？说个时间我准时到 | 理由：自嘲化解急迫感 | 得分：邀约推进力=85, 舒适安全度=90, 情绪共鸣度=88 | 推进力=82, 安全度=93\n" +
+            "2. [接招抛钩延展] 不催了不催了，周六想吃啥？我提前踩踩点，别到时候抓瞎 | 理由：把抽象期待具体成吃什么 | 得分：邀约推进力=82, 舒适安全度=92, 情绪共鸣度=85 | 推进力=80, 安全度=90\n" +
+            "3. [情绪共鸣拉近] 兼职站一天挺耗电的，下午抽空多喝热水歇歇脚 | 理由：同频体恤不施压 | 得分：邀约推进力=70, 舒适安全度=96, 情绪共鸣度=95 | 推进力=75, 安全度=95\n" +
+            "4. [借势顺水推舟] 周六正好路过你那边，顺道接你一起去尝尝那家老字号？ | 理由：借顺路降低邀约阻力 | 得分：邀约推进力=92, 舒适安全度=84, 情绪共鸣度=80 | 推进力=90, 安全度=85\n" +
+            "5. [高位利他留白] 收到，你先专心忙你的，等忙完了慢慢说，不急 | 理由：高位留白交由对方掌控节奏 | 得分：邀约推进力=70, 舒适安全度=98, 情绪共鸣度=90 | 推进力=72, 安全度=96\n" +
+            "6. [多余溢出建议] 这是模型多输出的一条 | 理由：测试溢出截断\n" +
+            "7. [又一条多余建议] 额外的一条 | 理由：测试截断\n" +
+            "\n" +
+            "提示：\n" +
+            "- 只发一条，别连发三条。\n" +
+            "- 对方要是只回哈哈，正常往下聊午饭。\n" +
+            "说明：以上回复均遵循接招抛钩法则。";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, maxSuggestions: 5);
+
+        // 验证正好截断为 5 条建议，末尾附带的 6, 7 条被截断，且“提示：”、“说明：”等说明性附注绝不会误当成建议
+        Assert.Equal(5, advice.Suggestions.Count);
+        Assert.Equal("轻快调侃推拉", advice.Suggestions[0].Tone);
+        Assert.Equal("接招抛钩延展", advice.Suggestions[1].Tone);
+        Assert.Equal("情绪共鸣拉近", advice.Suggestions[2].Tone);
+        Assert.Equal("借势顺水推舟", advice.Suggestions[3].Tone);
+        Assert.Equal("高位利他留白", advice.Suggestions[4].Tone);
+        Assert.DoesNotContain(advice.Suggestions, s => s.Tone == "破局建议");
+        Assert.DoesNotContain(advice.Suggestions, s => s.Text.Contains("只发一条"));
+        Assert.DoesNotContain(advice.Suggestions, s => s.Text.Contains("遵循接招抛钩法则"));
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_NumberedWithoutBrackets_ParsedCorrectly()
+    {
+        string raw =
+            "=== 回复建议 ===\n" +
+            "1. 轻快调侃推拉：我这急得跟等开饭似的，周六你几点方便？ | 理由：自嘲幽默 | 推进力=82, 安全度=90\n" +
+            "2. 接招抛钩延展：周六想吃啥？我提前踩踩点 | 理由：生活化好奇 | 推进力=80, 安全度=92";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw);
+
+        Assert.Equal(2, advice.Suggestions.Count);
+        Assert.Equal("轻快调侃推拉", advice.Suggestions[0].Tone);
+        Assert.Equal("我这急得跟等开饭似的，周六你几点方便？", advice.Suggestions[0].Text);
+        Assert.Equal("自嘲幽默", advice.Suggestions[0].Reason);
+        Assert.Equal("接招抛钩延展", advice.Suggestions[1].Tone);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_JsonContract_ParsesCleanly()
+    {
+        string raw = """
+            ```json
+            {
+              "context_flow": "双方前期探讨周末露营，目前处于从线上迁移到线下的关键节点。",
+              "literal": "哈哈 正好周六见面啦",
+              "subtext": "接住你的好感并顺理成章把节奏收在自己手里",
+              "intent": "希望落地具体的见面细节，不再停留在口头虚晃",
+              "strategy": "轻松调侃自嘲，顺势敲定具体时间",
+              "dimensions": ["邀约推进力", "舒适安全度", "情绪共鸣度"],
+              "suggestions": [
+                {
+                  "style": "顺毛捋的松弛调侃",
+                  "text": "我这急得跟等开饭似的，周六你几点方便？说个时间我准时到",
+                  "reason": "自嘲化解急迫感，把决定权交给她",
+                  "scores": {"邀约推进力": 82, "舒适安全度": 93, "情绪共鸣度": 85},
+                  "goal_push": 82,
+                  "safety": 93
+                },
+                {
+                  "style": "吃货式好奇探底",
+                  "text": "不催了不催了，周六想吃啥？我提前踩踩点，别到时候抓瞎",
+                  "reason": "生活化具体期待，试探意愿",
+                  "scores": {"邀约推进力": 80, "舒适安全度": 90, "情绪共鸣度": 88},
+                  "goal_push": 80,
+                  "safety": 90
+                },
+                {
+                  "style": "体恤式同频共振",
+                  "text": "兼职站一天挺累的，今儿早点歇着，回头聊",
+                  "reason": "高价值利他关怀",
+                  "scores": {"邀约推进力": 65, "舒适安全度": 96, "情绪共鸣度": 95},
+                  "goal_push": 65,
+                  "safety": 96
+                },
+                {
+                  "style": "顺路接送破局",
+                  "text": "周六正好顺路去你那附近，下午我顺道带你过去？",
+                  "reason": "以顺便为由降低赴约心理门槛",
+                  "scores": {"邀约推进力": 90, "舒适安全度": 82, "情绪共鸣度": 80},
+                  "goal_push": 90,
+                  "safety": 82
+                },
+                {
+                  "style": "松弛留白后撤",
+                  "text": "行，你定时间，我随时配合",
+                  "reason": "交出掌控权，不给压迫感",
+                  "scores": {"邀约推进力": 70, "舒适安全度": 95, "情绪共鸣度": 88},
+                  "goal_push": 70,
+                  "safety": 95
+                }
+              ]
+            }
+            ```
+            """;
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, fallbackTargetQuote: "哈哈 正好周六见面啦", maxSuggestions: 5);
+
+        Assert.Equal("双方前期探讨周末露营，目前处于从线上迁移到线下的关键节点。", advice.ContextFlowSummary);
+        Assert.Equal("接住你的好感并顺理成章把节奏收在自己手里", advice.Subtext);
+        Assert.Equal("希望落地具体的见面细节，不再停留在口头虚晃", advice.Intent);
+        Assert.Equal("轻松调侃自嘲，顺势敲定具体时间", advice.Strategy);
+        Assert.NotNull(advice.DynamicDimensions);
+        Assert.Equal(3, advice.DynamicDimensions.Count);
+        Assert.Contains("邀约推进力", advice.DynamicDimensions);
+
+        Assert.Equal(5, advice.Suggestions.Count);
+        Assert.Equal("顺毛捋的松弛调侃", advice.Suggestions[0].Tone);
+        Assert.Equal("我这急得跟等开饭似的，周六你几点方便？说个时间我准时到", advice.Suggestions[0].Text);
+        Assert.Equal(82, advice.Suggestions[0].GoalPushScore);
+        Assert.Equal(93, advice.Suggestions[0].PersonaSafetyScore);
+        Assert.Equal(82, advice.Suggestions[0].DimensionScores?["邀约推进力"]);
+
+        Assert.Equal("吃货式好奇探底", advice.Suggestions[1].Tone);
+        Assert.Equal("体恤式同频共振", advice.Suggestions[2].Tone);
+        Assert.Equal("顺路接送破局", advice.Suggestions[3].Tone);
+        Assert.Equal("松弛留白后撤", advice.Suggestions[4].Tone);
+    }
+
+    [Fact]
+    public void ParseUnifiedAdvice_JsonContract_WithNewlinesInStrings_HandlesGracefully()
+    {
+        string raw = "{\n  \"literal\": \"字面意思\n两行说明\",\n  \"subtext\": \"潜台词第一行\n潜台词第二行\",\n  \"suggestions\": [\n    {\n      \"style\": \"幽默反弹\",\n      \"text\": \"周六见啊\",\n      \"reason\": \"第一点依据\n第二点依据\"\n    }\n  ]\n}";
+
+        var advice = AiOutputParser.ParseUnifiedAdvice(raw, fallbackTargetQuote: "周六见");
+
+        Assert.Single(advice.Suggestions);
+        Assert.Equal("幽默反弹", advice.Suggestions[0].Tone);
+        Assert.Equal("周六见啊", advice.Suggestions[0].Text);
+        Assert.Contains("潜台词第一行", advice.Subtext);
+    }
 }

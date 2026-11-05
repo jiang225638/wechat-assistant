@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using WeChatCopilot.Core.Models;
 
@@ -135,7 +136,219 @@ public static class AiOutputParser
     /// 解析一体化 AI 建议响应：同时提取意图剖析（原话、字面、潜台词、心理、策略）、动态博弈维度与多风格回复建议（含多维战术得分）。
     /// 无论模型输出是否严格遵守分块标记，均能强力容错解析。
     /// </summary>
-    public static UnifiedAiAdvice ParseUnifiedAdvice(string? raw, string? fallbackTargetQuote = null)
+    public static UnifiedAiAdvice ParseUnifiedAdvice(string? raw, string? fallbackTargetQuote = null, int? maxSuggestions = null)
+    {
+        // 优先按 JSON 契约解析（提示词要求模型只输出 JSON 对象）；失败时回退到逐行文本解析，兼容旧格式与不守约的模型
+        var jsonAdvice = TryParseUnifiedAdviceJson(raw, fallbackTargetQuote, maxSuggestions);
+        if (jsonAdvice is not null)
+        {
+            return jsonAdvice;
+        }
+
+        return ParseUnifiedAdviceFromText(raw, fallbackTargetQuote, maxSuggestions);
+    }
+
+    /// <summary>
+    /// 按 JSON 契约解析一体化建议：自动剥离思考块与 Markdown 代码围栏、截取首个 { 到末个 }，
+    /// 允许尾随逗号/注释，并修复字符串内的裸换行。无法得到 JSON 对象时返回 null。
+    /// </summary>
+    public static UnifiedAiAdvice? TryParseUnifiedAdviceJson(string? raw, string? fallbackTargetQuote = null, int? maxSuggestions = null)
+    {
+        string cleaned = StripThinkingBlocks(raw);
+        if (string.IsNullOrWhiteSpace(cleaned)) return null;
+
+        int start = cleaned.IndexOf('{');
+        int end = cleaned.LastIndexOf('}');
+        if (start < 0 || end <= start) return null;
+        string slice = cleaned[start..(end + 1)];
+
+        JsonDocument? doc = TryParseJson(slice) ?? TryParseJson(EscapeRawNewlinesInStrings(slice));
+        if (doc is null) return null;
+
+        using (doc)
+        {
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return null;
+
+            string fallbackQuote = PromptBuilder.CleanMessageTextForAi(fallbackTargetQuote);
+            string targetQuote = ReadString(root, "target_quote", "targetQuote", "quote");
+            targetQuote = PromptBuilder.CleanMessageTextForAi(string.IsNullOrWhiteSpace(targetQuote) ? fallbackQuote : targetQuote);
+
+            var dims = new List<string>();
+            if (TryGetProperty(root, out var dimsEl, "dimensions", "dims", "evaluation_dimensions") && dimsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var d in dimsEl.EnumerateArray())
+                {
+                    string name = d.ValueKind == JsonValueKind.String ? (d.GetString() ?? string.Empty).Trim() : string.Empty;
+                    if (name.Length > 0 && !dims.Contains(name)) dims.Add(name);
+                }
+            }
+
+            var suggestions = new List<ReplySuggestion>();
+            if (TryGetProperty(root, out var sugEl, "suggestions", "replies", "candidates") && sugEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var s in sugEl.EnumerateArray())
+                {
+                    if (s.ValueKind != JsonValueKind.Object) continue;
+                    string replyText = ReadString(s, "text", "reply", "content");
+                    if (string.IsNullOrWhiteSpace(replyText)) continue;
+
+                    string tone = ReadString(s, "style", "tone", "label");
+                    var scores = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    if (TryGetProperty(s, out var scoresEl, "scores", "dimension_scores") && scoresEl.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var p in scoresEl.EnumerateObject())
+                        {
+                            if (TryReadNumber(p.Value, out double v)) scores[p.Name.Trim()] = Math.Clamp(v, 0, 100);
+                        }
+                    }
+
+                    double goalPush = TryGetProperty(s, out var gp, "goal_push", "goalPush", "push") && TryReadNumber(gp, out double g) ? Math.Clamp(g, 0, 100) : double.NaN;
+                    double safety = TryGetProperty(s, out var sf, "safety", "persona_safety", "personaSafety") && TryReadNumber(sf, out double sv) ? Math.Clamp(sv, 0, 100) : double.NaN;
+
+                    suggestions.Add(new ReplySuggestion(
+                        string.IsNullOrWhiteSpace(tone) ? "候选" : tone.Trim(),
+                        replyText.Trim(),
+                        ReadString(s, "reason", "why").Trim(),
+                        scores,
+                        goalPush,
+                        safety));
+                }
+            }
+
+            if (dims.Count == 0)
+            {
+                foreach (var s in suggestions)
+                {
+                    if (s.DimensionScores is null) continue;
+                    foreach (var k in s.DimensionScores.Keys)
+                    {
+                        if (!dims.Contains(k)) dims.Add(k);
+                    }
+                }
+            }
+
+            if (maxSuggestions is > 0 && suggestions.Count > maxSuggestions.Value)
+            {
+                suggestions = suggestions.Take(maxSuggestions.Value).ToList();
+            }
+
+            return new UnifiedAiAdvice(
+                targetQuote,
+                StripLabel(ReadString(root, "literal"), "字面意思"),
+                StripLabel(ReadString(root, "subtext"), "潜台词洞察", "潜台词"),
+                StripLabel(ReadString(root, "intent", "psychology"), "真实心理"),
+                StripLabel(ReadString(root, "strategy"), "破局心法"),
+                suggestions,
+                StripLabel(ReadString(root, "context_flow", "contextFlow", "context"), "语境脉络"),
+                dims.Count > 0 ? dims : null);
+        }
+    }
+
+    private static JsonDocument? TryParseJson(string json)
+    {
+        try
+        {
+            return JsonDocument.Parse(json, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            });
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>把 JSON 字符串字面量内部的裸回车/换行转义为 \n，修复模型在字符串里硬换行导致的解析失败。</summary>
+    private static string EscapeRawNewlinesInStrings(string json)
+    {
+        var sb = new System.Text.StringBuilder(json.Length + 16);
+        bool inString = false;
+        bool escaped = false;
+        foreach (char c in json)
+        {
+            if (inString)
+            {
+                if (escaped) { escaped = false; sb.Append(c); continue; }
+                if (c == '\\') { escaped = true; sb.Append(c); continue; }
+                if (c == '"') { inString = false; sb.Append(c); continue; }
+                if (c == '\n') { sb.Append("\\n"); continue; }
+                if (c == '\r') continue;
+                if (c == '\t') { sb.Append("\\t"); continue; }
+                sb.Append(c);
+            }
+            else
+            {
+                if (c == '"') inString = true;
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
+    }
+
+    private static bool TryGetProperty(JsonElement obj, out JsonElement value, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (obj.TryGetProperty(name, out value)) return true;
+        }
+        foreach (var p in obj.EnumerateObject())
+        {
+            foreach (var name in names)
+            {
+                if (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = p.Value;
+                    return true;
+                }
+            }
+        }
+        value = default;
+        return false;
+    }
+
+    private static string ReadString(JsonElement obj, params string[] names)
+    {
+        if (!TryGetProperty(obj, out var el, names)) return string.Empty;
+        return el.ValueKind switch
+        {
+            JsonValueKind.String => el.GetString() ?? string.Empty,
+            JsonValueKind.Number => el.GetRawText(),
+            JsonValueKind.Array => string.Join("；", el.EnumerateArray().Select(x => x.ValueKind == JsonValueKind.String ? x.GetString() : x.GetRawText())),
+            _ => string.Empty
+        };
+    }
+
+    private static bool TryReadNumber(JsonElement el, out double value)
+    {
+        value = 0;
+        if (el.ValueKind == JsonValueKind.Number) return el.TryGetDouble(out value);
+        if (el.ValueKind == JsonValueKind.String)
+        {
+            string s = (el.GetString() ?? string.Empty).Trim().TrimEnd('分', '%');
+            return double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value);
+        }
+        return false;
+    }
+
+    /// <summary>去掉模型照抄示例时带上的“字面意思：”等前缀标签。</summary>
+    private static string StripLabel(string value, params string[] labels)
+    {
+        string v = value.Trim();
+        foreach (var label in labels)
+        {
+            if (v.StartsWith(label + "：", StringComparison.Ordinal) || v.StartsWith(label + ":", StringComparison.Ordinal))
+            {
+                return v[(label.Length + 1)..].Trim();
+            }
+        }
+        return v;
+    }
+
+    /// <summary>逐行文本解析（旧格式兜底）：意图剖析键值行 + “[风格] 内容 | 理由：xxx | 得分：... | 推进力=xx, 安全度=yy”建议行。</summary>
+    private static UnifiedAiAdvice ParseUnifiedAdviceFromText(string? raw, string? fallbackTargetQuote, int? maxSuggestions)
     {
         string cleanedRaw = StripThinkingBlocks(raw);
         fallbackTargetQuote = PromptBuilder.CleanMessageTextForAi(fallbackTargetQuote);
@@ -170,6 +383,32 @@ public static class AiOutputParser
             if (line.StartsWith("===") || line.StartsWith("---") || line.StartsWith("```"))
             {
                 continue;
+            }
+
+            // 过滤回复建议段落末尾常见的总结、说明、提示类非建议行
+            if (inSuggestionsSection)
+            {
+                if (Regex.IsMatch(line, @"^(?:[\*\-\+•\s]|\d+[\.、\)])*\s*(?:\*\*)?(?:提示|说明|注意|总结|结语|备注|注|PS|温馨提示|实战提醒|行动建议|避坑提醒)[:：]", RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+                if (line.StartsWith("提示") || line.StartsWith("说明") || line.StartsWith("注意") || line.StartsWith("总结") || line.StartsWith("注：") || line.StartsWith("注:") || line.StartsWith("PS：") || line.StartsWith("PS:"))
+                {
+                    continue;
+                }
+            }
+
+            // 过滤回复建议段落末尾常见的总结、说明、提示类非建议行
+            if (inSuggestionsSection)
+            {
+                if (Regex.IsMatch(line, @"^(?:[\*\-\+•\s]|\d+[\.、\)])*\s*(?:\*\*)?(?:提示|说明|注意|总结|结语|备注|注|PS|温馨提示|实战提醒|行动建议|避坑提醒)[:：]", RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+                if (line.StartsWith("提示") || line.StartsWith("说明") || line.StartsWith("注意") || line.StartsWith("总结") || line.StartsWith("注：") || line.StartsWith("注:") || line.StartsWith("PS：") || line.StartsWith("PS:"))
+                {
+                    continue;
+                }
             }
 
             // 1. 尝试匹配意图剖析与维度键值
@@ -236,7 +475,7 @@ public static class AiOutputParser
             }
             else if (inSuggestionsSection || cleaned.Contains('|') || cleaned.Contains('｜'))
             {
-                var colonMatch = Regex.Match(cleaned, @"^(?:[\*\-\+]|\d+[\.、\)])?\s*(?<tone>[\u4e00-\u9fa5a-zA-Z0-9_\-\s]{2,10})[:：]\s*(?<rest>.*)$");
+                var colonMatch = Regex.Match(cleaned, @"^(?:[\*\-\+]|\d+[\.、\)])?\s*(?<tone>[\u4e00-\u9fa5a-zA-Z0-9_\-\s]{2,12})[:：]\s*(?<rest>.*)$");
                 if (colonMatch.Success && (colonMatch.Groups["rest"].Value.Contains('|') || colonMatch.Groups["rest"].Value.Contains('｜')))
                 {
                     tone = colonMatch.Groups["tone"].Value.Trim();
@@ -247,7 +486,7 @@ public static class AiOutputParser
                     tone = "破局建议";
                     rest = cleaned;
                 }
-                else if (inSuggestionsSection && cleaned.Length >= 4 && !cleaned.StartsWith('#'))
+                else if (inSuggestionsSection && (Regex.IsMatch(line, @"^(?:[\*\-\+•]|\d+[\.、\)])\s*") || cleaned.StartsWith("“") || cleaned.StartsWith("\"")) && cleaned.Length >= 6 && !cleaned.StartsWith('#'))
                 {
                     tone = "破局建议";
                     rest = cleaned;
@@ -324,6 +563,11 @@ public static class AiOutputParser
                     }
                 }
             }
+        }
+
+        if (maxSuggestions.HasValue && maxSuggestions.Value > 0 && suggestions.Count > maxSuggestions.Value)
+        {
+            suggestions = suggestions.Take(maxSuggestions.Value).ToList();
         }
 
         return new UnifiedAiAdvice(

@@ -26,7 +26,6 @@ public partial class AdviceAnalyticsWindow : Window
     private readonly DistillSkill _skill;
     private readonly string _contactName;
     private readonly string _ultimateGoal;
-    private readonly string _userIntent;
     private List<string> _dynamicDims;
     private readonly Func<CancellationToken, Task<UnifiedAiAdvice?>>? _regenerateCallback;
     private CancellationTokenSource? _regenCts;
@@ -49,7 +48,6 @@ public partial class AdviceAnalyticsWindow : Window
         DistillSkill? skill = null,
         string? contactName = null,
         string? ultimateGoal = null,
-        string? userIntent = null,
         Func<CancellationToken, Task<UnifiedAiAdvice?>>? regenerateCallback = null)
     {
         InitializeComponent();
@@ -63,9 +61,6 @@ public partial class AdviceAnalyticsWindow : Window
         _ultimateGoal = !string.IsNullOrWhiteSpace(ultimateGoal)
             ? ultimateGoal
             : (_persona?.UltimateGoal ?? "推进双方深度交流与共识达成");
-        _userIntent = !string.IsNullOrWhiteSpace(userIntent)
-            ? userIntent
-            : "顺承当前语境，推进战略目标";
 
         // 提取动态评估维度
         _dynamicDims = ResolveDynamicDimensions();
@@ -222,16 +217,6 @@ public partial class AdviceAnalyticsWindow : Window
         HeaderContactName.Text = _contactName;
         HeaderGoalText.Text = _ultimateGoal;
         HeaderSkillText.Text = $"{_skill.Icon} {_skill.Name}";
-
-        if (!string.IsNullOrWhiteSpace(_userIntent))
-        {
-            HeaderIntentBorder.Visibility = Visibility.Visible;
-            HeaderIntentText.Text = _userIntent;
-        }
-        else
-        {
-            HeaderIntentBorder.Visibility = Visibility.Collapsed;
-        }
     }
 
     // ===================== 左侧沙盘推演流填充 =====================
@@ -1173,10 +1158,6 @@ public partial class AdviceAnalyticsWindow : Window
             sb.AppendLine($"- **对话对象**：{_contactName}");
             sb.AppendLine($"- **终极战略目的**：{_ultimateGoal}");
             sb.AppendLine($"- **作战体系 Skill**：{_skill.Icon} {_skill.Name}");
-            if (!string.IsNullOrWhiteSpace(_userIntent))
-            {
-                sb.AppendLine($"- **用户意图导向**：{_userIntent}");
-            }
             sb.AppendLine($"- **生成时间**：{DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine();
             sb.AppendLine("---");

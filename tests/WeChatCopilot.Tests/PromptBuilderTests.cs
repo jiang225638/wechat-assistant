@@ -169,8 +169,8 @@ public class PromptBuilderTests
 
         Assert.Equal("deepseek-chat", req.Model);
         Assert.Equal(0.4, req.Temperature);
-        Assert.Contains("=== 意图剖析 ===", req.SystemPrompt);
-        Assert.Contains("=== 回复建议 ===", req.SystemPrompt);
+        Assert.Contains("\"intent\"", req.SystemPrompt);
+        Assert.Contains("\"suggestions\"", req.SystemPrompt);
         Assert.Contains("当前对话对象：王五", req.UserPrompt);
         Assert.Contains("雷厉风行，追求效率", req.UserPrompt);
         Assert.Contains("92分", req.UserPrompt);
@@ -344,8 +344,8 @@ public class PromptBuilderTests
 
         Assert.Contains("动态博弈评估维度", req.SystemPrompt);
         Assert.Contains("评估维度：", req.SystemPrompt);
-        Assert.Contains("推进力=", req.SystemPrompt);
-        Assert.Contains("安全度=", req.SystemPrompt);
+        Assert.Contains("goal_push", req.SystemPrompt);
+        Assert.Contains("safety", req.SystemPrompt);
         Assert.Contains("全域对话军师", req.SystemPrompt);
         Assert.Contains("锁定季度订单并守住利润底线", req.UserPrompt);
         Assert.Contains("以附加增值服务置换价格折让", req.UserPrompt);
@@ -388,5 +388,20 @@ public class PromptBuilderTests
         // 验证 UTC 时间戳被正确转换为本地时间格式输出，防止大模型误判为凌晨
         Assert.Contains($"[{localExpect}] [对方(Raelin)] 老江套路我😡", transcript);
         Assert.Contains("[我(老江)] 小夏太可爱了", transcript);
+    }
+
+    [Fact]
+    public void BuildUnifiedAdvice_WithCount5_EnforcesJsonStructureAndFreeFormStyles()
+    {
+        var settings = new AiSettings();
+        var msgs = new[] { M(MessageRole.Incoming, "哈哈 正好周六见面啦") };
+
+        var req = PromptBuilder.BuildUnifiedAdvice(settings, msgs, count: 5, contactName: "Raelin");
+
+        Assert.Contains("JSON 对象", req.SystemPrompt);
+        Assert.Contains("suggestions 数组必须恰好包含 5 个元素", req.SystemPrompt);
+        Assert.Contains("风格完全由你自由决定与动态生成", req.SystemPrompt);
+        Assert.Contains("动态博弈评估维度", req.SystemPrompt);
+        Assert.Contains("5 条风格各异", req.UserPrompt);
     }
 }

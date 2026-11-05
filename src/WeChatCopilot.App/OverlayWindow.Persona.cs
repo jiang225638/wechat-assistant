@@ -934,11 +934,7 @@ public partial class OverlayWindow : Window
         string goal = !string.IsNullOrWhiteSpace(_lastAdviceGoal)
             ? _lastAdviceGoal
             : (_currentLoadedPersona?.UltimateGoal ?? (AiGoalBadge?.Visibility == Visibility.Visible ? AiGoalBadgeText?.Text : null) ?? "推进深度交流与共识达成");
-        string intent = !string.IsNullOrWhiteSpace(_lastAdviceIntent)
-            ? _lastAdviceIntent
-            : (AiIntentBox?.Text?.Trim() ?? string.Empty);
-
-        var win = new AdviceAnalyticsWindow(_lastUnifiedAdvice, persona, skill, contact, goal, intent, RegenerateAdviceFromDashboardAsync)
+        var win = new AdviceAnalyticsWindow(_lastUnifiedAdvice, persona, skill, contact, goal, RegenerateAdviceFromDashboardAsync)
         {
             Owner = this
         };

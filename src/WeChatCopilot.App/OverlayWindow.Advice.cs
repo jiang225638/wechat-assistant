@@ -141,7 +141,7 @@ public partial class OverlayWindow : Window
         out string? ultimateGoal,
         out int count)
     {
-        count = CountBox.SelectedIndex == 1 ? 5 : 3;
+        count = 5; // 默认且固定 5 条多风格实战回复建议
         activeSkill = _currentSkill ?? DistillSkillPresets.Intimacy;
 
         targetContact = ContactBox.Text.Trim();
@@ -156,7 +156,6 @@ public partial class OverlayWindow : Window
             personaContext = _personaStore.Load(targetContact);
         }
 
-        string userIntent = AiIntentBox.Text.Trim();
         ultimateGoal = personaContext?.UltimateGoal;
 
         targetStatement = PromptBuilder.ExtractLatestIncomingTurn(
@@ -165,21 +164,11 @@ public partial class OverlayWindow : Window
             out _,
             out _);
 
-        int contextCount = 10;
-        if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
-            int.TryParse(item.Tag?.ToString(), out int parsed) && parsed > 0)
-        {
-            contextCount = parsed;
-        }
-        else if (settings.ContextMessageCount > 0)
-        {
-            contextCount = settings.ContextMessageCount;
-        }
+        int contextCount = 20; // 默认且固定 20 条多轮深度语境分析
 
-        // 根据最近 5 条对话内容与用户回复意图，动态按需路由当前 Skill 匹配的 references 子模块
+        // 根据最近 5 条对话内容与最终战略目的，动态按需路由当前 Skill 匹配的 references 子模块
         string contextQuery = string.Join(" ",
             _conversation.Messages.TakeLast(5).Select(m => PromptBuilder.CleanMessageTextForAi(m.Text))
-            .Append(userIntent)
             .Append(ultimateGoal ?? string.Empty));
         string dynamicGuideline = activeSkill.GetGuidelineForQa(contextQuery, out string? routedAdviceModule);
         _lastRoutedAdviceModule = routedAdviceModule;
@@ -190,13 +179,12 @@ public partial class OverlayWindow : Window
         return PromptBuilder.BuildUnifiedAdvice(
             settings,
             _conversation.Messages,
-            count,
-            personaContext,
-            targetContact,
+            count: count,
+            persona: personaContext,
+            contactName: targetContact,
             relationship: null,
-            routedSkill,
-            userIntent: userIntent,
-            ultimateGoal: ultimateGoal,
+            skill: routedSkill,
+                        ultimateGoal: ultimateGoal,
             contextCount: contextCount);
     }
 
@@ -251,11 +239,11 @@ public partial class OverlayWindow : Window
                     {
                         lastUiUpdateMs = sw.ElapsedMilliseconds;
                         string currentRaw = sbStream.ToString();
-                        string stageDesc = currentRaw.Contains("回复建议")
+                        string stageDesc = currentRaw.Contains("suggestions") || currentRaw.Contains("回复建议")
                             ? $"正在生成 {count} 条多风格实战回复建议..."
-                            : currentRaw.Contains("评估维度")
+                            : currentRaw.Contains("dimensions") || currentRaw.Contains("评估维度")
                                 ? "正在提炼动态博弈评估维度..."
-                                : currentRaw.Contains("意图剖析") || currentRaw.Contains("潜台词")
+                                : currentRaw.Contains("intent") || currentRaw.Contains("subtext") || currentRaw.Contains("潜台词")
                                     ? "正在穿透字面表象剖析潜台词与真实心理..."
                                     : "正在深度推演对话脉络与博弈策略...";
                         SetAiStatus($"AI 实时推演中（已接收 {currentRaw.Length} 字）：{stageDesc}", isError: false);
@@ -285,7 +273,30 @@ public partial class OverlayWindow : Window
             }
 
             AiStatusBanner.Visibility = Visibility.Collapsed;
-            var advice = AiOutputParser.ParseUnifiedAdvice(finalRaw, targetStatement);
+            var advice = AiOutputParser.ParseUnifiedAdvice(finalRaw, targetStatement, count);
+
+            // 若首轮解析未提取出有效候选建议，记录原始输出并在未取消时自动静默重试一次
+            if (advice.Suggestions.Count == 0 && _adviceCts?.IsCancellationRequested == false)
+            {
+                string sample = finalRaw.Length > 600 ? finalRaw[..600] + "..." : finalRaw;
+                AppLog.Warn("OverlayWindow", $"AI回复建议解析为0条，原始输出前部：\n{sample}");
+                SetAiStatus("初次解析建议未命中，正在自动重试生成结构化回复建议...", isError: false);
+                try
+                {
+                    AiReply retryReply = await provider.CompleteAsync(req, _adviceCts.Token);
+                    if (retryReply.Success && !string.IsNullOrWhiteSpace(retryReply.Text))
+                    {
+                        finalRaw = retryReply.Text;
+                        advice = AiOutputParser.ParseUnifiedAdvice(finalRaw, targetStatement, count);
+                    }
+                }
+                catch (Exception retryEx)
+                {
+                    AppLog.Warn("OverlayWindow", "自动重试生成回复建议异常", retryEx);
+                }
+                AiStatusBanner.Visibility = Visibility.Collapsed;
+            }
+
             ShowUnifiedAdvice(advice, target, activeSkill);
         }
         catch (OperationCanceledException)
@@ -319,7 +330,7 @@ public partial class OverlayWindow : Window
             out DistillSkill activeSkill,
             out string targetStatement,
             out _,
-            out _);
+            out int count);
 
         using var provider = CreateAiProvider(settings, DefaultAdviceTimeoutSeconds);
         AiReply reply = await provider.CompleteAsync(req, ct);
@@ -328,24 +339,16 @@ public partial class OverlayWindow : Window
             return null;
         }
 
-        var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement);
+        var advice = AiOutputParser.ParseUnifiedAdvice(reply.Text, targetStatement, count);
+        if (advice.Suggestions.Count == 0)
+        {
+            AppLog.Warn("OverlayWindow", $"大看板重新生成回复建议解析为0条，原始输出：\n{reply.Text}");
+        }
         ShowUnifiedAdvice(advice, target, activeSkill);
         return advice;
     }
 
-    private void AiContextCountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (AiContextCountCombo?.SelectedItem is ComboBoxItem item &&
-            item.Tag is string tagStr && int.TryParse(tagStr, out int count) && count > 0)
-        {
-            var s = _settingsStore.Load();
-            if (s.ContextMessageCount != count)
-            {
-                s.ContextMessageCount = count;
-                _settingsStore.Save(s);
-            }
-        }
-    }
+
 
     private void ShowUnifiedAdvice(UnifiedAiAdvice advice, string? contactName, DistillSkill? activeSkill = null)
     {
@@ -400,7 +403,7 @@ public partial class OverlayWindow : Window
             }
             else
             {
-                fallbackList.Add(new ReplySuggestion("重新生成", "本次模型回复未生成明确的候选，请点击上方「智能分析回复建议」重试或在输入框微调意图。", "建议微调回复意图重新推演"));
+                fallbackList.Add(new ReplySuggestion("重新生成", "本次模型回复未按约定的 JSON 结构生成有效候选，请点击上方「智能分析回复建议」重试。", "建议直接点击上方按钮重新推演"));
             }
             SuggestionCards.ItemsSource = fallbackList;
         }
@@ -414,7 +417,6 @@ public partial class OverlayWindow : Window
         _lastAdviceContactName = contactName;
         _lastAdviceSkill = activeSkill ?? _currentSkill;
         _lastAdviceGoal = _currentLoadedPersona?.UltimateGoal ?? (AiGoalBadge?.Visibility == Visibility.Visible ? AiGoalBadgeText?.Text : null);
-        _lastAdviceIntent = AiIntentBox?.Text?.Trim();
     }
 
     private void SetAiStatus(string text, bool isError = false)

@@ -37,7 +37,7 @@ public class SettingsStoreTests : IDisposable
         var settings = _store.Load();
 
         Assert.NotNull(settings);
-        Assert.Equal(10, settings.ContextMessageCount);
+        Assert.Equal(20, settings.ContextMessageCount);
         Assert.Equal("Light", settings.ThemeMode);
         Assert.Equal(430.0, settings.WindowWidth);
         Assert.Equal(690.0, settings.WindowHeight);

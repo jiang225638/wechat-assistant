@@ -295,8 +295,8 @@ public static class PromptBuilder
         settings ??= new AiSettings();
         skill ??= DistillSkillPresets.Intimacy;
 
-        int effectiveContextCount = contextCount ?? (settings?.ContextMessageCount ?? 10);
-        if (effectiveContextCount <= 0) effectiveContextCount = 10;
+        int effectiveContextCount = contextCount ?? (settings?.ContextMessageCount ?? 20);
+        if (effectiveContextCount <= 0) effectiveContextCount = 20;
 
         string targetStatement = ExtractLatestIncomingTurn(
             messages,
@@ -313,9 +313,9 @@ public static class PromptBuilder
         // 1. 动态编排对应 Skill 体系的专属 SystemPrompt
         var sysSb = new StringBuilder();
         sysSb.AppendLine($"你是一位兼具人际博弈学、深度心理学与战略沟通智慧的全域对话军师与高维沟通副驾，当前深度激活并贯彻【{skillIcon} {skillName}】作战体系。");
-        sysSb.AppendLine("你的核心使命是穿透对话表象，结合【当前对话对象的终极战略目的】、【对方已知的人格画像特质】、【当前作战Skill】以及【用户期望的回复意图】，进行真正分层立体的战局研判与战术推演。");
+        sysSb.AppendLine("你的核心使命是穿透对话表象，结合【当前对话对象的终极战略目的】、【对方已知的人格画像特质】与【当前作战Skill】，进行真正分层立体的战局研判与战术推演。");
         sysSb.AppendLine($"你需要综合研判近期多轮对话脉络与博弈演进，穿透对方最新发言的字面表象，深度剖析其弦外之音与真实意图，并结合【{skillName}】的核心作战策略给出承前启后、量身定制的多风格回复建议。");
-        sysSb.AppendLine("严禁任何千篇一律、死板说教或浮于表面的无效闲聊！必须根据上述四大要素，实时动态提炼针对本场博弈的专属评估维度，并量化推演每一条回复方案的话语力量与战略推进力。");
+        sysSb.AppendLine("严禁任何千篇一律、死板说教或浮于表面的无效闲聊！必须根据上述核心要素，实时动态提炼针对本场博弈的专属评估维度，并量化推演每一条回复方案的话语力量与战略推进力。");
         sysSb.AppendLine();
         sysSb.AppendLine("【⚠️ 角色立场与发言归属核心铁律（绝不可混淆颠倒）】：");
         sysSb.AppendLine("1. 对话中的【对方】代表微信好友（被分析对象）；【我】代表当前使用微信的用户本人（你所辅助的咨询者）。");
@@ -338,34 +338,42 @@ public static class PromptBuilder
         }
 
         sysSb.AppendLine();
-        sysSb.AppendLine("严格按以下结构化格式输出，不要有额外寒暄、说明或多余开场白，严禁代发消息：\n");
-        sysSb.AppendLine("=== 意图剖析 ===");
-        sysSb.AppendLine("语境脉络：结合双方最近多轮聊天交互与最终战略目的，客观研判当前博弈阶段、话题演进轨迹与双方互动态势（如：商务谈判锁定期、破冰信任建立期、试探拉扯期等）");
-        sysSb.AppendLine("字面意思：对方表面上说了什么");
-        sysSb.AppendLine("潜台词洞察：结合近期多轮语境、对方性格特征与心智模型，深度剖析对方隐藏在背后的真实弦外之音、潜意识动因或心理防线");
-        sysSb.AppendLine("真实心理：结合近期走向、价值锚点与需求状态，剖析对方在当前战局中真正想推动什么、防范什么，以及对我方战略意图的态度倾向");
-        sysSb.AppendLine($"破局心法：基于【{skillName}】心法、近期语境破局点、对方画像雷区与我方战略目标，建议我方采取的最佳破局战术策略与避坑指南\n");
-        sysSb.AppendLine("=== 动态博弈评估维度 ===");
-        sysSb.AppendLine("评估维度：[由你根据当前终极战略目的、对方画像特征、作战Skill与用户具体意图，量身动态提炼3~5个专属博弈维度，用逗号隔开。严禁千篇一律或死板写死！例如商务合作提炼：商业主导权, 筹码锁定, 成单推进力, 合作诚意；向上管理提炼：确定性交付, 信任资产, 边界防护, 向上赋能；破冰社交提炼：舒适安全感, 情绪共鸣, 价值吸引力, 邀约契机]\n");
-        sysSb.AppendLine("=== 回复建议 ===");
-        sysSb.AppendLine("[战术风格] 回复内容 | 理由：针对对方画像特质与战略目的的战术动作依据 | 得分：维度1=xx, 维度2=yy, 维度3=zz | 推进力=xx, 安全度=yy");
+        sysSb.AppendLine("【📦 输出格式铁律】：只输出一个合法的 JSON 对象，JSON 之外不要输出任何文字（不要开场白、不要总结、不要 Markdown 代码块标记），严禁代发消息。结构如下：");
+        sysSb.AppendLine("{");
+        sysSb.AppendLine("  \"context_flow\": \"语境脉络：结合双方最近多轮交互与终极战略目的，研判当前博弈阶段、话题演进轨迹与双方互动态势\",");
+        sysSb.AppendLine("  \"literal\": \"字面意思：对方表面上说了什么\",");
+        sysSb.AppendLine("  \"subtext\": \"潜台词洞察：结合近期语境、对方性格特征与心智模型，剖析对方背后的弦外之音、潜意识动因或心理防线\",");
+        sysSb.AppendLine("  \"intent\": \"真实心理：对方在当前战局中真正想推动什么、防范什么，以及对我方意图的态度倾向\",");
+        sysSb.AppendLine($"  \"strategy\": \"破局心法：基于【{skillName}】心法、对方画像雷区与我方战略目标，给出最佳破局战术与避坑指南\",");
+        sysSb.AppendLine("  \"dimensions\": [\"维度A\", \"维度B\", \"维度C\"], // 评估维度：动态博弈评估维度");
+        sysSb.AppendLine("  \"suggestions\": [");
+        sysSb.AppendLine("    {");
+        sysSb.AppendLine("      \"style\": \"由你根据当下情境自拟的战术风格标签（4~8字）\",");
+        sysSb.AppendLine("      \"text\": \"可直接复制发送给对方的回复原文\",");
+        sysSb.AppendLine("      \"reason\": \"针对对方画像特质与战略目的的战术动作依据\",");
+        sysSb.AppendLine("      \"scores\": {\"维度A\": 85, \"维度B\": 78, \"维度C\": 90},");
+        sysSb.AppendLine("      \"goal_push\": 80,");
+        sysSb.AppendLine("      \"safety\": 88");
+        sysSb.AppendLine("    }");
+        sysSb.AppendLine("  ]");
+        sysSb.AppendLine("}");
+        sysSb.AppendLine();
+        sysSb.AppendLine("【重要要求】：");
+        sysSb.AppendLine($" 1. suggestions 数组必须恰好包含 {n} 个元素，不多不少；");
+        sysSb.AppendLine(" 2. dimensions（动态博弈评估维度）：由你根据终极战略目的、对方画像特征与作战Skill，量身提炼 3~5 个专属博弈维度（如破冰社交：舒适安全感、情绪共鸣、价值吸引力、邀约契机；商务合作：商业主导权、筹码锁定、成单推进力），严禁千篇一律；每条建议的 scores 键名必须与 dimensions 完全一致，分值为 0~100 的整数；");
+        sysSb.AppendLine(" 3. goal_push（推进力，对终极目的的实际推进力度）与 safety（安全度，对对方画像雷区与关系的稳健防御度）均为 0~100 的整数；");
+        sysSb.AppendLine($" 4. 战术风格完全由你自由决定与动态生成：{n} 条建议的 style 必须彼此明显不同、各有侧重，整体覆盖从稳妥守势到积极推进的梯度；风格标签要贴合当下语境与对方画像动态生成，严禁照搬'高情商/直接/专业/缓和'等刻板标签，也不要每次都用同一套标签；");
         if (tones.Count > 0)
         {
-            sysSb.AppendLine($"（【{skillName}】流派推荐破局风格参考：{string.Join("、", tones)}）");
+            sysSb.AppendLine($"    （【{skillName}】流派风格可供参考，但不必照搬：{string.Join("、", tones)}）");
         }
-        sysSb.AppendLine("（【重要要求】：");
-        sysSb.AppendLine(" 1. 方括号中的战术风格标签严禁千篇一律使用固定的'高情商/直接/专业/缓和'等刻板标签！必须根据对方画像特质、心理诉求以及用户的战略目的，动态生成极具针对性的战术风格标签；");
-        sysSb.AppendLine(" 2. 每条回复建议末尾必须给出动态维度的量化评分（0-100）、推进力（0-100，对终极目标的实际推进推动力度）与安全度（0-100，对对方画像雷区与关系的稳健防御度）；");
-        sysSb.AppendLine(" 3. 【🔥 微信真人感与「接招+抛钩」对话法则（必须严格执行，违者重构！）】：");
-        sysSb.AppendLine("    - 拒绝“句号式死话”：严禁只扔一句孤立的冷俏皮话、评价或段子（如单单一嘴“本子上又记一笔：嘴甜”），避免对方无法接话、只能发表情包或“哈哈”导致冷场陷入死胡同！");
-        sysSb.AppendLine("    - 贯彻「接招+抛钩」两段式律动：前半句轻松接住对方的情绪、梗或当下的互动点，后半句顺理成章地抛出轻巧好接的开放式反问、幽默好奇或下一步行动台阶，让对方极易接话、对话源源不断；");
-        sysSb.AppendLine("    - 真实生活化字数（15~35字）：日常微信聊天既不要写几十上百字小作文，也不要只扔单句死句子；每条建议字数自然控制在 15~35 字之间，像真人随手打字一样自然松弛、接地气、有呼吸感；");
-        sysSb.AppendLine("    - 严禁油腻与客服问卷：坚决禁止'那我可要提前声明…除了带路还负责…'等油腻脱口秀段子！坚决禁止'你是更喜欢A、B还是C，我好提前准备…'等多选式问卷调查或销售话术；");
-        sysSb.AppendLine("    - 意图与最终目的真正落到实处：用户期望意图体现在前半段的回复风格与情绪基调中；终极战略目的体现在后半段的抛钩推进中（如敲定见面细节、建立私密默契、推进关系升温）；");
-        sysSb.AppendLine("    - 3条候选风格梯度：");
-        sysSb.AppendLine("      * 候选1【轻快幽默推拉】：高位接招反弹 + 轻巧调侃，打消严肃感（15~22字）；");
-        sysSb.AppendLine("      * 候选2【接招抛钩延伸】：接住话题 + 抛出自然好奇钩子，让对方极易接话，话题延展（18~30字）；");
-        sysSb.AppendLine("      * 候选3【借势顺水推舟】：顺应对方话茬直接将关系引向终极目的（如敲定碰头时间、创造共同行动借口）（20~35字）。）");
+        sysSb.AppendLine(" 5. 【🔥 微信真人感与「接招+抛钩」对话法则】：");
+        sysSb.AppendLine("    - 拒绝“句号式死话”：严禁只扔一句孤立的冷俏皮话、评价或段子，避免对方无法接话导致冷场；");
+        sysSb.AppendLine("    - 贯彻「接招+抛钩」两段式律动：前半句轻松接住对方的情绪、梗或互动点，后半句顺势抛出轻巧好接的开放式反问、幽默好奇或下一步行动台阶；");
+        sysSb.AppendLine("    - 真实生活化字数：每条 text 自然控制在 15~35 字，像真人随手打字一样松弛、接地气；");
+        sysSb.AppendLine("    - 严禁油腻段子与客服问卷：坚决禁止多选式问卷（'你是更喜欢A、B还是C'）或销售话术；");
+        sysSb.AppendLine("    - 终极战略目的体现在抛钩推进中（如敲定见面细节、建立私密默契、推进关系升温），但严禁直接暴露目的性；");
+        sysSb.AppendLine(" 6. JSON 字符串内如需引用原话，请使用中文引号“”或「」，严禁使用未转义的英文双引号；字符串内不要换行。");
 
         // 2. 编排 UserPrompt
         var sb = new StringBuilder();
@@ -440,9 +448,9 @@ public static class PromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），先输出【意图剖析】与专属提炼的【动态博弈评估维度】，再输出 {n} 条承前启后、引领语境并量化赋能战略目的的【回复建议】（严格执行微信真人感 15~35 字「接招+抛钩」对话准则，绝不冷场，严禁长篇大论、油腻段子与客服式问卷）：");
+        sb.AppendLine($"请综合研判上述 {effectiveContextCount} 条完整聊天语境脉络与情感演进（切勿孤立只看最后一句话），按系统要求的 JSON 结构输出意图剖析、专属博弈维度与恰好 {n} 条风格各异、承前启后并量化赋能战略目的的回复建议（严格执行微信真人感 15~35 字「接招+抛钩」对话准则）。只输出 JSON 对象本身：");
 
-        return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7, MaxTokens: 2500);
+        return new AiRequest(sysSb.ToString(), sb.ToString(), settings?.Model ?? "gpt-4o-mini", settings?.Temperature ?? 0.7, MaxTokens: 3500);
     }
 
     /// <summary>清洗单条消息中的多媒体标记（如结构化表情/图片/分享卡片），转换为简洁自然文本供 AI 分析。</summary>

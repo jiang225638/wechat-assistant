@@ -80,20 +80,6 @@ public partial class OverlayWindow : Window
             }
         }
 
-        // 对话语境分析跨度
-        int currentContextCount = s.ContextMessageCount > 0 ? s.ContextMessageCount : 10;
-        if (SettingContextCountCombo != null)
-        {
-            foreach (ComboBoxItem item in SettingContextCountCombo.Items)
-            {
-                if (item.Tag is string tagStr && int.TryParse(tagStr, out int c) && c == currentContextCount)
-                {
-                    SettingContextCountCombo.SelectedItem = item;
-                    break;
-                }
-            }
-        }
-
         // 窗口透明度
         double currentOpacity = this.Opacity;
         foreach (ComboBoxItem item in SettingOpacityCombo.Items)
@@ -124,33 +110,6 @@ public partial class OverlayWindow : Window
                 _settingsStore.Save(s);
             }
             ThemeManager.ApplyTheme(this, theme);
-        }
-    }
-
-    private void SettingContextCountCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!IsLoaded) return;
-        if (SettingContextCountCombo?.SelectedItem is ComboBoxItem item &&
-            item.Tag is string tagStr && int.TryParse(tagStr, out int count) && count > 0)
-        {
-            var s = _settingsStore.Load();
-            if (s.ContextMessageCount != count)
-            {
-                s.ContextMessageCount = count;
-                _settingsStore.Save(s);
-            }
-
-            if (AiContextCountCombo != null)
-            {
-                foreach (ComboBoxItem aiItem in AiContextCountCombo.Items)
-                {
-                    if (aiItem.Tag is string aiTag && int.TryParse(aiTag, out int c) && c == count)
-                    {
-                        AiContextCountCombo.SelectedItem = aiItem;
-                        break;
-                    }
-                }
-            }
         }
     }
 

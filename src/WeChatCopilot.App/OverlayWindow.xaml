@@ -1791,8 +1791,6 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <!--  第 1 行：对象信息与作战策略  -->
@@ -1871,10 +1869,11 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!--  第 2 行：当前好友战略目的（独立整行，支持直达配置）  -->
+                            <!--  第 2 行：当前好友战略目的与融入画像开关（独立整行，支持直达配置）  -->
                             <Grid Grid.Row="1" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
@@ -1891,7 +1890,7 @@
                                         Visibility="Collapsed">
                                         <TextBlock
                                             x:Name="AiGoalBadgeText"
-                                            MaxWidth="230"
+                                            MaxWidth="175"
                                             FontSize="10.5"
                                             FontWeight="SemiBold"
                                             Foreground="#10B981"
@@ -1903,15 +1902,27 @@
                                         VerticalAlignment="Center"
                                         FontSize="10.5"
                                         Foreground="{DynamicResource TextSecondaryBrush}"
-                                        Text="🎯 最终目的: 未设置(回复将以此为导向)"
-                                        ToolTip="点击右侧【设置】为好友设定长线战略目的，所有建议回复都将以此目的为核心导向！"
+                                        Text="🎯 最终目的: 未设置"
+                                        ToolTip="点击右侧【设置目的】为好友设定长线战略目的，所有建议回复都将以此目的为核心导向！"
                                         Visibility="Visible" />
                                 </StackPanel>
+
+                                <!--  中间：融入画像开关  -->
+                                <CheckBox
+                                    x:Name="IncludePersonaCheck"
+                                    Grid.Column="1"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Content="融入画像"
+                                    FontSize="10.5"
+                                    Foreground="{DynamicResource TextSecondaryBrush}"
+                                    IsChecked="True"
+                                    ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
 
                                 <!--  右侧：直达设置目的快捷按钮  -->
                                 <Button
                                     x:Name="SettingNavigateGoalBtn"
-                                    Grid.Column="1"
+                                    Grid.Column="2"
                                     Padding="6,2"
                                     VerticalAlignment="Center"
                                     Click="SettingNavigateGoalBtn_Click"
@@ -1921,103 +1932,16 @@
                                     ToolTip="快速前往【设置 -> 画像目的】配置长线战略目的" />
                             </Grid>
 
-                            <!--  第 3 行：用户期望回复方式 / 自定义意图输入框  -->
-                            <Grid Grid.Row="2" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock
-                                    Margin="0,0,6,0"
-                                    VerticalAlignment="Center"
-                                    FontSize="11"
-                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                    Text="回复意图:" />
-                                <TextBox
-                                    x:Name="AiIntentBox"
-                                    Grid.Column="1"
-                                    Height="28"
-                                    FontSize="11"
-                                    Padding="6,5"
-                                    Style="{StaticResource FluentTextBox}"
-                                    ToolTip="输入你期望的回复方式或意图（如：高位推拉调侃、委婉推脱周六改约周日、真诚共情，留空则由画像与最终目的智能推导）" />
-                            </Grid>
-
-                            <!--  第 4 行：语境跨度、候选方案与画像融入参数（独立整行，排版从容防遮挡）  -->
-                            <Grid Grid.Row="3" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center"
-                                        FontSize="11"
-                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                        Text="语境:" />
-                                    <ComboBox
-                                        x:Name="AiContextCountCombo"
-                                        Width="68"
-                                        Height="26"
-                                        Padding="6,0,18,0"
-                                        VerticalAlignment="Center"
-                                        VerticalContentAlignment="Center"
-                                        FontSize="11"
-                                        SelectionChanged="AiContextCountCombo_SelectionChanged"
-                                        ToolTip="分析最近多轮语境条数（默认10条，包含3~6轮完整来回研判）">
-                                        <ComboBoxItem Content="5 条" Tag="5" />
-                                        <ComboBoxItem Content="10 条" Tag="10" IsSelected="True" />
-                                        <ComboBoxItem Content="15 条" Tag="15" />
-                                        <ComboBoxItem Content="20 条" Tag="20" />
-                                    </ComboBox>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="1" Margin="0,0,10,0" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock
-                                        Margin="0,0,4,0"
-                                        VerticalAlignment="Center"
-                                        FontSize="11"
-                                        Foreground="{DynamicResource TextSecondaryBrush}"
-                                        Text="候选:" />
-                                    <ComboBox
-                                        x:Name="CountBox"
-                                        Width="62"
-                                        Height="26"
-                                        Padding="6,0,18,0"
-                                        VerticalAlignment="Center"
-                                        VerticalContentAlignment="Center"
-                                        FontSize="11"
-                                        SelectedIndex="0">
-                                        <ComboBoxItem Content="3 条" IsSelected="True" />
-                                        <ComboBoxItem Content="5 条" />
-                                    </ComboBox>
-                                </StackPanel>
-
-                                <CheckBox
-                                    x:Name="IncludePersonaCheck"
-                                    Grid.Column="2"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center"
-                                    Content="融入画像"
-                                    FontSize="11"
-                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                    IsChecked="True"
-                                    ToolTip="勾选后将融入该联系人的深度心智画像（心智模型、决策启发式、反模式雷区等）" />
-                            </Grid>
-
-                            <!--  第 5 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
+                            <!--  第 3 行：智能分析与建议生成主按钮（全宽铺开，高质感主按钮）  -->
                             <Button
                                 x:Name="GenerateButton"
-                                Grid.Row="4"
+                                Grid.Row="2"
                                 Height="32"
                                 HorizontalAlignment="Stretch"
                                 Click="GenerateButton_Click"
                                 Content="🚀 智能分析回复建议"
                                 Style="{StaticResource PrimaryAccentButton}"
-                                ToolTip="结合当前策略 Skill、用户意图与最终目的，一键生成动态意图剖析与量身回复建议" />
+                                ToolTip="结合当前策略 Skill、联系人画像与战略目的，一键生成动态意图剖析与5条多风格实战回复建议" />
                         </Grid>
                     </Border>
 
@@ -2387,40 +2311,6 @@
                                                     Foreground="{DynamicResource TextSecondaryBrush}"
                                                     Text="(点击「复制」可直接粘贴发WX)" />
                                             </StackPanel>
-                                            <Button
-                                                x:Name="OpenAdviceAnalyticsButton"
-                                                HorizontalAlignment="Right"
-                                                VerticalAlignment="Center"
-                                                Height="24"
-                                                Padding="8,0"
-                                                Background="#2538BDF8"
-                                                BorderBrush="#6638BDF8"
-                                                BorderThickness="1"
-                                                Cursor="Hand"
-                                                Click="OpenAdviceAnalyticsButton_Click"
-                                                ToolTip="打开话语力量与博弈推演全景大看板（一屏全景纵览重叠雷达、量化柱状与双轴象限图）">
-                                                <Button.Template>
-                                                    <ControlTemplate TargetType="Button">
-                                                        <Border
-                                                            x:Name="btnBrd"
-                                                            Background="{TemplateBinding Background}"
-                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                                            CornerRadius="4"
-                                                            Padding="{TemplateBinding Padding}">
-                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <TextBlock Text="🔍" FontSize="10.5" Margin="0,0,3,0" VerticalAlignment="Center" />
-                                                                <TextBlock Text="放大看板" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
-                                                            </StackPanel>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="btnBrd" Property="Background" Value="#4038BDF8" />
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Button.Template>
-                                            </Button>
                                         </Grid>
 
                                         <ItemsControl x:Name="SuggestionCards">
@@ -4299,38 +4189,6 @@
                                             <ComboBoxItem Content="☀️ 浅色模式" Tag="Light" IsSelected="True" />
                                             <ComboBoxItem Content="🌙 深色模式" Tag="Dark" />
                                             <ComboBoxItem Content="🔄 跟随系统" Tag="System" />
-                                        </ComboBox>
-                                    </Grid>
-
-                                    <!--  对话语境分析跨度  -->
-                                    <Grid Margin="0,6,0,6">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock
-                                                FontSize="11.5"
-                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                                Text="对话语境分析跨度" />
-                                            <TextBlock
-                                                FontSize="10.5"
-                                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                                Text="智能分析时默认研判的最近消息条数" />
-                                        </StackPanel>
-                                        <ComboBox
-                                            x:Name="SettingContextCountCombo"
-                                            Grid.Column="1"
-                                            Width="145"
-                                            Height="28"
-                                            Padding="8,0,24,0"
-                                            VerticalContentAlignment="Center"
-                                            FontSize="11"
-                                            SelectionChanged="SettingContextCountCombo_SelectionChanged">
-                                            <ComboBoxItem Content="5 条（快速针对）" Tag="5" />
-                                            <ComboBoxItem Content="10 条（推荐·黄金区间）" Tag="10" IsSelected="True" />
-                                            <ComboBoxItem Content="15 条（深度脉络）" Tag="15" />
-                                            <ComboBoxItem Content="20 条（全景长文）" Tag="20" />
                                         </ComboBox>
                                     </Grid>
 

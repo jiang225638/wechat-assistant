@@ -223,14 +223,6 @@
                             <TextBlock x:Name="HeaderSkillText" Text="🧬 女娲心智" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PillSkillTextBrush}" />
                         </StackPanel>
                     </Border>
-
-                    <!-- 回复意图 -->
-                    <Border x:Name="HeaderIntentBorder" Background="{DynamicResource PillIntentBgBrush}" BorderBrush="{DynamicResource PillIntentBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🎯 意图导向: " FontSize="11" Foreground="{DynamicResource PillIntentLabelBrush}" />
-                            <TextBlock x:Name="HeaderIntentText" Text="自然顺承与价值推进" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource PillIntentTextBrush}" MaxWidth="180" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!-- 右侧: 窗口操作按钮 -->
