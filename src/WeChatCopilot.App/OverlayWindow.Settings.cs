@@ -96,6 +96,11 @@ public partial class OverlayWindow : Window
 
         RefreshSettingsSkillList();
         RefreshSettingsPersonaGoalsList();
+
+        if (CurrentAppVersionText != null)
+        {
+            CurrentAppVersionText.Text = $"当前版本：v{GitHubReleaseUpdater.GetCurrentAppVersion()}";
+        }
     }
 
     private void SettingThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -892,6 +897,263 @@ public partial class OverlayWindow : Window
         RefreshChatView();
         StatusText.Text = "当前对话气泡与识别缓存已清空";
         MessageBox.Show("当前对话气泡及识别缓存已清空。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    // ===================== 版本检查与在线更新 =====================
+
+    private UpdateCheckResult? _lastUpdateCheckResult;
+    private CancellationTokenSource? _updateCts;
+
+    private void OpenGitHubReleasesButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string url = _lastUpdateCheckResult?.HtmlUrl is { Length: > 0 } htmlUrl
+                ? htmlUrl
+                : GitHubReleaseUpdater.ReleasesPageUrl;
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("打开浏览器失败: " + ex.Message, "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (CheckUpdateButton != null)
+        {
+            CheckUpdateButton.IsEnabled = false;
+            CheckUpdateButton.Content = "⏳ 检查中...";
+        }
+
+        if (UpdateStatusBorder != null) UpdateStatusBorder.Visibility = Visibility.Visible;
+        if (UpdateDownloadProgressBar != null) UpdateDownloadProgressBar.Visibility = Visibility.Collapsed;
+        if (UpdateStatusTitleText != null) UpdateStatusTitleText.Text = "正在连接 GitHub Releases 检查更新...";
+        if (UpdateStatusDetailText != null) UpdateStatusDetailText.Text = "正在查询仓库 jiang225638/wechat-assistant 最新版本...";
+
+        _updateCts?.Cancel();
+        _updateCts?.Dispose();
+        _updateCts = new CancellationTokenSource();
+
+        try
+        {
+            using var updater = new GitHubReleaseUpdater();
+            var result = await updater.CheckForUpdateAsync(cancellationToken: _updateCts.Token);
+            _lastUpdateCheckResult = result;
+
+            if (CurrentAppVersionText != null)
+            {
+                CurrentAppVersionText.Text = $"当前版本：v{result.CurrentVersion}";
+            }
+
+            if (!result.Success)
+            {
+                if (UpdateStatusTitleText != null) UpdateStatusTitleText.Text = $"⚠️ {result.Error ?? "检查更新失败"}";
+                if (UpdateStatusDetailText != null)
+                {
+                    UpdateStatusDetailText.Text = "提示：若网络受限无法直接访问 GitHub API，可点击「🌐 GitHub 发布页」手动下载最新 Setup.exe 覆盖安装。";
+                }
+                if (DownloadAndInstallUpdateButton != null) DownloadAndInstallUpdateButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (result.HasUpdate)
+            {
+                if (UpdateStatusTitleText != null)
+                {
+                    UpdateStatusTitleText.Text = $"🎉 发现新版本：v{result.LatestVersion}（当前 v{result.CurrentVersion}）";
+                }
+
+                string notes = string.IsNullOrWhiteSpace(result.ReleaseNotes)
+                    ? "点击右侧「⬇️ 下载并安装更新」即可自动下载安装包并覆盖升级（所有本地配置、画像、API 密钥将自动保留）。"
+                    : result.ReleaseNotes.Trim();
+                if (notes.Length > 600)
+                {
+                    notes = notes[..600] + "...";
+                }
+
+                if (UpdateStatusDetailText != null)
+                {
+                    UpdateStatusDetailText.Text = notes;
+                }
+
+                if (DownloadAndInstallUpdateButton != null)
+                {
+                    bool hasAsset = !string.IsNullOrWhiteSpace(result.SetupDownloadUrl) || !string.IsNullOrWhiteSpace(result.PortableDownloadUrl);
+                    DownloadAndInstallUpdateButton.Visibility = hasAsset ? Visibility.Visible : Visibility.Collapsed;
+                    DownloadAndInstallUpdateButton.IsEnabled = true;
+                    DownloadAndInstallUpdateButton.Content = !string.IsNullOrWhiteSpace(result.SetupDownloadUrl)
+                        ? $"⬇️ 下载并安装 v{result.LatestVersion}"
+                        : $"⬇️ 下载绿色版 v{result.LatestVersion}";
+                }
+            }
+            else
+            {
+                if (UpdateStatusTitleText != null)
+                {
+                    UpdateStatusTitleText.Text = $"✅ 当前已是最新版本（v{result.CurrentVersion}）";
+                }
+                if (UpdateStatusDetailText != null)
+                {
+                    UpdateStatusDetailText.Text = $"云端最新版本：v{result.LatestVersion}（{result.ReleaseTitle}），无需更新。";
+                }
+                if (DownloadAndInstallUpdateButton != null)
+                {
+                    DownloadAndInstallUpdateButton.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // 已取消
+        }
+        catch (Exception ex)
+        {
+            if (UpdateStatusTitleText != null) UpdateStatusTitleText.Text = "⚠️ 检查更新失败";
+            if (UpdateStatusDetailText != null) UpdateStatusDetailText.Text = ex.Message;
+        }
+        finally
+        {
+            if (CheckUpdateButton != null)
+            {
+                CheckUpdateButton.IsEnabled = true;
+                CheckUpdateButton.Content = "🔄 检查更新";
+            }
+        }
+    }
+
+    private async void DownloadAndInstallUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastUpdateCheckResult == null)
+        {
+            return;
+        }
+
+        string? downloadUrl = _lastUpdateCheckResult.SetupDownloadUrl ?? _lastUpdateCheckResult.PortableDownloadUrl;
+        bool isSetupInstaller = !string.IsNullOrWhiteSpace(_lastUpdateCheckResult.SetupDownloadUrl);
+
+        if (string.IsNullOrWhiteSpace(downloadUrl))
+        {
+            OpenGitHubReleasesButton_Click(sender, e);
+            return;
+        }
+
+        if (DownloadAndInstallUpdateButton != null)
+        {
+            DownloadAndInstallUpdateButton.IsEnabled = false;
+            DownloadAndInstallUpdateButton.Content = "⏳ 下载中...";
+        }
+
+        if (CheckUpdateButton != null) CheckUpdateButton.IsEnabled = false;
+        if (UpdateStatusBorder != null) UpdateStatusBorder.Visibility = Visibility.Visible;
+        if (UpdateDownloadProgressBar != null)
+        {
+            UpdateDownloadProgressBar.Visibility = Visibility.Visible;
+            UpdateDownloadProgressBar.Value = 0;
+        }
+
+        string fileName = isSetupInstaller
+            ? $"WeChatCopilot_Setup_v{_lastUpdateCheckResult.LatestVersion}.exe"
+            : $"WeChatCopilot_Portable_v{_lastUpdateCheckResult.LatestVersion}.exe";
+
+        string updateDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WeChatCopilot_Updates");
+        Directory.CreateDirectory(updateDir);
+        string destinationPath = System.IO.Path.Combine(updateDir, fileName);
+
+        _updateCts?.Cancel();
+        _updateCts?.Dispose();
+        _updateCts = new CancellationTokenSource();
+
+        var progress = new Progress<double>(pct =>
+        {
+            if (UpdateDownloadProgressBar != null)
+            {
+                UpdateDownloadProgressBar.IsIndeterminate = false;
+                UpdateDownloadProgressBar.Value = pct;
+            }
+            if (UpdateStatusTitleText != null)
+            {
+                UpdateStatusTitleText.Text = $"⬇️ 正在下载 {fileName} ({pct:F1}%)...";
+            }
+        });
+
+        try
+        {
+            using var updater = new GitHubReleaseUpdater();
+            await updater.DownloadInstallerAsync(downloadUrl, destinationPath, progress, _updateCts.Token);
+
+            if (UpdateDownloadProgressBar != null)
+            {
+                UpdateDownloadProgressBar.IsIndeterminate = false;
+                UpdateDownloadProgressBar.Value = 100;
+            }
+
+            if (isSetupInstaller)
+            {
+                if (UpdateStatusTitleText != null)
+                {
+                    UpdateStatusTitleText.Text = "✅ 安装包下载完成，正在启动升级安装程序...";
+                }
+
+                var confirm = MessageBox.Show(
+                    $"新版本 v{_lastUpdateCheckResult.LatestVersion} 安装包已下载完成：\n{destinationPath}\n\n是否立即启动安装程序并关闭当前旧版本？（您的所有配置、画像、API 密钥均保存在 AppData 中，升级后将完整保留）",
+                    "下载完成 - 准备升级",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (confirm == MessageBoxResult.Yes)
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = destinationPath,
+                        UseShellExecute = true
+                    });
+                    Application.Current.Shutdown();
+                    return;
+                }
+            }
+            else
+            {
+                if (UpdateStatusTitleText != null)
+                {
+                    UpdateStatusTitleText.Text = $"✅ 绿色版已下载至：{destinationPath}";
+                }
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{destinationPath}\"",
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            if (UpdateStatusTitleText != null) UpdateStatusTitleText.Text = "已取消下载";
+        }
+        catch (Exception ex)
+        {
+            if (UpdateStatusTitleText != null) UpdateStatusTitleText.Text = "⚠️ 下载更新包失败";
+            if (UpdateStatusDetailText != null)
+            {
+                UpdateStatusDetailText.Text = $"{ex.Message}\n您可以点击「🌐 GitHub 发布页」通过浏览器直接下载安装。";
+            }
+        }
+        finally
+        {
+            if (CheckUpdateButton != null) CheckUpdateButton.IsEnabled = true;
+            if (DownloadAndInstallUpdateButton != null)
+            {
+                DownloadAndInstallUpdateButton.IsEnabled = true;
+                DownloadAndInstallUpdateButton.Content = isSetupInstaller
+                    ? $"⬇️ 下载并安装 v{_lastUpdateCheckResult.LatestVersion}"
+                    : $"⬇️ 下载绿色版 v{_lastUpdateCheckResult.LatestVersion}";
+            }
+        }
     }
 }
 
