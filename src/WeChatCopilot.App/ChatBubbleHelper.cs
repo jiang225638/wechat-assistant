@@ -55,6 +55,11 @@ public static class ChatBubbleHelper
             return;
         }
 
+        if (Wcdb4MessageDecoder.TryExtractSysMsgContent(rawText, out string? sysMsgText) && !string.IsNullOrWhiteSpace(sysMsgText))
+        {
+            rawText = sysMsgText;
+        }
+
         // 1. 斗图大表情包 (Type 47)
         Match mEmoji = s_emojiPattern.Match(rawText);
         if (mEmoji.Success)

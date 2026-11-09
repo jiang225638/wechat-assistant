@@ -149,13 +149,29 @@ public sealed class SqliteStorage : IDisposable
                 continue;
             }
 
+            string text = msg.Text;
+            if (Wcdb4MessageDecoder.TryExtractSysMsgContent(text, out string? cleanedSysMsg) && !string.IsNullOrWhiteSpace(cleanedSysMsg))
+            {
+                text = cleanedSysMsg;
+            }
+
+            MessageRole role = msg.Role;
+            if (Wcdb4MessageDecoder.IsSelfRecallMessage(text))
+            {
+                role = MessageRole.Outgoing;
+            }
+            else if (Wcdb4MessageDecoder.IsFriendRecallMessage(text))
+            {
+                role = MessageRole.Incoming;
+            }
+
             pContact.Value = contactName.Trim();
-            pRole.Value = (int)msg.Role;
-            pText.Value = msg.Text;
+            pRole.Value = (int)role;
+            pText.Value = text;
             pTimestamp.Value = msg.Timestamp.HasValue
                 ? msg.Timestamp.Value.ToString("o")
                 : (object)DBNull.Value;
-            pHash.Value = ComputeMessageHash(contactName, msg.Role, msg.Text, msg.Timestamp);
+            pHash.Value = ComputeMessageHash(contactName, role, text, msg.Timestamp);
 
             insertedCount += command.ExecuteNonQuery();
         }
@@ -217,7 +233,31 @@ public sealed class SqliteStorage : IDisposable
                 }
             }
 
-            list.Add(new HistoryMessage((MessageRole)roleInt, text, timestamp));
+            if (Wcdb4MessageDecoder.TryExtractSysMsgContent(text, out string? cleanedSysMsg) && !string.IsNullOrWhiteSpace(cleanedSysMsg))
+            {
+                text = cleanedSysMsg;
+            }
+
+            MessageRole role = (MessageRole)roleInt;
+            if (Wcdb4MessageDecoder.IsSelfRecallMessage(text))
+            {
+                role = MessageRole.Outgoing;
+            }
+            else if (Wcdb4MessageDecoder.IsFriendRecallMessage(text))
+            {
+                role = MessageRole.Incoming;
+            }
+
+            if (list.Count > 0)
+            {
+                var prev = list[^1];
+                if (prev.Role == role && prev.Text == text && prev.Timestamp == timestamp)
+                {
+                    continue;
+                }
+            }
+
+            list.Add(new HistoryMessage(role, text, timestamp));
         }
 
         return list;

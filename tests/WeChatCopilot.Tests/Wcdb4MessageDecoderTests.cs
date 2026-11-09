@@ -213,4 +213,64 @@ public class Wcdb4MessageDecoderTests
         Assert.Equal(0, summaries[1].UnreadCount);
         Assert.DoesNotContain("未读", summaries[1].DropdownLabel);
     }
+
+    [Fact]
+    public void ParseMessageRow_WithRevokeSysMsg_ResolvesSelfAndFriendRecallRolesAndExtractsContent()
+    {
+        // 1. 当前登录用户自己撤回一条消息：WCDB4 底层 local_type=10000，无 sender_username / computed_is_send
+        using var selfRevokeDoc = JsonDocument.Parse("""
+        {
+            "local_id": 1730,
+            "create_time": 1794197588,
+            "local_type": 10000,
+            "real_sender_id": 23,
+            "status": 4,
+            "message_content": "<?xml version=\"1.0\"?><sysmsg type=\"revokemsg\"><revokemsg><content>你撤回了一条消息</content><revoketime>0</revoketime></revokemsg></sysmsg>"
+        }
+        """);
+
+        // 2. 对方撤回一条消息：WCDB4 底层同样 local_type=10000，内容为带引号的对方名称
+        using var friendRevokeDoc = JsonDocument.Parse("""
+        {
+            "local_id": 1783,
+            "create_time": 1793104512,
+            "local_type": 10000,
+            "real_sender_id": 23,
+            "status": 4,
+            "message_content": "<?xml version=\"1.0\"?><sysmsg type=\"revokemsg\"><revokemsg><content>\"Raelin\" 撤回了一条消息</content><revoketime>0</revoketime></revokemsg></sysmsg>"
+        }
+        """);
+
+        // 3. 对方发送的普通文本消息（哪怕以“你撤回了”开头，只要不是系统撤回消息且有对方 sender_username，仍应判定为对方发送）
+        using var friendNormalChatDoc = JsonDocument.Parse("""
+        {
+            "local_id": 1790,
+            "create_time": 1794197600,
+            "local_type": 1,
+            "sender_username": "wxid_ixy6j22lecxe11",
+            "computed_is_send": 0,
+            "message_content": "你撤回了啥呀？"
+        }
+        """);
+
+        string[] myCandidates = new[] { "wxid_4ev1rkdk0jgm22" };
+
+        HistoryMessage? selfRevokeMsg = Wcdb4MessageDecoder.ParseMessageRow(selfRevokeDoc.RootElement, myCandidates);
+        HistoryMessage? friendRevokeMsg = Wcdb4MessageDecoder.ParseMessageRow(friendRevokeDoc.RootElement, myCandidates);
+        HistoryMessage? friendNormalMsg = Wcdb4MessageDecoder.ParseMessageRow(friendNormalChatDoc.RootElement, myCandidates);
+
+        Assert.NotNull(selfRevokeMsg);
+        Assert.Equal(MessageRole.Outgoing, selfRevokeMsg!.Role);
+        Assert.Equal("你撤回了一条消息", selfRevokeMsg.Text);
+        Assert.DoesNotContain("<sysmsg", selfRevokeMsg.Text);
+
+        Assert.NotNull(friendRevokeMsg);
+        Assert.Equal(MessageRole.Incoming, friendRevokeMsg!.Role);
+        Assert.Equal("\"Raelin\" 撤回了一条消息", friendRevokeMsg.Text);
+        Assert.DoesNotContain("<sysmsg", friendRevokeMsg.Text);
+
+        Assert.NotNull(friendNormalMsg);
+        Assert.Equal(MessageRole.Incoming, friendNormalMsg!.Role);
+        Assert.Equal("你撤回了啥呀？", friendNormalMsg.Text);
+    }
 }

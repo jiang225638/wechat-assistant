@@ -127,6 +127,29 @@ public class TraceMemoClientTests
         Assert.Equal("你好呀", TraceMemoClient.NormalizeWeChatMessageText("你好呀", doc4.RootElement));
     }
 
+    [Fact]
+    public async Task FetchHistory_WithSelfAndFriendRecallMessages_ResolvesRoleAndCleansXml()
+    {
+        const string rawJson =
+            "[{\"type\":10000,\"isSender\":false,\"text\":\"<?xml version=\\\"1.0\\\"?><sysmsg type=\\\"revokemsg\\\"><revokemsg><content>你撤回了一条消息</content><revoketime>0</revoketime></revokemsg></sysmsg>\"}," +
+            "{\"type\":10000,\"isSender\":false,\"text\":\"你撤回了一条消息\"}," +
+            "{\"type\":10000,\"isSender\":false,\"text\":\"\\\"张三\\\" 撤回了一条消息\"}]";
+
+        using var client = new TraceMemoClient("http://stub.local", new StubHandler(path =>
+            path.Contains("/messages") ? rawJson : ContactsJson));
+
+        var res = await client.FetchHistoryAsync("张三");
+
+        Assert.True(res.Success);
+        Assert.Equal(3, res.Messages.Count);
+        Assert.Equal(MessageRole.Outgoing, res.Messages[0].Role);
+        Assert.Equal("你撤回了一条消息", res.Messages[0].Text);
+        Assert.Equal(MessageRole.Outgoing, res.Messages[1].Role);
+        Assert.Equal("你撤回了一条消息", res.Messages[1].Text);
+        Assert.Equal(MessageRole.Incoming, res.Messages[2].Role);
+        Assert.Equal("\"张三\" 撤回了一条消息", res.Messages[2].Text);
+    }
+
     /// <summary>按路径返回固定 JSON 的测试 handler；body 为 null 时返回 500。</summary>
     private sealed class StubHandler : HttpMessageHandler
     {

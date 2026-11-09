@@ -252,6 +252,15 @@ public sealed class TraceMemoClient : IChatHistoryProvider
                 }
 
                 MessageRole role = ExtractRole(el);
+                if (Wcdb4MessageDecoder.IsSelfRecallMessage(text))
+                {
+                    role = MessageRole.Outgoing;
+                }
+                else if (Wcdb4MessageDecoder.IsFriendRecallMessage(text))
+                {
+                    role = MessageRole.Incoming;
+                }
+
                 list.Add(new HistoryMessage(role, text, ts));
             }
 
@@ -267,6 +276,11 @@ public sealed class TraceMemoClient : IChatHistoryProvider
         {
             if (tProp.ValueKind == JsonValueKind.Number) type = tProp.GetInt32();
             else if (tProp.ValueKind == JsonValueKind.String && int.TryParse(tProp.GetString(), out int pv)) type = pv;
+        }
+
+        if (Wcdb4MessageDecoder.TryExtractSysMsgContent(text, out string? sysMsgText) && !string.IsNullOrWhiteSpace(sysMsgText))
+        {
+            return sysMsgText;
         }
 
         // 1. 若文本包含微信卡片 XML (type 49 或包含 <appmsg / <msg)

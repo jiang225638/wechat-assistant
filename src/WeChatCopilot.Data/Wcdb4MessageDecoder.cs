@@ -186,6 +186,24 @@ public static class Wcdb4MessageDecoder
             return null;
         }
 
+        // 若是撤回消息等系统通知（WCDB4 底层 local_type=10000/10002 不含 sender_username / computed_is_send），
+        // 根据撤回提示文案判定归属：“你撤回了一条消息”属于我方 (Outgoing)，“"对方" 撤回了一条消息”属于对方 (Incoming)
+        bool isSystemOrRevoke = msgType is 10000 or 10002 or 0 ||
+                                string.IsNullOrEmpty(sender) ||
+                                content.Contains("<revokemsg", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("<sysmsg", StringComparison.OrdinalIgnoreCase);
+        if (isSystemOrRevoke)
+        {
+            if (IsSelfRecallMessage(cleanedText))
+            {
+                isSend = true;
+            }
+            else if (IsFriendRecallMessage(cleanedText))
+            {
+                isSend = false;
+            }
+        }
+
         // 5. 解析时间戳
         long createTimeSec = PickTimestampSeconds(row,
             "create_time", "createTime", "msg_create_time", "msgCreateTime", "time", "WCDB_CT_create_time");
@@ -246,6 +264,10 @@ public static class Wcdb4MessageDecoder
                     unreadCount = parsedUnread;
                 }
                 string summary = PickString(row, "summary", "content", "last_msg_summary", "lastMessageSummary");
+                if (TryExtractSysMsgContent(summary, out string? cleanedSummary) && !string.IsNullOrWhiteSpace(cleanedSummary))
+                {
+                    summary = cleanedSummary;
+                }
 
                 list.Add(new Wcdb4SessionItem(username, nickname, remark, alias, lastTs, unreadCount, summary));
             }
@@ -796,6 +818,12 @@ public static class Wcdb4MessageDecoder
             return "[拍一拍]";
         }
 
+        // 撤回消息或其他 <sysmsg> 系统通知（提取 <content> 内部文案，消除原始 XML 标签）
+        if (TryExtractSysMsgContent(text, out string? sysMsgText) && !string.IsNullOrWhiteSpace(sysMsgText))
+        {
+            return sysMsgText;
+        }
+
         // 包含 XML 的富媒体/引用回复/卡片
         if (text.Contains("<appmsg", StringComparison.OrdinalIgnoreCase) ||
             text.Contains("<msg", StringComparison.OrdinalIgnoreCase) ||
@@ -1236,12 +1264,111 @@ public static class Wcdb4MessageDecoder
         return false;
     }
     /// <summary>
+    /// 尝试从微信系统通知 XML（如 &lt;sysmsg type="revokemsg"&gt;）中提取可读文本内容。
+    /// </summary>
+    public static bool TryExtractSysMsgContent(string? rawText, out string? extracted)
+    {
+        extracted = null;
+        if (string.IsNullOrWhiteSpace(rawText))
+        {
+            return false;
+        }
+
+        string text = rawText.Trim();
+        if (!text.Contains("<sysmsg", StringComparison.OrdinalIgnoreCase) &&
+            !text.Contains("<revokemsg", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (text.Contains("<patinfo", StringComparison.OrdinalIgnoreCase) ||
+            text.Contains("<sysmsg type=\"pat\"", StringComparison.OrdinalIgnoreCase))
+        {
+            extracted = "[拍一拍]";
+            return true;
+        }
+
+        Match mContent = s_referContentRegex.Match(text);
+        if (mContent.Success)
+        {
+            string decoded = System.Net.WebUtility.HtmlDecode(mContent.Groups[1].Value).Trim();
+            if (!string.IsNullOrWhiteSpace(decoded))
+            {
+                extracted = decoded;
+                return true;
+            }
+        }
+
+        if (text.Contains("revokemsg", StringComparison.OrdinalIgnoreCase))
+        {
+            extracted = "[撤回了一条消息]";
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 判定消息文本是否属于“当前登录用户自己撤回了一条消息”的系统提示（如“你撤回了一条消息”）。
+    /// 注意：对方撤回时微信文案格式为带引号的“"对方昵称" 撤回了一条消息”，不会匹配此方法。
+    /// </summary>
+    public static bool IsSelfRecallMessage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        string normalized = TryExtractSysMsgContent(text, out string? sysContent) && !string.IsNullOrWhiteSpace(sysContent)
+            ? sysContent.Trim()
+            : text.Trim();
+
+        if (normalized.StartsWith('[') && normalized.EndsWith(']') && normalized.Length > 2)
+        {
+            normalized = normalized[1..^1].Trim();
+        }
+
+        return normalized.StartsWith("你撤回了一条消息", StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith("我撤回了一条消息", StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith("You recalled a message", StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith("You unsent a message", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 判定消息文本是否属于“对方撤回了一条消息”的系统提示（如“"Raelin" 撤回了一条消息”）。
+    /// </summary>
+    public static bool IsFriendRecallMessage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        string normalized = TryExtractSysMsgContent(text, out string? sysContent) && !string.IsNullOrWhiteSpace(sysContent)
+            ? sysContent.Trim()
+            : text.Trim();
+
+        if (IsSelfRecallMessage(normalized))
+        {
+            return false;
+        }
+
+        return normalized.Contains("撤回了一条消息", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains("recalled a message", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains("unsent a message", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// 将带元数据的富媒体标记清洗为纯文本摘要（如 [动画表情: md5=...] -> [动画表情]），供 AI 提示词与统计使用。
     /// </summary>
     public static string StripMediaMarkup(string? text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
         string res = text;
+        if (TryExtractSysMsgContent(res, out string? sysContent) && !string.IsNullOrWhiteSpace(sysContent))
+        {
+            res = sysContent;
+        }
         if (res.Contains("<msg", StringComparison.OrdinalIgnoreCase) && res.Contains("<emoji", StringComparison.OrdinalIgnoreCase))
         {
             res = Regex.Replace(res, @"<msg>[\s\S]*?<emoji[\s\S]*?</msg>", "[动画表情]");

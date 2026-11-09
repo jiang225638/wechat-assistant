@@ -237,4 +237,34 @@ public sealed class SqliteStorageTests : IDisposable
         Assert.True(deleted);
         Assert.Null(storage.GetSkill("custom_skill_1"));
     }
+
+    [Fact]
+    public void GetMessages_NormalizesLegacyRevokeSysMsgAndFixesSelfRecallRole()
+    {
+        using var storage = new SqliteStorage(_testDbPath);
+        string contact = "Raelin";
+        var t1 = new DateTime(2026, 11, 9, 4, 13, 8, DateTimeKind.Utc);
+        var t2 = new DateTime(2026, 11, 9, 4, 14, 0, DateTimeKind.Utc);
+
+        storage.SaveMessages(contact, new[]
+        {
+            new HistoryMessage(
+                MessageRole.Incoming,
+                "<?xml version=\"1.0\"?><sysmsg type=\"revokemsg\"><revokemsg><content>你撤回了一条消息</content><revoketime>0</revoketime></revokemsg></sysmsg>",
+                t1),
+            new HistoryMessage(
+                MessageRole.Incoming,
+                "<?xml version=\"1.0\"?><sysmsg type=\"revokemsg\"><revokemsg><content>\"Raelin\" 撤回了一条消息</content><revoketime>0</revoketime></revokemsg></sysmsg>",
+                t2)
+        });
+
+        var loaded = storage.GetMessages(contact);
+        Assert.Equal(2, loaded.Count);
+
+        Assert.Equal(MessageRole.Outgoing, loaded[0].Role);
+        Assert.Equal("你撤回了一条消息", loaded[0].Text);
+
+        Assert.Equal(MessageRole.Incoming, loaded[1].Role);
+        Assert.Equal("\"Raelin\" 撤回了一条消息", loaded[1].Text);
+    }
 }
